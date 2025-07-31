@@ -267,15 +267,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showConfigurationDialog(context),
-              icon: const Icon(Icons.edit),
-              label: const Text('Edit Server Configuration'),
-            ),
-          ),
+          // const Spacer(),
+          // SizedBox(
+          //   width: double.infinity,
+          //   child: OutlinedButton.icon(
+          //     onPressed: () => _showConfigurationDialog(context),
+          //     icon: const Icon(Icons.edit),
+          //     label: const Text('Edit Server Configuration'),
+          //   ),
+          // ),
         ],
       ),
     );
