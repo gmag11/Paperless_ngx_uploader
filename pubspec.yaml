@@ -1,0 +1,40 @@
+name: paperless_ngx_android_uploader
+description: "A Flutter app for uploading documents to Paperless-NGX via Android share intent"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  
+  # HTTP client for API calls
+  http: ^1.2.2
+  
+  # Secure storage for credentials
+  flutter_secure_storage: ^9.2.2
+  
+  # Share intent handling
+  receive_sharing_intent: ^1.8.1
+  
+  # File handling
+  path_provider: ^2.1.5
+  path: ^1.9.0
+  
+  # State management
+  provider: ^6.1.2
+  
+  # UI components
+  flutter_typeahead: ^5.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
