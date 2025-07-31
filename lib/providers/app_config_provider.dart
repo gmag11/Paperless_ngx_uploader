@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/tag.dart';
 
 class AppConfigProvider extends ChangeNotifier {
   static const _storage = FlutterSecureStorage();
@@ -11,6 +12,7 @@ class AppConfigProvider extends ChangeNotifier {
   bool _isConnecting = false;
   String? _connectionError;
   bool _isConnected = false;
+  List<Tag> _selectedTags = [];
 
   String? get serverUrl => _serverUrl;
   String? get username => _username;
@@ -19,6 +21,7 @@ class AppConfigProvider extends ChangeNotifier {
   bool get isConnecting => _isConnecting;
   String? get connectionError => _connectionError;
   bool get isConnected => _isConnected;
+  List<Tag> get selectedTags => List.unmodifiable(_selectedTags);
 
   Future<void> loadConfiguration() async {
     _serverUrl = await _storage.read(key: 'server_url');
@@ -70,6 +73,32 @@ class AppConfigProvider extends ChangeNotifier {
     _isConfigured = false;
     _isConnected = false;
     _connectionError = null;
+    notifyListeners();
+  }
+
+  void setSelectedTags(List<Tag> tags) {
+    _selectedTags = List.from(tags);
+    notifyListeners();
+  }
+
+  List<Tag> getSelectedTags() {
+    return List.unmodifiable(_selectedTags);
+  }
+
+  void clearSelectedTags() {
+    _selectedTags.clear();
+    notifyListeners();
+  }
+
+  void addSelectedTag(Tag tag) {
+    if (!_selectedTags.any((t) => t.id == tag.id)) {
+      _selectedTags.add(tag);
+      notifyListeners();
+    }
+  }
+
+  void removeSelectedTag(Tag tag) {
+    _selectedTags.removeWhere((t) => t.id == tag.id);
     notifyListeners();
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_config_provider.dart';
+import '../widgets/tag_selection_dialog.dart';
+import '../models/tag.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,11 +12,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _hasShownTagDialog = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AppConfigProvider>(context, listen: false).loadConfiguration();
+      final config = Provider.of<AppConfigProvider>(context, listen: false);
+      config.loadConfiguration().then((_) {
+        if (config.isConfigured && !_hasShownTagDialog) {
+          _showTagSelectionDialog(context);
+        }
+      });
     });
   }
 
@@ -143,6 +152,98 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.tag, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Global Tag Configuration',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () => _showTagSelectionDialog(context),
+                        tooltip: 'Edit tags',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Consumer<AppConfigProvider>(
+                    builder: (context, config, child) {
+                      if (config.selectedTags.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: const Column(
+                            children: [
+                              Icon(Icons.tag_outlined, size: 48, color: Colors.grey),
+                              SizedBox(height: 8),
+                              Text(
+                                'No tags selected',
+                                style: TextStyle(color: Colors.grey, fontSize: 16),
+                              ),
+                              Text(
+                                'Tap "Select Tags" to configure',
+                                style: TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${config.selectedTags.length} tag${config.selectedTags.length == 1 ? '' : 's'} configured',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: config.selectedTags.map((tag) {
+                              final colorHex = tag.color ?? '#808080';
+                              final color = Color(
+                                int.parse(colorHex.replaceFirst('#', '0xFF')),
+                              );
+                              return Chip(
+                                label: Text(
+                                  tag.name,
+                                  style: TextStyle(
+                                    color: _getContrastColor(color),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                backgroundColor: color,
+                                elevation: 1,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
           const Text(
             'How to use:',
             style: TextStyle(
@@ -172,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: OutlinedButton.icon(
               onPressed: () => _showConfigurationDialog(context),
               icon: const Icon(Icons.edit),
-              label: const Text('Edit Configuration'),
+              label: const Text('Edit Server Configuration'),
             ),
           ),
         ],
@@ -268,5 +369,48 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  void _showTagSelectionDialog(BuildContext context) {
+    final config = Provider.of<AppConfigProvider>(context, listen: false);
+    
+    // Mock tags list
+    final mockTags = [
+      Tag(id: 1, name: 'Important', color: '#FF0000'),
+      Tag(id: 2, name: 'Work', color: '#0000FF'),
+      Tag(id: 3, name: 'Personal', color: '#00FF00'),
+      Tag(id: 4, name: 'Bills', color: '#FFA500'),
+      Tag(id: 5, name: 'Receipts', color: '#800080'),
+      Tag(id: 6, name: 'Tax', color: '#008080'),
+      Tag(id: 7, name: 'Medical', color: '#FFC0CB'),
+      Tag(id: 8, name: 'Insurance', color: '#A52A2A'),
+    ];
+    
+    // Default tags (empty for now)
+    final defaultTags = <Tag>[];
+    
+    showDialog<List<Tag>>(
+      context: context,
+      builder: (context) => TagSelectionDialog(
+        tags: mockTags,
+        selectedTags: config.selectedTags,
+        defaultTags: defaultTags,
+      ),
+    ).then((selectedTags) {
+      if (selectedTags != null) {
+        config.setSelectedTags(selectedTags);
+      }
+      setState(() {
+        _hasShownTagDialog = true;
+      });
+    });
+  }
+
+  Color _getContrastColor(Color color) {
+    // Calculate the perceptive luminance (human eye favors green color)
+    final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
+    
+    // Return black or white depending on the luminance
+    return luminance > 0.5 ? Colors.black : Colors.white;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import '../models/tag.dart';
 import '../providers/app_config_provider.dart';
 import '../providers/upload_provider.dart';
 
@@ -20,13 +21,12 @@ class UploadScreen extends StatefulWidget {
 
 class _UploadScreenState extends State<UploadScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final List<Tag> _selectedTags = [];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<UploadProvider>(context, listen: false).fetchTags();
-    });
+    _selectedTags.addAll(Provider.of<AppConfigProvider>(context, listen: false).selectedTags);
   }
 
   @override
@@ -45,8 +45,8 @@ class _UploadScreenState extends State<UploadScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Consumer2<AppConfigProvider, UploadProvider>(
-        builder: (context, config, upload, child) {
+      body: Consumer<UploadProvider>(
+        builder: (context, upload, child) {
           if (upload.uploadSuccess) {
             return _buildUploadSuccess(context);
           }
@@ -54,7 +54,7 @@ class _UploadScreenState extends State<UploadScreen> {
           return Column(
             children: [
               _buildFilePreview(),
-              _buildTagSelection(upload),
+              _buildTagSelection(),
               if (upload.uploadError != null) ...[
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -137,86 +137,111 @@ class _UploadScreenState extends State<UploadScreen> {
     );
   }
 
-  Widget _buildTagSelection(UploadProvider upload) {
-    return Expanded(
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Select Tags',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search tags...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ],
-              ),
-            ),
-            if (upload.isLoadingTags)
-              const Center(child: CircularProgressIndicator())
-            else if (upload.tagsError != null)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  upload.tagsError!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              )
-            else
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: upload.searchTags(_searchController.text).length,
-                  itemBuilder: (context, index) {
-                    final tag = upload.searchTags(_searchController.text)[index];
-                    final isSelected = upload.selectedTagIds.contains(tag['id']);
-                    
-                    return ListTile(
-                      leading: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Color(int.parse(tag['color'].substring(1, 7), radix: 16) + 0xFF000000),
-                          borderRadius: BorderRadius.circular(4),
+  Widget _buildTagSelection() {
+    return Consumer<AppConfigProvider>(
+      builder: (context, config, child) {
+        // For now, we'll use the selected tags as available tags
+        // In a real app, you would fetch available tags from the server
+        final tags = config.selectedTags;
+        final filteredTags = tags.where((tag) =>
+            tag.name.toLowerCase().contains(_searchController.text.toLowerCase())
+        ).toList();
+
+        return Expanded(
+          child: Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Tags',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      title: Text(tag['name']),
-                      trailing: Checkbox(
-                        value: isSelected,
-                        onChanged: (value) {
-                          upload.toggleTagSelection(tag['id']);
-                        },
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search tags...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        onChanged: (_) => setState(() {}),
                       ),
-                      onTap: () {
-                        upload.toggleTagSelection(tag['id']);
-                      },
-                    );
-                  },
+                    ],
+                  ),
                 ),
-              ),
-          ],
-        ),
-      ),
+                if (tags.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'No tags available',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: filteredTags.length,
+                      itemBuilder: (context, index) {
+                        final tag = filteredTags[index];
+                        final isSelected = _selectedTags.any((t) => t.id == tag.id);
+                        
+                        return ListTile(
+                          leading: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: Color(
+                                int.parse(
+                                  (tag.color ?? '#808080').replaceFirst('#', '0xFF'),
+                                ),
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          title: Text(tag.name),
+                          trailing: Checkbox(
+                            value: isSelected,
+                            onChanged: (value) {
+                              setState(() {
+                                if (value == true) {
+                                  _selectedTags.add(tag);
+                                } else {
+                                  _selectedTags.removeWhere((t) => t.id == tag.id);
+                                }
+                              });
+                            },
+                          ),
+                          onTap: () {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedTags.removeWhere((t) => t.id == tag.id);
+                              } else {
+                                _selectedTags.add(tag);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -291,6 +316,6 @@ class _UploadScreenState extends State<UploadScreen> {
       return;
     }
 
-    await upload.uploadFile(file, widget.fileName);
+    await upload.uploadFile(file, widget.fileName, _selectedTags);
   }
 }
