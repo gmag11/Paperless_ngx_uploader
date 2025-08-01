@@ -397,6 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
         tags: allTags,
         selectedTags: currentSelectedTags,
         defaultTags: const [], // Empty for now, will be implemented later
+        configProvider: config,
       ),
     ).then((selectedTags) {
       if (selectedTags != null) {

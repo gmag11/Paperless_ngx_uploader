@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:paperless_ngx_android_uploader/models/tag.dart';
+import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
 
 class TagSelectionDialog extends StatefulWidget {
   final List<Tag> tags;
   final List<Tag> selectedTags;
   final List<Tag> defaultTags;
+  final AppConfigProvider configProvider;
 
   const TagSelectionDialog({
     super.key,
     required this.tags,
     required this.selectedTags,
     required this.defaultTags,
+    required this.configProvider,
   });
 
   @override
@@ -71,6 +74,7 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
     setState(() {
       if (_selectedTags.any((t) => t.id == tag.id)) {
         _selectedTags.removeWhere((t) => t.id == tag.id);
+        widget.configProvider.removeSelectedTag(tag);
       } else {
         // Find the existing tag from the original selectedTags list if available
         final existingTag = widget.selectedTags.firstWhere(
@@ -78,6 +82,7 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
           orElse: () => tag,
         );
         _selectedTags.add(existingTag);
+        widget.configProvider.addSelectedTag(existingTag);
       }
     });
   }

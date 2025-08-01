@@ -114,18 +114,21 @@ class AppConfigProvider extends ChangeNotifier {
 
   void clearSelectedTags() {
     _selectedTags.clear();
+    saveSelectedTags();
     notifyListeners();
   }
 
   void addSelectedTag(Tag tag) {
     if (!_selectedTags.any((t) => t.id == tag.id)) {
       _selectedTags.add(tag);
+      saveSelectedTags();
       notifyListeners();
     }
   }
 
   void removeSelectedTag(Tag tag) {
     _selectedTags.removeWhere((t) => t.id == tag.id);
+    saveSelectedTags();
     notifyListeners();
   }
 }
