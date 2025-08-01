@@ -256,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(height: 8),
                   Text('2. Select "Paperless-NGX Uploader"'),
                   SizedBox(height: 8),
-                  Text('3. Choose tags and upload'),
+                  Text('3. Upload will happen inmediately'),
                 ],
               ),
             ),
