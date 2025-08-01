@@ -12,18 +12,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _hasShownTagDialog = false;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final config = Provider.of<AppConfigProvider>(context, listen: false);
-      config.loadConfiguration().then((_) {
-        if (config.isConfigured && !_hasShownTagDialog) {
-          _showTagSelectionDialog(context);
-        }
-      });
+      config.loadConfiguration();
     });
   }
 
@@ -374,8 +368,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showTagSelectionDialog(BuildContext context) {
     final config = Provider.of<AppConfigProvider>(context, listen: false);
     
-    // Mock tags list
-    final mockTags = [
+    // Create a copy of selected tags to prevent direct mutation
+    final currentSelectedTags = List<Tag>.from(config.selectedTags);
+    
+    // TODO: Replace with actual tags from the server
+    // For now, keep mock tags but ensure they include any selected tags
+    final allTags = [
       Tag(id: 1, name: 'Important', color: '#FF0000'),
       Tag(id: 2, name: 'Work', color: '#0000FF'),
       Tag(id: 3, name: 'Personal', color: '#00FF00'),
@@ -386,23 +384,24 @@ class _HomeScreenState extends State<HomeScreen> {
       Tag(id: 8, name: 'Insurance', color: '#A52A2A'),
     ];
     
-    // Default tags (empty for now)
-    final defaultTags = <Tag>[];
+    // Add any selected tags that aren't in the mock list
+    for (final tag in currentSelectedTags) {
+      if (!allTags.any((t) => t.id == tag.id)) {
+        allTags.add(tag);
+      }
+    }
     
     showDialog<List<Tag>>(
       context: context,
       builder: (context) => TagSelectionDialog(
-        tags: mockTags,
-        selectedTags: config.selectedTags,
-        defaultTags: defaultTags,
+        tags: allTags,
+        selectedTags: currentSelectedTags,
+        defaultTags: const [], // Empty for now, will be implemented later
       ),
     ).then((selectedTags) {
       if (selectedTags != null) {
         config.setSelectedTags(selectedTags);
       }
-      setState(() {
-        _hasShownTagDialog = true;
-      });
     });
   }
 

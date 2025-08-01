@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
 import '../models/tag.dart';
 
 class AppConfigProvider extends ChangeNotifier {
   static const _storage = FlutterSecureStorage();
+  static const _tagStorageKey = 'selected_tags';
   
   String? _serverUrl;
   String? _username;
@@ -28,7 +30,31 @@ class AppConfigProvider extends ChangeNotifier {
     _username = await _storage.read(key: 'username');
     _password = await _storage.read(key: 'password');
     _isConfigured = _serverUrl != null && _username != null && _password != null;
+    
+    await loadStoredTags();
     notifyListeners();
+  }
+
+  Future<void> loadStoredTags() async {
+    final storedTagsJson = await _storage.read(key: _tagStorageKey);
+    if (storedTagsJson != null) {
+      try {
+        final List<dynamic> tagList = jsonDecode(storedTagsJson) as List<dynamic>;
+        _selectedTags = tagList.map((tag) => Tag.fromJson(tag)).toList();
+      } catch (e) {
+        debugPrint('Error loading stored tags: $e');
+        _selectedTags = [];
+      }
+    }
+  }
+
+  Future<void> saveSelectedTags() async {
+    try {
+      final tagListJson = jsonEncode(_selectedTags.map((tag) => tag.toJson()).toList());
+      await _storage.write(key: _tagStorageKey, value: tagListJson);
+    } catch (e) {
+      debugPrint('Error saving tags: $e');
+    }
   }
 
   Future<void> saveConfiguration(String serverUrl, String username, String password) async {
@@ -78,6 +104,7 @@ class AppConfigProvider extends ChangeNotifier {
 
   void setSelectedTags(List<Tag> tags) {
     _selectedTags = List.from(tags);
+    saveSelectedTags();
     notifyListeners();
   }
 

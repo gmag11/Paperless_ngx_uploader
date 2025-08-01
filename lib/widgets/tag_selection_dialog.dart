@@ -25,33 +25,74 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedTags = List.from(widget.selectedTags);
+    // Initialize selected tags from widget's selectedTags
+    _selectedTags = widget.selectedTags.map((tag) {
+      // Try to find matching tag in the main tags list to preserve all properties
+      return widget.tags.firstWhere(
+        (t) => t.id == tag.id,
+        orElse: () => tag,
+      );
+    }).toList();
+
+    // Initialize filtered tags with all available tags
     _filteredTags = List.from(widget.tags);
+    
+    // Ensure filtered tags include any selected tags not in the main list
+    for (final tag in _selectedTags) {
+      if (!_filteredTags.any((t) => t.id == tag.id)) {
+        _filteredTags.add(tag);
+      }
+    }
+    
     _searchController.addListener(_filterTags);
   }
 
   void _filterTags() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredTags = widget.tags.where((tag) {
+      // Start with original tags list
+      List<Tag> newFilteredTags = widget.tags.where((tag) {
         return tag.name.toLowerCase().contains(query);
       }).toList();
+      
+      // Add any selected tags that match the search but aren't in the main list
+      for (final selectedTag in _selectedTags) {
+        if (selectedTag.name.toLowerCase().contains(query) &&
+            !newFilteredTags.any((t) => t.id == selectedTag.id)) {
+          newFilteredTags.add(selectedTag);
+        }
+      }
+      
+      _filteredTags = newFilteredTags;
     });
   }
 
   void _toggleTag(Tag tag) {
     setState(() {
-      if (_selectedTags.contains(tag)) {
-        _selectedTags.remove(tag);
+      if (_selectedTags.any((t) => t.id == tag.id)) {
+        _selectedTags.removeWhere((t) => t.id == tag.id);
       } else {
-        _selectedTags.add(tag);
+        // Find the existing tag from the original selectedTags list if available
+        final existingTag = widget.selectedTags.firstWhere(
+          (t) => t.id == tag.id,
+          orElse: () => tag,
+        );
+        _selectedTags.add(existingTag);
       }
     });
   }
 
   void _selectDefaults() {
     setState(() {
-      _selectedTags = List.from(widget.defaultTags);
+      _selectedTags.clear();
+      for (final defaultTag in widget.defaultTags) {
+        // Find matching tag from the original list to preserve properties
+        final matchingTag = widget.tags.firstWhere(
+          (t) => t.id == defaultTag.id,
+          orElse: () => defaultTag,
+        );
+        _selectedTags.add(matchingTag);
+      }
     });
   }
 
@@ -90,7 +131,7 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
                 itemCount: _filteredTags.length,
                 itemBuilder: (context, index) {
                   final tag = _filteredTags[index];
-                  final isSelected = _selectedTags.contains(tag);
+                  final isSelected = _selectedTags.any((t) => t.id == tag.id);
                   
                   return ListTile(
                     leading: Checkbox(
