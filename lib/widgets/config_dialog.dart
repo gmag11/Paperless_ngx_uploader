@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:paperless_ngx_android_uploader/services/secure_storage_service.dart';
 import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
+import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
 
 class ConfigDialog extends StatefulWidget {
   const ConfigDialog({super.key});
@@ -49,22 +50,38 @@ class _ConfigDialogState extends State<ConfigDialog> {
         password: _passwordController.text,
       );
 
-      final success = await service.testConnection();
+      final status = await service.testConnection();
       
-      if (success) {
-        await SecureStorageService.saveCredentials(
-          serverUrl: _serverUrlController.text.trim(),
-          username: _usernameController.text.trim(),
-          password: _passwordController.text,
-        );
-        
-        if (mounted) {
-          Navigator.of(context).pop(true);
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'Connection failed. Please check your credentials.';
-        });
+      switch (status) {
+        case ConnectionStatus.connected:
+          await SecureStorageService.saveCredentials(
+            serverUrl: _serverUrlController.text.trim(),
+            username: _usernameController.text.trim(),
+            password: _passwordController.text,
+          );
+          if (mounted) {
+            Navigator.of(context).pop(true);
+          }
+        case ConnectionStatus.invalidCredentials:
+          setState(() {
+            _errorMessage = 'Invalid username or password';
+          });
+        case ConnectionStatus.serverUnreachable:
+          setState(() {
+            _errorMessage = 'Server is unreachable';
+          });
+        case ConnectionStatus.invalidServerUrl:
+          setState(() {
+            _errorMessage = 'Invalid server URL or not a Paperless-NGX server';
+          });
+        case ConnectionStatus.sslError:
+          setState(() {
+            _errorMessage = 'SSL certificate error';
+          });
+        default:
+          setState(() {
+            _errorMessage = 'Unknown connection error occurred';
+          });
       }
     } catch (e) {
       setState(() {

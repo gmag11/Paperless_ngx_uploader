@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:paperless_ngx_android_uploader/models/tag.dart';
+import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
 
 class PaperlessService {
   final String baseUrl;
@@ -19,17 +20,31 @@ class PaperlessService {
     return 'Basic $credentials';
   }
 
-  Future<bool> testConnection() async {
+  Future<ConnectionStatus> testConnection() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/documents/'),
+        Uri.parse('$baseUrl/api/status/'),
         headers: {
           'Authorization': _authHeader,
         },
       );
-      return response.statusCode == 200;
+
+      switch (response.statusCode) {
+        case 200:
+          return ConnectionStatus.connected;
+        case 401:
+          return ConnectionStatus.invalidCredentials;
+        case 404:
+          return ConnectionStatus.invalidServerUrl;
+        default:
+          return ConnectionStatus.unknownError;
+      }
+    } on SocketException {
+      return ConnectionStatus.serverUnreachable;
+    } on HandshakeException {
+      return ConnectionStatus.sslError;
     } catch (e) {
-      return false;
+      return ConnectionStatus.unknownError;
     }
   }
 
