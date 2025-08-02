@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:paperless_ngx_android_uploader/models/tag.dart';
 import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
+import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
 
 class TagSelectionDialog extends StatefulWidget {
-  final List<Tag> tags;
   final List<Tag> selectedTags;
   final List<Tag> defaultTags;
   final AppConfigProvider configProvider;
+  final PaperlessService paperlessService;
 
   const TagSelectionDialog({
     super.key,
-    required this.tags,
     required this.selectedTags,
     required this.defaultTags,
     required this.configProvider,
+    required this.paperlessService,
   });
 
   @override
@@ -24,50 +25,57 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
   late List<Tag> _selectedTags;
   late List<Tag> _filteredTags;
   final TextEditingController _searchController = TextEditingController();
+  bool _isLoading = true;
+  String? _error;
+  List<Tag> _allTags = [];
 
   @override
   void initState() {
     super.initState();
-    // Initialize selected tags from widget's selectedTags
-    _selectedTags = widget.selectedTags.map((tag) {
-      // Try to find matching tag in the main tags list to preserve all properties
-      return widget.tags.firstWhere(
-        (t) => t.id == tag.id,
-        orElse: () => tag,
-      );
-    }).toList();
-
-    // Initialize filtered tags with all available tags
-    _filteredTags = List.from(widget.tags);
-    
-    // Ensure filtered tags include any selected tags not in the main list
-    for (final tag in _selectedTags) {
-      if (!_filteredTags.any((t) => t.id == tag.id)) {
-        _filteredTags.add(tag);
-      }
-    }
-    
+    _selectedTags = List.from(widget.selectedTags);
+    _filteredTags = [];
     _searchController.addListener(_filterTags);
+    _fetchTags();
+  }
+
+  Future<void> _fetchTags() async {
+    try {
+      final tags = await widget.paperlessService.fetchTags();
+      setState(() {
+        _allTags = tags;
+        _updateFilteredTags();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load tags: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   void _filterTags() {
-    final query = _searchController.text.toLowerCase();
     setState(() {
-      // Start with original tags list
-      List<Tag> newFilteredTags = widget.tags.where((tag) {
-        return tag.name.toLowerCase().contains(query);
-      }).toList();
-      
-      // Add any selected tags that match the search but aren't in the main list
-      for (final selectedTag in _selectedTags) {
-        if (selectedTag.name.toLowerCase().contains(query) &&
-            !newFilteredTags.any((t) => t.id == selectedTag.id)) {
-          newFilteredTags.add(selectedTag);
-        }
-      }
-      
-      _filteredTags = newFilteredTags;
+      _updateFilteredTags();
     });
+  }
+
+  void _updateFilteredTags() {
+    final query = _searchController.text.toLowerCase();
+    // Start with original tags list
+    List<Tag> newFilteredTags = _allTags.where((tag) {
+      return tag.name.toLowerCase().contains(query);
+    }).toList();
+    
+    // Add any selected tags that match the search but aren't in the main list
+    for (final selectedTag in _selectedTags) {
+      if (selectedTag.name.toLowerCase().contains(query) &&
+          !newFilteredTags.any((t) => t.id == selectedTag.id)) {
+        newFilteredTags.add(selectedTag);
+      }
+    }
+    
+    _filteredTags = newFilteredTags;
   }
 
   void _toggleTag(Tag tag) {
@@ -92,7 +100,7 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
       _selectedTags.clear();
       for (final defaultTag in widget.defaultTags) {
         // Find matching tag from the original list to preserve properties
-        final matchingTag = widget.tags.firstWhere(
+        final matchingTag = _allTags.firstWhere(
           (t) => t.id == defaultTag.id,
           orElse: () => defaultTag,
         );
@@ -109,6 +117,38 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return AlertDialog(
+        title: const Text('Select Tags'),
+        content: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return AlertDialog(
+        title: const Text('Error'),
+        content: Text(_error!),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _error = null;
+                _isLoading = true;
+              });
+              _fetchTags();
+            },
+            child: const Text('Retry'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(null),
+            child: const Text('Cancel'),
+          ),
+        ],
+      );
+    }
+
     return AlertDialog(
       title: const Text('Select Tags'),
       content: SizedBox(

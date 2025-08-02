@@ -28,6 +28,15 @@ class AppConfigProvider extends ChangeNotifier {
   bool get isConnected => _connectionStatus == ConnectionStatus.connected;
   List<Tag> get selectedTags => List.unmodifiable(_selectedTags);
 
+  PaperlessService? getPaperlessService() {
+    if (!isConfigured) return null;
+    return PaperlessService(
+      baseUrl: _serverUrl!,
+      username: _username!,
+      password: _password!,
+    );
+  }
+
   Future<void> loadConfiguration() async {
     _serverUrl = await _storage.read(key: 'server_url');
     _username = await _storage.read(key: 'username');
@@ -50,12 +59,36 @@ class AppConfigProvider extends ChangeNotifier {
     if (storedTagsJson != null) {
       try {
         final List<dynamic> tagList = jsonDecode(storedTagsJson) as List<dynamic>;
-        _selectedTags = tagList.map((tag) => Tag.fromJson(tag)).toList();
+        _selectedTags = [];
+        
+        for (final tagData in tagList) {
+          try {
+            if (tagData is Map<String, dynamic>) {
+              final tag = Tag.fromJson(tagData);
+              // Only add tags that have valid required fields
+              if (tag.id != 0 && tag.name.isNotEmpty && tag.slug.isNotEmpty) {
+                _selectedTags.add(tag);
+              } else {
+                debugPrint('Skipping invalid tag data: missing required fields');
+              }
+            } else {
+              debugPrint('Skipping invalid tag data: not a map - $tagData');
+            }
+          } catch (e) {
+            debugPrint('Error parsing individual tag: $e\nTag data: $tagData');
+            // Continue processing other tags
+          }
+        }
+        
+        if (_selectedTags.isEmpty && tagList.isNotEmpty) {
+          debugPrint('Warning: No valid tags could be recovered from stored data');
+        }
       } catch (e) {
-        debugPrint('Error loading stored tags: $e');
+        debugPrint('Error decoding stored tags JSON: $e');
         _selectedTags = [];
       }
     }
+    notifyListeners();
   }
 
   Future<void> saveSelectedTags() async {

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_config_provider.dart';
 import '../widgets/tag_selection_dialog.dart';
+import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
+import '../models/connection_status.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -91,9 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMainScreen(BuildContext context, AppConfigProvider config) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Card(
@@ -104,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.cloud_done, color: Colors.green),
+                      _buildStatusIcon(config.connectionStatus),
                       const SizedBox(width: 8),
                       const Text(
                         'Server Status',
@@ -114,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const Spacer(),
-                      if (config.isConnecting)
+                      if (config.connectionStatus == ConnectionStatus.connecting)
                         const SizedBox(
                           width: 16,
                           height: 16,
@@ -127,20 +130,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     config.serverUrl ?? 'Not configured',
                     style: const TextStyle(color: Colors.grey),
                   ),
-                  if (config.connectionError != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      config.connectionError!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ],
-                  if (config.isConnected) ...[
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Connected successfully',
-                      style: TextStyle(color: Colors.green),
-                    ),
-                  ],
+                  const SizedBox(height: 8),
+                  _buildStatusMessage(config),
                 ],
               ),
             ),
@@ -272,132 +263,81 @@ class _HomeScreenState extends State<HomeScreen> {
           // ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   void _showConfigurationDialog(BuildContext context) {
-    final config = Provider.of<AppConfigProvider>(context, listen: false);
-    final serverUrlController = TextEditingController(text: config.serverUrl);
-    final usernameController = TextEditingController(text: config.username);
-    final passwordController = TextEditingController(text: config.password);
-
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Server Configuration'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: serverUrlController,
-                decoration: const InputDecoration(
-                  labelText: 'Server URL',
-                  hintText: 'https://paperless.example.com',
-                  prefixIcon: Icon(Icons.link),
-                ),
-                keyboardType: TextInputType.url,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                  prefixIcon: Icon(Icons.person),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          Consumer<AppConfigProvider>(
-            builder: (context, config, child) {
-              return ElevatedButton(
-                onPressed: config.isConnecting
-                    ? null
-                    : () async {
-                        final serverUrl = serverUrlController.text.trim();
-                        final username = usernameController.text.trim();
-                        final password = passwordController.text.trim();
-
-                        if (serverUrl.isEmpty || username.isEmpty || password.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please fill all fields'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        await config.saveConfiguration(serverUrl, username, password);
-                        await config.testConnection();
-                        
-                        if (mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                child: config.isConnecting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Save & Test'),
-              );
-            },
-          ),
-        ],
-      ),
+      builder: (context) => const ConfigDialog(),
     );
+  }
+
+  Widget _buildStatusIcon(ConnectionStatus status) {
+    return switch (status) {
+      ConnectionStatus.connected => const Icon(Icons.cloud_done, color: Colors.green),
+      ConnectionStatus.connecting => const Icon(Icons.cloud_sync, color: Colors.blue),
+      ConnectionStatus.notConfigured => const Icon(Icons.cloud_off, color: Colors.grey),
+      ConnectionStatus.invalidCredentials => const Icon(Icons.security, color: Colors.red),
+      ConnectionStatus.serverUnreachable => const Icon(Icons.cloud_off, color: Colors.red),
+      ConnectionStatus.invalidServerUrl => const Icon(Icons.link_off, color: Colors.red),
+      ConnectionStatus.sslError => const Icon(Icons.https_outlined, color: Colors.red),
+      ConnectionStatus.unknownError => const Icon(Icons.error_outline, color: Colors.red),
+    };
+  }
+
+  Widget _buildStatusMessage(AppConfigProvider config) {
+    if (config.connectionStatus == ConnectionStatus.connecting) {
+      return const Text(
+        'Connecting to server...',
+        style: TextStyle(color: Colors.blue),
+      );
+    }
+
+    if (config.connectionError != null) {
+      return Text(
+        config.connectionError!,
+        style: const TextStyle(color: Colors.red),
+      );
+    }
+
+    if (config.connectionStatus == ConnectionStatus.connected) {
+      return const Text(
+        'Connected successfully',
+        style: TextStyle(color: Colors.green),
+      );
+    }
+
+    if (config.connectionStatus == ConnectionStatus.notConfigured) {
+      return const Text(
+        'Server not configured',
+        style: TextStyle(color: Colors.grey),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   void _showTagSelectionDialog(BuildContext context) {
     final config = Provider.of<AppConfigProvider>(context, listen: false);
-    
-    // Create a copy of selected tags to prevent direct mutation
+    final paperlessService = config.getPaperlessService();
     final currentSelectedTags = List<Tag>.from(config.selectedTags);
     
-    // TODO: Replace with actual tags from the server
-    // For now, keep mock tags but ensure they include any selected tags
-    final allTags = [
-      Tag(id: 1, name: 'Important', color: '#FF0000'),
-      Tag(id: 2, name: 'Work', color: '#0000FF'),
-      Tag(id: 3, name: 'Personal', color: '#00FF00'),
-      Tag(id: 4, name: 'Bills', color: '#FFA500'),
-      Tag(id: 5, name: 'Receipts', color: '#800080'),
-      Tag(id: 6, name: 'Tax', color: '#008080'),
-      Tag(id: 7, name: 'Medical', color: '#FFC0CB'),
-      Tag(id: 8, name: 'Insurance', color: '#A52A2A'),
-    ];
-    
-    // Add any selected tags that aren't in the mock list
-    for (final tag in currentSelectedTags) {
-      if (!allTags.any((t) => t.id == tag.id)) {
-        allTags.add(tag);
-      }
+    if (paperlessService == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please configure server connection first')),
+      );
+      return;
     }
     
     showDialog<List<Tag>>(
       context: context,
       builder: (context) => TagSelectionDialog(
-        tags: allTags,
         selectedTags: currentSelectedTags,
         defaultTags: const [], // Empty for now, will be implemented later
         configProvider: config,
+        paperlessService: paperlessService,
       ),
     ).then((selectedTags) {
       if (selectedTags != null) {

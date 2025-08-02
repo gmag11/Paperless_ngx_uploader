@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:paperless_ngx_android_uploader/services/secure_storage_service.dart';
-import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
 import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
+import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
 
 class ConfigDialog extends StatefulWidget {
   const ConfigDialog({super.key});
@@ -16,8 +17,6 @@ class _ConfigDialogState extends State<ConfigDialog> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _isLoading = false;
-  String? _errorMessage;
   bool _obscurePassword = true;
 
   @override
@@ -35,62 +34,19 @@ class _ConfigDialogState extends State<ConfigDialog> {
     });
   }
 
-  Future<void> _testConnection() async {
+  Future<void> _saveAndTestConnection() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final config = Provider.of<AppConfigProvider>(context, listen: false);
+    await config.saveConfiguration(
+      _serverUrlController.text.trim(),
+      _usernameController.text.trim(),
+      _passwordController.text,
+    );
+    await config.testConnection();
 
-    try {
-      final service = PaperlessService(
-        baseUrl: _serverUrlController.text.trim(),
-        username: _usernameController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      final status = await service.testConnection();
-      
-      switch (status) {
-        case ConnectionStatus.connected:
-          await SecureStorageService.saveCredentials(
-            serverUrl: _serverUrlController.text.trim(),
-            username: _usernameController.text.trim(),
-            password: _passwordController.text,
-          );
-          if (mounted) {
-            Navigator.of(context).pop(true);
-          }
-        case ConnectionStatus.invalidCredentials:
-          setState(() {
-            _errorMessage = 'Invalid username or password';
-          });
-        case ConnectionStatus.serverUnreachable:
-          setState(() {
-            _errorMessage = 'Server is unreachable';
-          });
-        case ConnectionStatus.invalidServerUrl:
-          setState(() {
-            _errorMessage = 'Invalid server URL or not a Paperless-NGX server';
-          });
-        case ConnectionStatus.sslError:
-          setState(() {
-            _errorMessage = 'SSL certificate error';
-          });
-        default:
-          setState(() {
-            _errorMessage = 'Unknown connection error occurred';
-          });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Connection error: ${e.toString()}';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+    if (mounted && config.connectionStatus == ConnectionStatus.connected) {
+      Navigator.of(context).pop(true);
     }
   }
 
@@ -168,34 +124,46 @@ class _ConfigDialogState extends State<ConfigDialog> {
                   return null;
                 },
               ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  _errorMessage!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+              Consumer<AppConfigProvider>(
+                builder: (context, config, child) {
+                  if (config.connectionError != null) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Text(
+                        config.connectionError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 14,
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
             ],
           ),
         ),
       ),
       actions: [
         TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
+          onPressed: () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _testConnection,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Save & Test'),
+        Consumer<AppConfigProvider>(
+          builder: (context, config, child) {
+            final isConnecting = config.connectionStatus == ConnectionStatus.connecting;
+            return ElevatedButton(
+              onPressed: isConnecting ? null : _saveAndTestConnection,
+              child: isConnecting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Save & Test'),
+            );
+          },
         ),
       ],
     );
