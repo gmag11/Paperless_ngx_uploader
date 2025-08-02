@@ -125,6 +125,7 @@ class PaperlessService {
     try {
       debugPrint('📤 Starting document upload process...');
       debugPrint('📄 File: $fileName (${filePath})');
+      debugPrint('📄 Upload parameters: title=$title, tags=$tagIds');
       
       final file = File(filePath);
       if (!await file.exists()) {
@@ -138,6 +139,10 @@ class PaperlessService {
       final readDuration = DateTime.now().difference(startRead);
       debugPrint('📦 File size: ${(bytes.length / 1024).toStringAsFixed(2)} KB (read in ${readDuration.inMilliseconds}ms)');
 
+      debugPrint('🔄 Preparing HTTP request to $baseUrl/api/documents/post_document/');
+      debugPrint('🔄 Request headers: Authorization: Basic ********');
+      debugPrint('🔄 Request fields: title=$title, tags=${jsonEncode(tagIds)}');
+  
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/api/documents/post_document/'),
@@ -165,14 +170,18 @@ class PaperlessService {
       debugPrint('🔄 Sending request to ${request.url}');
       if (title != null) debugPrint('📝 Title: $title');
       if (tagIds.isNotEmpty) debugPrint('🏷️ Tags: $tagIds');
+      debugPrint('🔄 Request size: ${bytes.length} bytes');
 
       debugPrint('🔄 Starting upload...');
+      debugPrint('🔄 Starting upload at ${DateTime.now()}');
       final startUpload = DateTime.now();
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       final uploadDuration = DateTime.now().difference(startUpload);
+      debugPrint('🔄 Upload completed in ${uploadDuration.inMilliseconds}ms');
 
-      debugPrint('📥 Response status: ${response.statusCode} (upload took ${uploadDuration.inSeconds}s)');
+      debugPrint('📥 Response status: ${response.statusCode} (upload took ${uploadDuration.inMilliseconds}ms)');
+      debugPrint('📥 Response body: $responseBody');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         debugPrint('✅ Upload successful!');
@@ -200,17 +209,21 @@ class PaperlessService {
         }
         return UploadResult.error(errorMessage, errorCode);
       }
-    } on SocketException {
+    } on SocketException catch (e) {
+      debugPrint('❌ Network connection error: ${e.toString()}');
       return UploadResult.error(
         'Network connection error. Please check your internet connection.',
         'NETWORK_ERROR'
       );
-    } on IOException {
+    } on IOException catch (e) {
+      debugPrint('❌ File I/O error: ${e.toString()}');
       return UploadResult.error(
         'Error reading file. Please make sure the file exists and is accessible.',
         'FILE_ERROR'
       );
     } catch (e) {
+      debugPrint('❌ Unexpected error during upload: ${e.toString()}');
+      debugPrint('📄 Stack trace: ${StackTrace.current}');
       return UploadResult.error(
         'Unexpected error during upload: $e',
         'UNKNOWN_ERROR'
