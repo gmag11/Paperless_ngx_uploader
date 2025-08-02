@@ -4,7 +4,6 @@ import '../providers/app_config_provider.dart';
 import '../widgets/tag_selection_dialog.dart';
 import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
-import '../models/connection_status.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -293,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Color _getContrastColor(Color color) {
     // Calculate the perceptive luminance (human eye favors green color)
-    final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
+    final luminance = (0.299 * color.r + 0.587 * color.g + 0.114 * color.b) / 255;
     
     // Return black or white depending on the luminance
     return luminance > 0.5 ? Colors.black : Colors.white;

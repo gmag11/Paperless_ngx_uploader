@@ -124,7 +124,7 @@ class PaperlessService {
   }) async {
     try {
       debugPrint('📤 Starting document upload process...');
-      debugPrint('📄 File: $fileName (${filePath})');
+      debugPrint('📄 File: $fileName ($filePath)');
       debugPrint('📄 Upload parameters: title=$title, tags=$tagIds');
       
       final file = File(filePath);
