@@ -107,22 +107,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      _buildStatusIcon(config.connectionStatus),
-                      const SizedBox(width: 8),
                       const Text(
-                        'Server Status',
+                        'Server Configuration',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Spacer(),
-                      if (config.connectionStatus == ConnectionStatus.connecting)
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -130,8 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     config.serverUrl ?? 'Not configured',
                     style: const TextStyle(color: Colors.grey),
                   ),
-                  const SizedBox(height: 8),
-                  _buildStatusMessage(config),
                 ],
               ),
             ),
@@ -274,50 +263,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatusIcon(ConnectionStatus status) {
-    return switch (status) {
-      ConnectionStatus.connected => const Icon(Icons.cloud_done, color: Colors.green),
-      ConnectionStatus.connecting => const Icon(Icons.cloud_sync, color: Colors.blue),
-      ConnectionStatus.notConfigured => const Icon(Icons.cloud_off, color: Colors.grey),
-      ConnectionStatus.invalidCredentials => const Icon(Icons.security, color: Colors.red),
-      ConnectionStatus.serverUnreachable => const Icon(Icons.cloud_off, color: Colors.red),
-      ConnectionStatus.invalidServerUrl => const Icon(Icons.link_off, color: Colors.red),
-      ConnectionStatus.sslError => const Icon(Icons.https_outlined, color: Colors.red),
-      ConnectionStatus.unknownError => const Icon(Icons.error_outline, color: Colors.red),
-    };
-  }
-
-  Widget _buildStatusMessage(AppConfigProvider config) {
-    if (config.connectionStatus == ConnectionStatus.connecting) {
-      return const Text(
-        'Connecting to server...',
-        style: TextStyle(color: Colors.blue),
-      );
-    }
-
-    if (config.connectionError != null) {
-      return Text(
-        config.connectionError!,
-        style: const TextStyle(color: Colors.red),
-      );
-    }
-
-    if (config.connectionStatus == ConnectionStatus.connected) {
-      return const Text(
-        'Connected successfully',
-        style: TextStyle(color: Colors.green),
-      );
-    }
-
-    if (config.connectionStatus == ConnectionStatus.notConfigured) {
-      return const Text(
-        'Server not configured',
-        style: TextStyle(color: Colors.grey),
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
 
   void _showTagSelectionDialog(BuildContext context) {
     final config = Provider.of<AppConfigProvider>(context, listen: false);

@@ -43,9 +43,8 @@ class AppConfigProvider extends ChangeNotifier {
     _password = await _storage.read(key: 'password');
     
     if (_serverUrl != null && _username != null && _password != null) {
-      _connectionStatus = ConnectionStatus.connecting;
+      _connectionStatus = ConnectionStatus.notConfigured;
       notifyListeners();
-      await testConnection();
     } else {
       _connectionStatus = ConnectionStatus.notConfigured;
       notifyListeners();
