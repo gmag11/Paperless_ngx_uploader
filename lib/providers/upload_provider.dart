@@ -9,7 +9,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class UploadProvider extends ChangeNotifier {
   // Static reference to AppConfigProvider to avoid changing public APIs or requiring BuildContext here.
-  // Wire this once at app startup (e.g., after creating providers).
   static AppConfigProvider? _appConfig;
   static void setAppConfigProvider(AppConfigProvider appConfigProvider) {
     _appConfig = appConfigProvider;
@@ -19,21 +18,43 @@ class UploadProvider extends ChangeNotifier {
   String? _uploadError;
   bool _uploadSuccess = false;
 
+  // Progress state (0.0..1.0) and last raw counters
+  double _progress = 0.0;
+  int _bytesSent = 0;
+  int _bytesTotal = 0;
+
+  // Last warning from intent (non-blocking)
+  bool _showTypeWarning = false;
+  String? _lastMimeType;
+
   bool get isUploading => _isUploading;
   String? get uploadError => _uploadError;
   bool get uploadSuccess => _uploadSuccess;
+  double get progress => _progress;
+  int get bytesSent => _bytesSent;
+  int get bytesTotal => _bytesTotal;
+  bool get showTypeWarning => _showTypeWarning;
+  String? get lastMimeType => _lastMimeType;
+
+  // Allow UI to set warning flag from intent event
+  void setIncomingFileWarning({required bool showWarning, String? mimeType}) {
+    _showTypeWarning = showWarning;
+    _lastMimeType = mimeType;
+    notifyListeners();
+  }
 
   Future<void> uploadFile(File file, String filename, List<Tag> selectedTags) async {
     _isUploading = true;
     _uploadError = null;
     _uploadSuccess = false;
+    _progress = 0.0;
+    _bytesSent = 0;
+    _bytesTotal = 0;
     notifyListeners();
 
     try {
-      // Extract tag IDs from selected tags (array of integers as per OpenAPI "tags" items: integer)
       final tagIds = selectedTags.map((tag) => tag.id).toList();
 
-      // Optional "title" field per OpenAPI; derive from filename without extension
       String? title;
       final dot = filename.lastIndexOf('.');
       if (dot > 0) {
@@ -42,22 +63,8 @@ class UploadProvider extends ChangeNotifier {
         title = filename.isNotEmpty ? filename : null;
       }
 
-      // Logging per requirement
-      // developer.log(
-      //   'Uploading file to Paperless-NGX: filename=$filename, tags=$tagIds',
-      //   name: 'UploadProvider.uploadFile',
-      // );
-
-      // Delegate to PaperlessService which applies:
-      // - Endpoint: POST {baseUrl}/api/documents/post_document/
-      // - Security: Authorization Basic header via constructor-derived credentials
-      // - multipart/form-data with fields:
-      //   - "document": binary file (required)
-      //   - "title": optional string
-      //   - "tags": array of integers (OpenAPI: items integer, writeOnly)
       PaperlessService? service = _resolvePaperlessService();
 
-      // Fallback: if AppConfigProvider is not wired, try secure storage directly (no API changes elsewhere)
       if (service == null) {
         try {
           const storage = FlutterSecureStorage();
@@ -71,10 +78,6 @@ class UploadProvider extends ChangeNotifier {
               username: username,
               password: password,
             );
-            // developer.log(
-            //   'Resolved PaperlessService from secure storage with baseUrl=$serverUrl',
-            //   name: 'UploadProvider.uploadFile',
-            // );
           }
         } catch (e) {
           developer.log(
@@ -87,17 +90,8 @@ class UploadProvider extends ChangeNotifier {
 
       if (service == null) {
         _uploadError = 'Please configure server connection first';
-        developer.log(
-          'Paperless service not configured. Missing server credentials.',
-          name: 'UploadProvider.uploadFile',
-        );
         _uploadSuccess = false;
         return;
-      } else {
-        // developer.log(
-        //   'Resolved PaperlessService with baseUrl=${service.baseUrl}',
-        //   name: 'UploadProvider.uploadFile',
-        // );
       }
 
       final result = await service.uploadDocument(
@@ -105,19 +99,25 @@ class UploadProvider extends ChangeNotifier {
         fileName: filename,
         title: title,
         tagIds: tagIds,
+        onProgress: (sent, total) {
+          _bytesSent = sent;
+          _bytesTotal = total <= 0 ? _bytesTotal : total;
+          if (total > 0) {
+            _progress = sent / total;
+          } else {
+            _progress = 0.0;
+          }
+          notifyListeners();
+        },
       );
-
-      // developer.log(
-      //   'Upload response: status=${result.success ? 200 : 400}',
-      //   name: 'UploadProvider.uploadFile',
-      // );
 
       if (result.success) {
         _uploadSuccess = true;
         _uploadError = null;
+        _progress = 1.0;
       } else {
         _uploadSuccess = false;
-        _uploadError = result.message;
+        _uploadError = _mapErrorForUi(result.message, result.errorCode);
       }
     } catch (e) {
       developer.log(
@@ -133,16 +133,39 @@ class UploadProvider extends ChangeNotifier {
     }
   }
 
+  String _mapErrorForUi(String message, String? code) {
+    switch (code) {
+      case 'AUTH_ERROR':
+        return 'Autenticación fallida. Revisa usuario y contraseña.';
+      case 'FILE_TOO_LARGE':
+        return 'El archivo es demasiado grande para el servidor.';
+      case 'UNSUPPORTED_TYPE':
+        return 'Tipo de archivo no soportado por el servidor.';
+      case 'SERVER_ERROR':
+        return 'Error del servidor. Inténtalo más tarde.';
+      case 'NETWORK_ERROR':
+        return 'Error de red. Revisa tu conexión.';
+      case 'FILE_ERROR':
+        return 'Error leyendo el archivo local.';
+      case 'BAD_RESPONSE':
+        return 'Respuesta no válida del servidor.';
+      default:
+        return message;
+    }
+  }
+
   // Resolve a configured PaperlessService via AppConfigProvider, if available.
   PaperlessService? _resolvePaperlessService() {
     final cfg = _appConfig;
     if (cfg == null) {
-      developer.log('AppConfigProvider not set on UploadProvider', name: 'UploadProvider._resolvePaperlessService');
+      developer.log('AppConfigProvider not set on UploadProvider',
+          name: 'UploadProvider._resolvePaperlessService');
       return null;
     }
     final svc = cfg.getPaperlessService();
     if (svc == null) {
-      developer.log('AppConfigProvider returned null PaperlessService (not configured)', name: 'UploadProvider._resolvePaperlessService');
+      developer.log('AppConfigProvider returned null PaperlessService (not configured)',
+          name: 'UploadProvider._resolvePaperlessService');
       return null;
     }
     return svc;
@@ -152,6 +175,11 @@ class UploadProvider extends ChangeNotifier {
     _uploadError = null;
     _uploadSuccess = false;
     _isUploading = false;
+    _progress = 0.0;
+    _bytesSent = 0;
+    _bytesTotal = 0;
+    _showTypeWarning = false;
+    _lastMimeType = null;
     notifyListeners();
   }
 }

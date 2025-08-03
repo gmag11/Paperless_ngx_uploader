@@ -37,28 +37,28 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       if (!mounted) return;
 
+      // Inform provider about warning preference (non-blocking)
+      final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
+      uploadProvider.setIncomingFileWarning(
+        showWarning: event.showWarning,
+        mimeType: event.mimeType,
+      );
+
       // Visible notification about the received file
       final receivedMsg = 'Received file: ${event.fileName}';
-      // developer.log('HomeScreen notification: $receivedMsg',
-      //     name: 'HomeScreen',
-      //     level: 800); // Log at INFO level
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(receivedMsg)),
       );
 
       // Trigger immediate upload without leaving the main screen
       final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
-      final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
 
       // Ensure configuration and tags are loaded before using them
       try {
-        // If configuration not loaded yet, attempt to load
         if (!appConfig.isConfigured) {
           await appConfig.loadConfiguration();
         }
-        // If tags are empty, opportunistically try to load stored tags once
         if (appConfig.selectedTags.isEmpty) {
-          // loadStoredTags is idempotent and inexpensive; this helps avoid race on cold start
           await appConfig.loadStoredTags();
         }
       } catch (_) {
@@ -67,12 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Read tags at the moment of upload
       final tags = List<Tag>.from(appConfig.selectedTags);
-
-      // Debug log with tag counts and IDs
-      final tagIdsForLog = tags.map((t) => t.id).toList();
-      // developer.log('HomeScreen: preparing upload with ${tags.length} tag(s): $tagIdsForLog',
-      //     name: 'HomeScreen',
-      //     level: 800); // Log at INFO level
 
       try {
         await uploadProvider.uploadFile(
@@ -83,15 +77,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // On success: show confirmation for ~1s then send app to background
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Subida correcta'), duration: Duration(milliseconds: 800)),
-        );
-        await Future.delayed(const Duration(milliseconds: 1000));
-        if (!mounted) return;
-        // Background the app (Android)
-        SystemNavigator.pop();
+        if (uploadProvider.uploadSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Subida correcta'), duration: Duration(milliseconds: 800)),
+          );
+          await Future.delayed(const Duration(milliseconds: 1000));
+          if (!mounted) return;
+          SystemNavigator.pop();
+        } else if (uploadProvider.uploadError != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(uploadProvider.uploadError!), backgroundColor: Colors.red),
+          );
+        }
       } catch (e) {
-        // On error: show error on the same screen
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al subir: $e'), backgroundColor: Colors.red),
@@ -182,6 +180,29 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Non-blocking type warning banner
+          Consumer<UploadProvider>(
+            builder: (context, up, _) {
+              if (up.showTypeWarning) {
+                final mt = up.lastMimeType ?? 'desconocido';
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    border: Border.all(color: Colors.amber),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Tipo de archivo $mt puede no estar soportado. Se intentará subir igualmente.',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           if (_lastReceivedFileName != null)
             Container(
               width: double.infinity,
@@ -197,6 +218,42 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
+          // Progress indicator card
+          Consumer<UploadProvider>(
+            builder: (context, up, _) {
+              if (!up.isUploading && up.progress == 0.0) {
+                return const SizedBox.shrink();
+              }
+              final pct = (up.progress * 100).clamp(0, 100).toStringAsFixed(0);
+              return Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Uploading document',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      LinearProgressIndicator(
+                        value: up.progress > 0.0 && up.progress <= 1.0 ? up.progress : null,
+                        minHeight: 8,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        up.bytesTotal > 0
+                            ? '$pct% (${up.bytesSent}/${up.bytesTotal} bytes)'
+                            : '$pct%',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
