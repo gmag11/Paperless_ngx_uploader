@@ -216,6 +216,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  http_mock_adapter:
+    dependency: "direct dev"
+    description:
+      name: http_mock_adapter
+      sha256: "46399c78bd4a0af071978edd8c502d7aeeed73b5fb9860bca86b5ed647a63c1b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.1"
   http_parser:
     dependency: transitive
     description:
@@ -264,6 +272,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.1.1"
+  logger:
+    dependency: transitive
+    description:
+      name: logger
+      sha256: "55d6c23a6c15db14920e037fe7e0dc32e7cdaf3b64b4b25df2d541b5b6b81c0c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.6.1"
   matcher:
     dependency: transitive
     description:
