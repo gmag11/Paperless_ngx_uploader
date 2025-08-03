@@ -22,23 +22,23 @@ class IntentHandler {
   static Stream<ShareReceivedEvent> get eventStream => _eventController.stream;
 
   static Future<void> initialize() async {
-    developer.log('initialize: start', name: 'IntentHandler');
+    // developer.log('initialize: start', name: 'IntentHandler');
     // Guard non-Android platforms
     if (!Platform.isAndroid) {
-      developer.log('initialize: skipped (not Android)', name: 'IntentHandler');
+      // developer.log('initialize: skipped (not Android)', name: 'IntentHandler');
       return;
     }
 
-    developer.log('initialize: handle initial intent', name: 'IntentHandler');
+    // developer.log('initialize: handle initial intent', name: 'IntentHandler');
     // Handle initial intent when app is launched
     await _handleInitialIntent();
 
     // Listen for sharing intents while app is running
     _mediaSub?.cancel();
     _mediaSub = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
-      developer.log('getMediaStream: received files=${value.length}', name: 'IntentHandler');
+      // developer.log('getMediaStream: received files=${value.length}', name: 'IntentHandler');
       if (value.isNotEmpty) {
-        developer.log('getMediaStream: handling first file', name: 'IntentHandler');
+        // developer.log('getMediaStream: handling first file', name: 'IntentHandler');
         _handleSharedFiles(value);
       }
     }, onError: (e, st) {
@@ -47,7 +47,7 @@ class IntentHandler {
           error: e,
           stackTrace: st);
     });
-    developer.log('initialize: media stream subscribed', name: 'IntentHandler');
+    // developer.log('initialize: media stream subscribed', name: 'IntentHandler');
   }
 
   static Future<void> dispose() async {
@@ -56,12 +56,12 @@ class IntentHandler {
   }
 
   static Future<void> _handleInitialIntent() async {
-    developer.log('_handleInitialIntent: start', name: 'IntentHandler');
+    // developer.log('_handleInitialIntent: start', name: 'IntentHandler');
     try {
       final sharedFiles = await ReceiveSharingIntent.instance.getInitialMedia();
-      developer.log('_handleInitialIntent: files=${sharedFiles.length}', name: 'IntentHandler');
+      // developer.log('_handleInitialIntent: files=${sharedFiles.length}', name: 'IntentHandler');
       if (sharedFiles.isNotEmpty) {
-        developer.log('_handleInitialIntent: handling first file', name: 'IntentHandler');
+        // developer.log('_handleInitialIntent: handling first file', name: 'IntentHandler');
         _handleSharedFiles(sharedFiles);
       }
     } catch (e, st) {
@@ -73,7 +73,7 @@ class IntentHandler {
   }
 
   static void _handleSharedFiles(List<SharedMediaFile> files) {
-    developer.log('_handleSharedFiles: start, files=${files.length}', name: 'IntentHandler');
+    // developer.log('_handleSharedFiles: start, files=${files.length}', name: 'IntentHandler');
     if (files.isEmpty) return;
 
     // For now, handle only the first file
@@ -82,13 +82,13 @@ class IntentHandler {
 
     // Derive filename robustly
     final String fileName = _deriveFileName(file);
-    developer.log('_handleSharedFiles: derived filename=$fileName path=$filePath', name: 'IntentHandler');
+    // developer.log('_handleSharedFiles: derived filename=$fileName path=$filePath', name: 'IntentHandler');
 
-    developer.log('_handleSharedFiles: emitting event', name: 'IntentHandler');
+    // developer.log('_handleSharedFiles: emitting event', name: 'IntentHandler');
     // Notify UI with full event (filename + path)
     if (!_eventController.isClosed) {
       _eventController.add(ShareReceivedEvent(fileName: fileName, filePath: filePath));
-      developer.log('_handleSharedFiles: event emitted', name: 'IntentHandler');
+      // developer.log('_handleSharedFiles: event emitted', name: 'IntentHandler');
     }
   }
 
@@ -103,10 +103,10 @@ class IntentHandler {
   }
 
   static Future<void> resetIntent() async {
-    developer.log('resetIntent: start', name: 'IntentHandler');
+    // developer.log('resetIntent: start', name: 'IntentHandler');
     try {
       await ReceiveSharingIntent.instance.reset();
-      developer.log('resetIntent: done', name: 'IntentHandler');
+      // developer.log('resetIntent: done', name: 'IntentHandler');
     } catch (e, st) {
       developer.log('Error resetting intent: $e', name: 'IntentHandler.resetIntent', error: e, stackTrace: st);
     }

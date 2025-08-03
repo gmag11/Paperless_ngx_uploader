@@ -9,6 +9,7 @@ import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
 import '../services/intent_handler.dart';
 import '../providers/upload_provider.dart';
+// import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,7 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Visible notification about the received file
       final receivedMsg = 'Received file: ${event.fileName}';
-      debugPrint('HomeScreen notification: $receivedMsg');
+      // developer.log('HomeScreen notification: $receivedMsg',
+      //     name: 'HomeScreen',
+      //     level: 800); // Log at INFO level
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(receivedMsg)),
       );
@@ -67,7 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Debug log with tag counts and IDs
       final tagIdsForLog = tags.map((t) => t.id).toList();
-      debugPrint('HomeScreen: preparing upload with ${tags.length} tag(s): $tagIdsForLog');
+      // developer.log('HomeScreen: preparing upload with ${tags.length} tag(s): $tagIdsForLog',
+      //     name: 'HomeScreen',
+      //     level: 800); // Log at INFO level
 
       try {
         await uploadProvider.uploadFile(

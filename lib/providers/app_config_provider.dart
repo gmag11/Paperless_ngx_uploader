@@ -85,10 +85,10 @@ class AppConfigProvider extends ChangeNotifier {
           }
         }
         
-        developer.log(
-          'Loaded ${_selectedTags.length} selected tag(s) from storage',
-          name: 'AppConfigProvider.loadStoredTags',
-        );
+        // developer.log(
+        //   'Loaded ${_selectedTags.length} selected tag(s) from storage',
+        //   name: 'AppConfigProvider.loadStoredTags',
+        // );
 
         if (_selectedTags.isEmpty && tagList.isNotEmpty) {
           developer.log('Warning: No valid tags could be recovered from stored data',
@@ -101,10 +101,10 @@ class AppConfigProvider extends ChangeNotifier {
         _selectedTags = [];
       }
     } else {
-      developer.log(
-        'No stored selected tags found',
-        name: 'AppConfigProvider.loadStoredTags',
-      );
+      // developer.log(
+      //   'No stored selected tags found',
+      //   name: 'AppConfigProvider.loadStoredTags',
+      // );
     }
     notifyListeners();
   }

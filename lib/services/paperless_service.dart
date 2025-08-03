@@ -127,12 +127,12 @@ class PaperlessService {
     List<int> tagIds = const [],
   }) async {
     try {
-      developer.log('📤 Starting document upload process...',
-                    name: 'PaperlessService.uploadDocument');
-      developer.log('📄 File: $fileName ($filePath)',
-                    name: 'PaperlessService.uploadDocument');
-      developer.log('📄 Upload parameters: title=$title, tags=$tagIds',
-                    name: 'PaperlessService.uploadDocument');
+      // developer.log('📤 Starting document upload process...',
+      //               name: 'PaperlessService.uploadDocument');
+      // developer.log('📄 File: $fileName ($filePath)',
+      //               name: 'PaperlessService.uploadDocument');
+      // developer.log('📄 Upload parameters: title=$title, tags=$tagIds',
+      //               name: 'PaperlessService.uploadDocument');
 
       final file = File(filePath);
       if (!await file.exists()) {
@@ -141,20 +141,20 @@ class PaperlessService {
         return UploadResult.error('File does not exist', 'FILE_NOT_FOUND');
       }
 
-      developer.log('📄 Reading file...',
-                    name: 'PaperlessService.uploadDocument');
+      // developer.log('📄 Reading file...',
+      //               name: 'PaperlessService.uploadDocument');
       final startRead = DateTime.now();
       final bytes = await file.readAsBytes();
       final readDuration = DateTime.now().difference(startRead);
-      developer.log('📦 File size: ${(bytes.length / 1024).toStringAsFixed(2)} KB (read in ${readDuration.inMilliseconds}ms)',
-                    name: 'PaperlessService.uploadDocument');
+      // developer.log('📦 File size: ${(bytes.length / 1024).toStringAsFixed(2)} KB (read in ${readDuration.inMilliseconds}ms)',
+      //               name: 'PaperlessService.uploadDocument');
 
-      developer.log('🔄 Preparing HTTP request to $baseUrl/api/documents/post_document/',
-                    name: 'PaperlessService.uploadDocument');
-      developer.log('🔄 Request headers: Authorization: Basic ********',
-                    name: 'PaperlessService.uploadDocument');
-      developer.log('🔄 Request fields: title=$title, tags=$tagIds (as repeated multipart fields)',
-                    name: 'PaperlessService.uploadDocument');
+      // developer.log('🔄 Preparing HTTP request to $baseUrl/api/documents/post_document/',
+      //               name: 'PaperlessService.uploadDocument');
+      // developer.log('🔄 Request headers: Authorization: Basic ********',
+      //               name: 'PaperlessService.uploadDocument');
+      // developer.log('🔄 Request fields: title=$title, tags=$tagIds (as repeated multipart fields)',
+      //               name: 'PaperlessService.uploadDocument');
 
       final request = http.MultipartRequest(
         'POST',
@@ -182,38 +182,38 @@ class PaperlessService {
         }
       }
 
-      developer.log('🔄 Sending request to ${request.url}',
-                    name: 'PaperlessService.uploadDocument');
-      if (title != null) {
-        developer.log('📝 Title: $title',
-                      name: 'PaperlessService.uploadDocument');
-      }
-      if (tagIds.isNotEmpty) {
-        developer.log('🏷️ Tags: $tagIds',
-                      name: 'PaperlessService.uploadDocument');
-      }
-      developer.log('🔄 Request size: ${bytes.length} bytes',
-                    name: 'PaperlessService.uploadDocument');
+      // developer.log('🔄 Sending request to ${request.url}',
+      //               name: 'PaperlessService.uploadDocument');
+      // if (title != null) {
+      //   developer.log('📝 Title: $title',
+      //                 name: 'PaperlessService.uploadDocument');
+      // }
+      // if (tagIds.isNotEmpty) {
+      //   developer.log('🏷️ Tags: $tagIds',
+      //                 name: 'PaperlessService.uploadDocument');
+      // }
+      // developer.log('🔄 Request size: ${bytes.length} bytes',
+      //               name: 'PaperlessService.uploadDocument');
 
-      developer.log('🔄 Starting upload...',
-                    name: 'PaperlessService.uploadDocument');
-      developer.log('🔄 Starting upload at ${DateTime.now()}',
-                    name: 'PaperlessService.uploadDocument');
+      // developer.log('🔄 Starting upload...',
+      //               name: 'PaperlessService.uploadDocument');
+      // developer.log('🔄 Starting upload at ${DateTime.now()}',
+      //               name: 'PaperlessService.uploadDocument');
       final startUpload = DateTime.now();
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       final uploadDuration = DateTime.now().difference(startUpload);
-      developer.log('🔄 Upload completed in ${uploadDuration.inMilliseconds}ms',
-                    name: 'PaperlessService.uploadDocument');
+      // developer.log('🔄 Upload completed in ${uploadDuration.inMilliseconds}ms',
+      //               name: 'PaperlessService.uploadDocument');
 
-      developer.log('📥 Response status: ${response.statusCode} (upload took ${uploadDuration.inMilliseconds}ms)',
-                    name: 'PaperlessService.uploadDocument');
-      developer.log('📥 Response body: $responseBody',
-                    name: 'PaperlessService.uploadDocument');
+      // developer.log('📥 Response status: ${response.statusCode} (upload took ${uploadDuration.inMilliseconds}ms)',
+      //               name: 'PaperlessService.uploadDocument');
+      // developer.log('📥 Response body: $responseBody',
+      //               name: 'PaperlessService.uploadDocument');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        developer.log('✅ Upload successful!',
-                      name: 'PaperlessService.uploadDocument');
+        // developer.log('✅ Upload successful!',
+        //               name: 'PaperlessService.uploadDocument');
 
         // The Paperless-NGX endpoint may return either a JSON object or a plain string UUID.
         // Normalize to a Map<String, dynamic> so UploadResult.success(Map) can be used safely.

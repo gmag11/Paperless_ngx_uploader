@@ -43,10 +43,10 @@ class UploadProvider extends ChangeNotifier {
       }
 
       // Logging per requirement
-      developer.log(
-        'Uploading file to Paperless-NGX: filename=$filename, tags=$tagIds',
-        name: 'UploadProvider.uploadFile',
-      );
+      // developer.log(
+      //   'Uploading file to Paperless-NGX: filename=$filename, tags=$tagIds',
+      //   name: 'UploadProvider.uploadFile',
+      // );
 
       // Delegate to PaperlessService which applies:
       // - Endpoint: POST {baseUrl}/api/documents/post_document/
@@ -71,10 +71,10 @@ class UploadProvider extends ChangeNotifier {
               username: username,
               password: password,
             );
-            developer.log(
-              'Resolved PaperlessService from secure storage with baseUrl=$serverUrl',
-              name: 'UploadProvider.uploadFile',
-            );
+            // developer.log(
+            //   'Resolved PaperlessService from secure storage with baseUrl=$serverUrl',
+            //   name: 'UploadProvider.uploadFile',
+            // );
           }
         } catch (e) {
           developer.log(
@@ -94,10 +94,10 @@ class UploadProvider extends ChangeNotifier {
         _uploadSuccess = false;
         return;
       } else {
-        developer.log(
-          'Resolved PaperlessService with baseUrl=${service.baseUrl}',
-          name: 'UploadProvider.uploadFile',
-        );
+        // developer.log(
+        //   'Resolved PaperlessService with baseUrl=${service.baseUrl}',
+        //   name: 'UploadProvider.uploadFile',
+        // );
       }
 
       final result = await service.uploadDocument(
@@ -107,10 +107,10 @@ class UploadProvider extends ChangeNotifier {
         tagIds: tagIds,
       );
 
-      developer.log(
-        'Upload response: status=${result.success ? 200 : 400}',
-        name: 'UploadProvider.uploadFile',
-      );
+      // developer.log(
+      //   'Upload response: status=${result.success ? 200 : 400}',
+      //   name: 'UploadProvider.uploadFile',
+      // );
 
       if (result.success) {
         _uploadSuccess = true;
