@@ -124,13 +124,10 @@ void main() {
 
       // Since we cannot inject the mock Dio into service, validate normalization logic separately:
       final body = '123e4567-e89b-12d3-a456-426614174000';
-      Map<String, dynamic> normalized;
-      if (body is String) {
-        normalized = {'id': body};
-      } else {
-        normalized = {'value': body};
-      }
+      // The body is statically a String, so no runtime type check is needed.
+      final Map<String, dynamic> normalized = {'id': body};
       expect(normalized['id'], isNotNull);
+      expect(normalized['id'], isA<String>(), reason: 'Expected textual UUID in response body');
     });
 
     test('uploadDocument maps 401 to AUTH_ERROR', () async {

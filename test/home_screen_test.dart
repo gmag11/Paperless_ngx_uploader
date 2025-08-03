@@ -9,35 +9,7 @@ import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dar
 import 'package:paperless_ngx_android_uploader/providers/upload_provider.dart';
 import 'package:paperless_ngx_android_uploader/screens/home_screen.dart';
 
-// A test double that manipulates UploadProvider via its public API.
-class _TestUploadProvider extends UploadProvider {
-  _TestUploadProvider() : super();
-
-  void setWarning(bool value, {String? mime}) {
-    setIncomingFileWarning(showWarning: value, mimeType: mime);
-  }
-
-  void setProgress(bool uploading, double p, int sent, int total) {
-    // Simulate progress callbacks as the service would do.
-    if (uploading) {
-      // Begin upload to reflect isUploading true and reset counters
-      // Mimic starting state
-      // Directly call uploadFile is not feasible here; instead, emulate progress callback effects:
-      // Since isUploading is private, we trigger notify by calling the same onProgress path:
-      // Use a synthetic onProgress effect by calling a private-like behavior through a public method:
-      // Not available; so we approximate UI observation by notifying after changing internal derived state via reflection is not possible.
-      // Hence, we rely on how HomeScreen reads provider getters:
-      // We'll emulate progress by triggering the onProgress callback through a tailored helper.
-      // Since there is no public setter, we call notifyListeners after setting expected states through a minimal upload lifecycle using reset + fake updates.
-    }
-    // As we cannot set private fields, we instead invoke the private logic through the exposed upload flow is not possible without I/O.
-    // Therefore, for UI tests, we will wrap HomeScreen with a Builder that reads provider and manually paints based on provided values.
-  }
-
-  void finishUploadSuccess() {
-    // No-op placeholder for symmetry.
-  }
-}
+// Removed unused _TestUploadProvider (dead code).
 
 // Build a testable HomeScreen with a derived view model injected via Provider.
 // To avoid needing internal setters, we derive a lightweight proxy to expose the view state needed by HomeScreen.

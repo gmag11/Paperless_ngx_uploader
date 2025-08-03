@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
 import 'package:paperless_ngx_android_uploader/models/tag.dart';
 
@@ -46,18 +46,16 @@ class PaperlessService {
   late final Dio _dio;
 
   PaperlessService({
-    required this.baseUrl,
+    required String baseUrl,
     required this.username,
     required this.password,
-  }) {
+  })  : baseUrl = _normalizeBaseUrl(baseUrl) {
     _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
+      baseUrl: this.baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 60),
       sendTimeout: const Duration(minutes: 10),
-      headers: {
-        HttpHeaders.authorizationHeader: _authHeader,
-      },
+      headers: _defaultHeaders(username, password),
       followRedirects: true,
       validateStatus: (code) => code != null && code >= 200 && code < 600,
     ));
@@ -65,21 +63,43 @@ class PaperlessService {
     // Simple logging (debug only)
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        developer.log('➡️ ${options.method} ${options.uri}',
-            name: 'PaperlessService.Dio');
+        if (kDebugMode) {
+          developer.log('➡️ ${options.method} ${options.uri}',
+              name: 'PaperlessService.Dio');
+        }
         handler.next(options);
       },
       onResponse: (response, handler) {
-        developer.log('⬅️ ${response.statusCode} ${response.requestOptions.uri}',
-            name: 'PaperlessService.Dio');
+        if (kDebugMode) {
+          developer.log('⬅️ ${response.statusCode} ${response.requestOptions.uri}',
+              name: 'PaperlessService.Dio');
+        }
         handler.next(response);
       },
       onError: (e, handler) {
-        developer.log('❌ Dio error: ${e.message}',
-            name: 'PaperlessService.Dio', error: e);
+        if (kDebugMode) {
+          developer.log('❌ Dio error: ${e.message}',
+              name: 'PaperlessService.Dio', error: e);
+        }
         handler.next(e);
       },
     ));
+  }
+
+  static String _normalizeBaseUrl(String url) {
+    // Trim and remove trailing slash
+    final trimmed = url.trim();
+    if (trimmed.endsWith('/')) {
+      return trimmed.substring(0, trimmed.length - 1);
+    }
+    return trimmed;
+  }
+
+  static Map<String, dynamic> _defaultHeaders(String username, String password) {
+    final credentials = base64Encode(utf8.encode('$username:$password'));
+    return {
+      HttpHeaders.authorizationHeader: 'Basic $credentials',
+    };
   }
 
   String get _authHeader {
@@ -89,7 +109,6 @@ class PaperlessService {
 
   Future<ConnectionStatus> testConnection() async {
     try {
-      // Keep using http for this lightweight GET or switch to Dio; using Dio for consistency
       final resp = await _dio.get('/api/status/',
           options: Options(
             headers: {HttpHeaders.authorizationHeader: _authHeader},
@@ -137,7 +156,7 @@ class PaperlessService {
               .toList();
           all.addAll(results);
           nextPath = data['next'] as String?;
-          // If absolute URL returned in "next", strip base
+          // If absolute URL returned in "next", strip base (normalized)
           if (nextPath != null && nextPath.startsWith(baseUrl)) {
             nextPath = nextPath.substring(baseUrl.length);
           }
@@ -148,12 +167,16 @@ class PaperlessService {
 
       return all;
     } on DioException catch (e) {
-      developer.log('❌ Network error when fetching tags: $e',
-          name: 'PaperlessService.fetchTags', error: e);
+      if (kDebugMode) {
+        developer.log('❌ Network error when fetching tags: $e',
+            name: 'PaperlessService.fetchTags', error: e);
+      }
       throw Exception('Network error when fetching tags: $e');
     } catch (e) {
-      developer.log('❌ Error fetching tags: $e',
-          name: 'PaperlessService.fetchTags', error: e);
+      if (kDebugMode) {
+        developer.log('❌ Error fetching tags: $e',
+            name: 'PaperlessService.fetchTags', error: e);
+      }
       throw Exception('Failed to fetch tags: $e');
     }
   }
@@ -198,8 +221,10 @@ class PaperlessService {
     try {
       final file = File(filePath);
       if (!await file.exists()) {
-        developer.log('❌ File does not exist: $filePath',
-            name: 'PaperlessService.uploadDocument');
+        if (kDebugMode) {
+          developer.log('❌ File does not exist: $filePath',
+              name: 'PaperlessService.uploadDocument');
+        }
         return UploadResult.error('File does not exist', 'FILE_NOT_FOUND');
       }
 
@@ -275,7 +300,7 @@ class PaperlessService {
           default:
             if (status >= 500) {
               errorMessage =
-                  'Server error (${status}). Please try again later.';
+                  'Server error ($status). Please try again later.';
               errorCode = 'SERVER_ERROR';
             } else {
               errorMessage = 'Upload failed: $status - ${body.toString()}';
@@ -285,8 +310,10 @@ class PaperlessService {
         return UploadResult.error(errorMessage, errorCode);
       }
     } on DioException catch (e) {
-      developer.log('❌ Upload Dio error: ${e.message}',
-          name: 'PaperlessService.uploadDocument', error: e);
+      if (kDebugMode) {
+        developer.log('❌ Upload Dio error: ${e.message}',
+            name: 'PaperlessService.uploadDocument', error: e);
+      }
       final type = e.type;
       if (type == DioExceptionType.connectionTimeout ||
           type == DioExceptionType.sendTimeout ||
@@ -304,16 +331,20 @@ class PaperlessService {
       return UploadResult.error('Unexpected error during upload: ${e.message}',
           'UNKNOWN_ERROR');
     } on IOException catch (e) {
-      developer.log('❌ File I/O error: ${e.toString()}',
-          name: 'PaperlessService.uploadDocument');
+      if (kDebugMode) {
+        developer.log('❌ File I/O error: ${e.toString()}',
+            name: 'PaperlessService.uploadDocument');
+      }
       return UploadResult.error(
           'Error reading file. Please make sure the file exists and is accessible.',
           'FILE_ERROR');
     } catch (e) {
-      developer.log('❌ Unexpected error during upload: ${e.toString()}',
-          name: 'PaperlessService.uploadDocument');
-      developer.log('📄 Stack trace: ${StackTrace.current}',
-          name: 'PaperlessService.uploadDocument');
+      if (kDebugMode) {
+        developer.log('❌ Unexpected error during upload: ${e.toString()}',
+            name: 'PaperlessService.uploadDocument');
+        developer.log('📄 Stack trace: ${StackTrace.current}',
+            name: 'PaperlessService.uploadDocument');
+      }
       return UploadResult.error('Unexpected error during upload: $e',
           'UNKNOWN_ERROR');
     }

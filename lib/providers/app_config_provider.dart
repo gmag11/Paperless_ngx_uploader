@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import '../models/tag.dart';
@@ -17,6 +17,9 @@ class AppConfigProvider extends ChangeNotifier {
   String? _connectionError;
   List<Tag> _selectedTags = [];
 
+  // Cached PaperlessService instance
+  PaperlessService? _serviceCache;
+
   String? get serverUrl => _serverUrl;
   String? get username => _username;
   String? get password => _password;
@@ -31,25 +34,35 @@ class AppConfigProvider extends ChangeNotifier {
 
   PaperlessService? getPaperlessService() {
     if (!isConfigured) return null;
-    return PaperlessService(
-      baseUrl: _serverUrl!,
-      username: _username!,
-      password: _password!,
-    );
+
+    // Recreate only if any credential changed or cache is empty
+    if (_serviceCache == null ||
+        _serviceCache!.baseUrl != _serverUrl ||
+        _serviceCache!.username != _username ||
+        _serviceCache!.password != _password) {
+      _serviceCache = PaperlessService(
+        baseUrl: _serverUrl!,
+        username: _username!,
+        password: _password!,
+      );
+      if (kDebugMode) {
+        developer.log('Recreated PaperlessService due to credential change',
+            name: 'AppConfigProvider.getPaperlessService');
+      }
+    }
+    return _serviceCache;
   }
 
   Future<void> loadConfiguration() async {
     _serverUrl = await _storage.read(key: 'server_url');
     _username = await _storage.read(key: 'username');
     _password = await _storage.read(key: 'password');
+
+    // Reset cache on load; will be lazily created
+    _serviceCache = null;
     
-    if (_serverUrl != null && _username != null && _password != null) {
-      _connectionStatus = ConnectionStatus.notConfigured;
-      notifyListeners();
-    } else {
-      _connectionStatus = ConnectionStatus.notConfigured;
-      notifyListeners();
-    }
+    _connectionStatus = ConnectionStatus.notConfigured;
+    notifyListeners();
     
     await loadStoredTags();
   }
@@ -69,42 +82,42 @@ class AppConfigProvider extends ChangeNotifier {
               if (tag.id != 0 && tag.name.isNotEmpty && tag.slug.isNotEmpty) {
                 _selectedTags.add(tag);
               } else {
-                developer.log('Skipping invalid tag data: missing required fields',
-                              name: 'AppConfigProvider.loadStoredTags',
-                              error: 'Invalid tag data - $tagData');
+                if (kDebugMode) {
+                  developer.log('Skipping invalid tag data: missing required fields',
+                                name: 'AppConfigProvider.loadStoredTags',
+                                error: 'Invalid tag data - $tagData');
+                }
               }
             } else {
-              developer.log('Skipping invalid tag data: not a map - $tagData',
-                            name: 'AppConfigProvider.loadStoredTags');
+              if (kDebugMode) {
+                developer.log('Skipping invalid tag data: not a map - $tagData',
+                              name: 'AppConfigProvider.loadStoredTags');
+              }
             }
           } catch (e) {
-            developer.log('Error parsing individual tag: $e\nTag data: $tagData',
-                          name: 'AppConfigProvider.loadStoredTags',
-                          error: e);
+            if (kDebugMode) {
+              developer.log('Error parsing individual tag: $e\nTag data: $tagData',
+                            name: 'AppConfigProvider.loadStoredTags',
+                            error: e);
+            }
             // Continue processing other tags
           }
         }
-        
-        // developer.log(
-        //   'Loaded ${_selectedTags.length} selected tag(s) from storage',
-        //   name: 'AppConfigProvider.loadStoredTags',
-        // );
 
         if (_selectedTags.isEmpty && tagList.isNotEmpty) {
-          developer.log('Warning: No valid tags could be recovered from stored data',
-                        name: 'AppConfigProvider.loadStoredTags');
+          if (kDebugMode) {
+            developer.log('Warning: No valid tags could be recovered from stored data',
+                          name: 'AppConfigProvider.loadStoredTags');
+          }
         }
       } catch (e) {
-        developer.log('Error decoding stored tags JSON: $e',
-                      name: 'AppConfigProvider.loadStoredTags',
-                      error: e);
+        if (kDebugMode) {
+          developer.log('Error decoding stored tags JSON: $e',
+                        name: 'AppConfigProvider.loadStoredTags',
+                        error: e);
+        }
         _selectedTags = [];
       }
-    } else {
-      // developer.log(
-      //   'No stored selected tags found',
-      //   name: 'AppConfigProvider.loadStoredTags',
-      // );
     }
     notifyListeners();
   }
@@ -114,9 +127,11 @@ class AppConfigProvider extends ChangeNotifier {
       final tagListJson = jsonEncode(_selectedTags.map((tag) => tag.toJson()).toList());
       await _storage.write(key: _tagStorageKey, value: tagListJson);
     } catch (e) {
-      developer.log('Error saving tags: $e',
-                    name: 'AppConfigProvider.saveSelectedTags',
-                    error: e);
+      if (kDebugMode) {
+        developer.log('Error saving tags: $e',
+                      name: 'AppConfigProvider.saveSelectedTags',
+                      error: e);
+      }
     }
   }
 
@@ -125,9 +140,17 @@ class AppConfigProvider extends ChangeNotifier {
     await _storage.write(key: 'username', value: username);
     await _storage.write(key: 'password', value: password);
     
+    // If any value changed, update state and invalidate cache
+    final changed = _serverUrl != serverUrl || _username != username || _password != password;
+
     _serverUrl = serverUrl;
     _username = username;
     _password = password;
+
+    if (changed) {
+      _serviceCache = null;
+    }
+
     _connectionStatus = ConnectionStatus.connecting;
     _connectionError = null;
     notifyListeners();
@@ -144,11 +167,7 @@ class AppConfigProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final service = PaperlessService(
-        baseUrl: _serverUrl!,
-        username: _username!,
-        password: _password!,
-      );
+      final service = getPaperlessService()!;
 
       _connectionStatus = await service.testConnection();
       
@@ -177,6 +196,10 @@ class AppConfigProvider extends ChangeNotifier {
     _serverUrl = null;
     _username = null;
     _password = null;
+
+    // Invalidate cache
+    _serviceCache = null;
+
     _connectionStatus = ConnectionStatus.notConfigured;
     _connectionError = null;
     notifyListeners();

@@ -16,16 +16,14 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AppConfigProvider()),
-        ChangeNotifierProvider(create: (_) => UploadProvider()),
+        ChangeNotifierProxyProvider<AppConfigProvider, UploadProvider>(
+          create: (context) =>
+              UploadProvider(appConfigProvider: Provider.of<AppConfigProvider>(context, listen: false)),
+          update: (context, appConfig, previous) =>
+              previous ?? UploadProvider(appConfigProvider: appConfig),
+        ),
       ],
-      child: Builder(
-        builder: (context) {
-          // Wire AppConfigProvider into UploadProvider static setter once providers exist
-          final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
-          UploadProvider.setAppConfigProvider(appConfig);
-          return const PaperlessUploaderApp();
-        },
-      ),
+      child: const PaperlessUploaderApp(),
     ),
   );
 }

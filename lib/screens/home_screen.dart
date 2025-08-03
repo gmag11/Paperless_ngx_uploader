@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     border: Border.all(color: Colors.amber),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.15),
+                color: Colors.green.withValues(alpha: 0.15),
                 border: Border.all(color: Colors.green),
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -447,10 +447,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Color _getContrastColor(Color color) {
-    // Calculate the perceptive luminance (human eye favors green color)
-    final luminance = (0.299 * color.r + 0.587 * color.g + 0.114 * color.b) / 255;
-    
-    // Return black or white depending on the luminance
+    // Use Flutter's built-in luminance calculation which correctly handles sRGB gamma.
+    // This is more reliable than manual linear combinations on raw RGB bytes.
+    final luminance = color.computeLuminance();
+
+    // Return black or white depending on the luminance threshold.
+    // Threshold 0.5 is a common heuristic for good contrast on most backgrounds.
     return luminance > 0.5 ? Colors.black : Colors.white;
   }
 }

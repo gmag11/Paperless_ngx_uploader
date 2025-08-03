@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:async';
 import 'dart:developer' as developer;
 import '../models/tag.dart';
 import '../services/paperless_service.dart';
-import 'package:provider/provider.dart';
 import 'app_config_provider.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class UploadProvider extends ChangeNotifier {
-  // Static reference to AppConfigProvider to avoid changing public APIs or requiring BuildContext here.
-  static AppConfigProvider? _appConfig;
-  static void setAppConfigProvider(AppConfigProvider appConfigProvider) {
-    _appConfig = appConfigProvider;
-  }
+  final AppConfigProvider _appConfig;
+
+  UploadProvider({required AppConfigProvider appConfigProvider})
+      : _appConfig = appConfigProvider;
 
   bool _isUploading = false;
   String? _uploadError;
@@ -22,6 +20,12 @@ class UploadProvider extends ChangeNotifier {
   double _progress = 0.0;
   int _bytesSent = 0;
   int _bytesTotal = 0;
+
+  // Debounced progress notification control
+  // Only emit notifyListeners when integer percent changes or after debounce
+  static const Duration _progressDebounce = Duration(milliseconds: 100);
+  Timer? _progressDebounceTimer;
+  int _lastEmittedPercent = -1;
 
   // Last warning from intent (non-blocking)
   bool _showTypeWarning = false;
@@ -50,6 +54,8 @@ class UploadProvider extends ChangeNotifier {
     _progress = 0.0;
     _bytesSent = 0;
     _bytesTotal = 0;
+    _lastEmittedPercent = -1;
+    _cancelProgressDebounce();
     notifyListeners();
 
     try {
@@ -63,30 +69,7 @@ class UploadProvider extends ChangeNotifier {
         title = filename.isNotEmpty ? filename : null;
       }
 
-      PaperlessService? service = _resolvePaperlessService();
-
-      if (service == null) {
-        try {
-          const storage = FlutterSecureStorage();
-          final serverUrl = await storage.read(key: 'server_url');
-          final username = await storage.read(key: 'username');
-          final password = await storage.read(key: 'password');
-
-          if (serverUrl != null && username != null && password != null) {
-            service = PaperlessService(
-              baseUrl: serverUrl,
-              username: username,
-              password: password,
-            );
-          }
-        } catch (e) {
-          developer.log(
-            'Error reading configuration from secure storage: $e',
-            name: 'UploadProvider.uploadFile',
-            error: e,
-          );
-        }
-      }
+      final service = _resolvePaperlessService();
 
       if (service == null) {
         _uploadError = 'Please configure server connection first';
@@ -107,7 +90,7 @@ class UploadProvider extends ChangeNotifier {
           } else {
             _progress = 0.0;
           }
-          notifyListeners();
+          _maybeNotifyProgress();
         },
       );
 
@@ -115,6 +98,8 @@ class UploadProvider extends ChangeNotifier {
         _uploadSuccess = true;
         _uploadError = null;
         _progress = 1.0;
+        // Ensure final 100% is emitted
+        _maybeNotifyProgress(forceEmit: true);
       } else {
         _uploadSuccess = false;
         _uploadError = _mapErrorForUi(result.message, result.errorCode);
@@ -129,8 +114,36 @@ class UploadProvider extends ChangeNotifier {
       _uploadSuccess = false;
     } finally {
       _isUploading = false;
+      _cancelProgressDebounce();
       notifyListeners();
     }
+  }
+
+  // Emit progress updates efficiently
+  void _maybeNotifyProgress({bool forceEmit = false}) {
+    final percent = (_progress.isNaN || _progress.isInfinite) ? 0.0 : _progress.clamp(0.0, 1.0);
+    final currentInt = (percent * 100).floor();
+
+    // If integer percent changed, emit immediately
+    if (forceEmit || currentInt != _lastEmittedPercent) {
+      _lastEmittedPercent = currentInt;
+      _cancelProgressDebounce();
+      notifyListeners();
+      return;
+    }
+
+    // Otherwise, debounce updates
+    if (_progressDebounceTimer == null || !_progressDebounceTimer!.isActive) {
+      _progressDebounceTimer = Timer(_progressDebounce, () {
+        // Do not change _lastEmittedPercent here; this is a soft refresh
+        notifyListeners();
+      });
+    }
+  }
+
+  void _cancelProgressDebounce() {
+    _progressDebounceTimer?.cancel();
+    _progressDebounceTimer = null;
   }
 
   String _mapErrorForUi(String message, String? code) {
@@ -156,13 +169,7 @@ class UploadProvider extends ChangeNotifier {
 
   // Resolve a configured PaperlessService via AppConfigProvider, if available.
   PaperlessService? _resolvePaperlessService() {
-    final cfg = _appConfig;
-    if (cfg == null) {
-      developer.log('AppConfigProvider not set on UploadProvider',
-          name: 'UploadProvider._resolvePaperlessService');
-      return null;
-    }
-    final svc = cfg.getPaperlessService();
+    final svc = _appConfig.getPaperlessService();
     if (svc == null) {
       developer.log('AppConfigProvider returned null PaperlessService (not configured)',
           name: 'UploadProvider._resolvePaperlessService');
@@ -180,6 +187,8 @@ class UploadProvider extends ChangeNotifier {
     _bytesTotal = 0;
     _showTypeWarning = false;
     _lastMimeType = null;
+    _lastEmittedPercent = -1;
+    _cancelProgressDebounce();
     notifyListeners();
   }
 }

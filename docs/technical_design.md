@@ -3,6 +3,7 @@
 ## 1. Intent Handler Enhancements
 
 ### MIME Type Validation
+
 ```dart
 class FileValidationResult {
   final bool isValid;
@@ -28,6 +29,7 @@ static Future<FileValidationResult> validateFile(String path) async {
 ```
 
 ### File Size Handling
+
 ```dart
 static const int MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB default
 static const int COMPRESSION_THRESHOLD = 50 * 1024 * 1024; // 50MB for images
@@ -51,6 +53,7 @@ static Future<FileValidationResult> validateFileSize(String path) async {
 ## 2. Upload Process Improvements
 
 ### Streamed Upload Implementation
+
 ```dart
 class UploadProgress {
   final int bytesUploaded;
@@ -71,6 +74,7 @@ Future<Stream<UploadProgress>> uploadDocumentStreamed({
 ```
 
 ### Compression Strategy
+
 ```dart
 enum CompressionStrategy {
   none,      // Never compress
@@ -107,6 +111,7 @@ Future<CompressionResult> prepareFileForUpload(
 ## 3. Retry Mechanism
 
 ### Idempotency Implementation
+
 ```dart
 class UploadRequest {
   final String idempotencyKey;
@@ -130,6 +135,7 @@ class RetryManager {
 ```
 
 ### Error Types
+
 ```dart
 sealed class UploadError {
   final String message;
@@ -156,25 +162,29 @@ class ValidationError extends UploadError {
 ## Implementation Notes
 
 1. File Handling
+
 - Use content resolver for robust URI handling
 - Stream files directly without full memory loading
 - Implement proper permission checks and handling
 - Add MIME type detection using both file magic numbers and extensions
 - Compress images that exceed threshold size
 
-2. Upload Process
+1. Upload Process
+
 - Use chunked transfer encoding
 - Monitor and report upload progress
 - Handle connection changes during upload
 - Support cancellation of in-progress uploads
 
-3. Error Recovery
+1. Error Recovery
+
 - Persist upload state for recovery
 - Implement proper cleanup on failures
 - Add detailed logging for debugging
 - Keep track of failed uploads for retry
 
-4. Testing Strategy
+1. Testing Strategy
+
 - Unit tests for retry logic and MIME validation
 - Integration tests for file handling
 - Performance tests with various file sizes
@@ -188,6 +198,7 @@ class ValidationError extends UploadError {
 4. Implement rollback capability
 
 ## Supported File Types
+
 - PDF Documents (application/pdf)
 - PNG Images (image/png)
 - JPEG Images (image/jpeg)
@@ -196,6 +207,7 @@ class ValidationError extends UploadError {
 - WebP Images (image/webp)
 
 Each file type will be validated for:
+
 1. Correct MIME type and extension matching
 2. File size limits
 3. File integrity (basic header check)
