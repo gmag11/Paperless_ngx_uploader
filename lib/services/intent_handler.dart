@@ -1,19 +1,41 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:io' show Platform;
+import 'dart:io' show File, Platform;
 
+import 'package:path/path.dart' as p;
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 /// Event emitted to UI when a share intent is received.
-/// Contains both the resolved file name (for UI) and the file path (for upload).
+/// Adds validation info and a warning flag so UI can show a non-blocking banner.
 class ShareReceivedEvent {
   final String fileName;
   final String filePath;
+  final String? mimeType;
+  final int? fileSizeBytes;
+  final bool supportedType;
+  final bool showWarning;
 
-  ShareReceivedEvent({required this.fileName, required this.filePath});
+  ShareReceivedEvent({
+    required this.fileName,
+    required this.filePath,
+    this.mimeType,
+    this.fileSizeBytes,
+    required this.supportedType,
+    required this.showWarning,
+  });
 }
 
 class IntentHandler {
+  // Supported MIME types and common extensions
+  static final Map<String, List<String>> _supportedTypes = {
+    'application/pdf': ['.pdf'],
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/png': ['.png'],
+    'image/tiff': ['.tif', '.tiff'],
+    'image/gif': ['.gif'],
+    'image/webp': ['.webp'],
+  };
+
   // Broadcast stream for UI to listen for received share events
   static final StreamController<ShareReceivedEvent> _eventController =
       StreamController<ShareReceivedEvent>.broadcast();
@@ -22,32 +44,22 @@ class IntentHandler {
   static Stream<ShareReceivedEvent> get eventStream => _eventController.stream;
 
   static Future<void> initialize() async {
-    // developer.log('initialize: start', name: 'IntentHandler');
-    // Guard non-Android platforms
-    if (!Platform.isAndroid) {
-      // developer.log('initialize: skipped (not Android)', name: 'IntentHandler');
-      return;
-    }
+    if (!Platform.isAndroid) return;
 
-    // developer.log('initialize: handle initial intent', name: 'IntentHandler');
-    // Handle initial intent when app is launched
     await _handleInitialIntent();
 
-    // Listen for sharing intents while app is running
     _mediaSub?.cancel();
-    _mediaSub = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
-      // developer.log('getMediaStream: received files=${value.length}', name: 'IntentHandler');
-      if (value.isNotEmpty) {
-        // developer.log('getMediaStream: handling first file', name: 'IntentHandler');
-        _handleSharedFiles(value);
-      }
-    }, onError: (e, st) {
-      developer.log('getMediaStream: error $e',
-          name: 'IntentHandler',
-          error: e,
-          stackTrace: st);
-    });
-    // developer.log('initialize: media stream subscribed', name: 'IntentHandler');
+    _mediaSub = ReceiveSharingIntent.instance.getMediaStream().listen(
+      (List<SharedMediaFile> value) {
+        if (value.isNotEmpty) {
+          _handleSharedFiles(value);
+        }
+      },
+      onError: (e, st) {
+        developer.log('getMediaStream: error $e',
+            name: 'IntentHandler', error: e, stackTrace: st);
+      },
+    );
   }
 
   static Future<void> dispose() async {
@@ -56,12 +68,10 @@ class IntentHandler {
   }
 
   static Future<void> _handleInitialIntent() async {
-    // developer.log('_handleInitialIntent: start', name: 'IntentHandler');
     try {
-      final sharedFiles = await ReceiveSharingIntent.instance.getInitialMedia();
-      // developer.log('_handleInitialIntent: files=${sharedFiles.length}', name: 'IntentHandler');
+      final sharedFiles =
+          await ReceiveSharingIntent.instance.getInitialMedia();
       if (sharedFiles.isNotEmpty) {
-        // developer.log('_handleInitialIntent: handling first file', name: 'IntentHandler');
         _handleSharedFiles(sharedFiles);
       }
     } catch (e, st) {
@@ -72,24 +82,58 @@ class IntentHandler {
     }
   }
 
-  static void _handleSharedFiles(List<SharedMediaFile> files) {
-    // developer.log('_handleSharedFiles: start, files=${files.length}', name: 'IntentHandler');
+  static void _handleSharedFiles(List<SharedMediaFile> files) async {
     if (files.isEmpty) return;
 
-    // For now, handle only the first file
     final file = files.first;
     final filePath = file.path;
+    final fileName = _deriveFileName(file);
 
-    // Derive filename robustly
-    final String fileName = _deriveFileName(file);
-    // developer.log('_handleSharedFiles: derived filename=$fileName path=$filePath', name: 'IntentHandler');
+    // Best-effort MIME detection: prefer SharedMediaFile type if present, else by extension.
+    String? mime = _guessMime(file, filePath);
+    // Best-effort size (works for file:// paths)
+    int? size;
+    try {
+      final f = File(filePath);
+      if (await f.exists()) {
+        size = await f.length();
+      }
+    } catch (_) {}
 
-    // developer.log('_handleSharedFiles: emitting event', name: 'IntentHandler');
-    // Notify UI with full event (filename + path)
+    final supported = _isSupported(mime, fileName);
+    final showWarning = !supported; // per product decision, warn but proceed
+
+    final event = ShareReceivedEvent(
+      fileName: fileName,
+      filePath: filePath,
+      mimeType: mime,
+      fileSizeBytes: size,
+      supportedType: supported,
+      showWarning: showWarning,
+    );
+
     if (!_eventController.isClosed) {
-      _eventController.add(ShareReceivedEvent(fileName: fileName, filePath: filePath));
-      // developer.log('_handleSharedFiles: event emitted', name: 'IntentHandler');
+      _eventController.add(event);
     }
+  }
+
+  static bool _isSupported(String? mime, String fileName) {
+    if (mime != null && _supportedTypes.containsKey(mime)) return true;
+    final ext = p.extension(fileName).toLowerCase();
+    for (final exts in _supportedTypes.values) {
+      if (exts.contains(ext)) return true;
+    }
+    return false;
+  }
+
+  static String? _guessMime(SharedMediaFile file, String filePath) {
+    // SharedMediaFile has a type parameter on some platforms; use path as fallback
+    final ext = p.extension(filePath).toLowerCase();
+    for (final entry in _supportedTypes.entries) {
+      if (entry.value.contains(ext)) return entry.key;
+    }
+    // leave null to indicate unknown; server may still accept
+    return null;
   }
 
   static String _deriveFileName(SharedMediaFile file) {
@@ -98,17 +142,15 @@ class IntentHandler {
       final last = path.split('/').last;
       if (last.trim().isNotEmpty) return last;
     }
-    // Fallbacks
     return 'archivo';
   }
 
   static Future<void> resetIntent() async {
-    // developer.log('resetIntent: start', name: 'IntentHandler');
     try {
       await ReceiveSharingIntent.instance.reset();
-      // developer.log('resetIntent: done', name: 'IntentHandler');
     } catch (e, st) {
-      developer.log('Error resetting intent: $e', name: 'IntentHandler.resetIntent', error: e, stackTrace: st);
+      developer.log('Error resetting intent: $e',
+          name: 'IntentHandler.resetIntent', error: e, stackTrace: st);
     }
   }
 }
