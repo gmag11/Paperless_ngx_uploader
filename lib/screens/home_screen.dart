@@ -1,9 +1,14 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_config_provider.dart';
 import '../widgets/tag_selection_dialog.dart';
 import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
+import '../services/intent_handler.dart';
+import '../providers/upload_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +18,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String? _lastReceivedFileName;
+  StreamSubscription<ShareReceivedEvent>? _intentSub;
+
   @override
   void initState() {
     super.initState();
@@ -20,6 +28,77 @@ class _HomeScreenState extends State<HomeScreen> {
       final config = Provider.of<AppConfigProvider>(context, listen: false);
       config.loadConfiguration();
     });
+
+    // Listen for share intent events (filename + file path)
+    _intentSub = IntentHandler.eventStream.listen((event) async {
+      setState(() {
+        _lastReceivedFileName = event.fileName;
+      });
+      if (!mounted) return;
+
+      // Visible notification about the received file
+      final receivedMsg = 'Received file: ${event.fileName}';
+      debugPrint('HomeScreen notification: $receivedMsg');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(receivedMsg)),
+      );
+
+      // Trigger immediate upload without leaving the main screen
+      final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
+      final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
+
+      // Ensure configuration and tags are loaded before using them
+      try {
+        // If configuration not loaded yet, attempt to load
+        if (!appConfig.isConfigured) {
+          await appConfig.loadConfiguration();
+        }
+        // If tags are empty, opportunistically try to load stored tags once
+        if (appConfig.selectedTags.isEmpty) {
+          // loadStoredTags is idempotent and inexpensive; this helps avoid race on cold start
+          await appConfig.loadStoredTags();
+        }
+      } catch (_) {
+        // Ignore loading errors here; upload provider will validate configuration again
+      }
+
+      // Read tags at the moment of upload
+      final tags = List<Tag>.from(appConfig.selectedTags);
+
+      // Debug log with tag counts and IDs
+      final tagIdsForLog = tags.map((t) => t.id).toList();
+      debugPrint('HomeScreen: preparing upload with ${tags.length} tag(s): $tagIdsForLog');
+
+      try {
+        await uploadProvider.uploadFile(
+          File(event.filePath),
+          event.fileName,
+          tags,
+        );
+
+        // On success: show confirmation for ~1s then send app to background
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Subida correcta'), duration: Duration(milliseconds: 800)),
+        );
+        await Future.delayed(const Duration(milliseconds: 1000));
+        if (!mounted) return;
+        // Background the app (Android)
+        SystemNavigator.pop();
+      } catch (e) {
+        // On error: show error on the same screen
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al subir: $e'), backgroundColor: Colors.red),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _intentSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -98,6 +177,21 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_lastReceivedFileName != null)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.15),
+                border: Border.all(color: Colors.green),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Received file: $_lastReceivedFileName',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),

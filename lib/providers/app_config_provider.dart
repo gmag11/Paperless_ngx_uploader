@@ -69,7 +69,7 @@ class AppConfigProvider extends ChangeNotifier {
               if (tag.id != 0 && tag.name.isNotEmpty && tag.slug.isNotEmpty) {
                 _selectedTags.add(tag);
               } else {
-                developer.log('Skipping invalid tag data: missing required fields', 
+                developer.log('Skipping invalid tag data: missing required fields',
                               name: 'AppConfigProvider.loadStoredTags',
                               error: 'Invalid tag data - $tagData');
               }
@@ -85,6 +85,11 @@ class AppConfigProvider extends ChangeNotifier {
           }
         }
         
+        developer.log(
+          'Loaded ${_selectedTags.length} selected tag(s) from storage',
+          name: 'AppConfigProvider.loadStoredTags',
+        );
+
         if (_selectedTags.isEmpty && tagList.isNotEmpty) {
           developer.log('Warning: No valid tags could be recovered from stored data',
                         name: 'AppConfigProvider.loadStoredTags');
@@ -95,6 +100,11 @@ class AppConfigProvider extends ChangeNotifier {
                       error: e);
         _selectedTags = [];
       }
+    } else {
+      developer.log(
+        'No stored selected tags found',
+        name: 'AppConfigProvider.loadStoredTags',
+      );
     }
     notifyListeners();
   }

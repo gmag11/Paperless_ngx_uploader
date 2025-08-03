@@ -153,7 +153,7 @@ class PaperlessService {
                     name: 'PaperlessService.uploadDocument');
       developer.log('🔄 Request headers: Authorization: Basic ********',
                     name: 'PaperlessService.uploadDocument');
-      developer.log('🔄 Request fields: title=$title, tags=${jsonEncode(tagIds)}',
+      developer.log('🔄 Request fields: title=$title, tags=$tagIds (as repeated multipart fields)',
                     name: 'PaperlessService.uploadDocument');
 
       final request = http.MultipartRequest(
@@ -175,9 +175,11 @@ class PaperlessService {
         request.fields['title'] = title;
       }
 
-      // Add tags as JSON array string
+      // Add tags as repeated integer multipart parts: tags=1 & tags=30 ...
       if (tagIds.isNotEmpty) {
-        request.fields['tags'] = jsonEncode(tagIds);
+        for (final id in tagIds) {
+          request.files.add(http.MultipartFile.fromString('tags', id.toString()));
+        }
       }
 
       developer.log('🔄 Sending request to ${request.url}',
@@ -212,7 +214,27 @@ class PaperlessService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         developer.log('✅ Upload successful!',
                       name: 'PaperlessService.uploadDocument');
-        return UploadResult.success(jsonDecode(responseBody));
+
+        // The Paperless-NGX endpoint may return either a JSON object or a plain string UUID.
+        // Normalize to a Map<String, dynamic> so UploadResult.success(Map) can be used safely.
+        Map<String, dynamic> normalized;
+        try {
+          final decoded = jsonDecode(responseBody);
+          if (decoded is Map<String, dynamic>) {
+            normalized = decoded;
+          } else if (decoded is String) {
+            // Plain string (e.g., "uuid") -> wrap as {"id": "<uuid>"}
+            normalized = {'id': decoded};
+          } else {
+            // Unexpected but valid JSON (e.g., list/number/bool) -> wrap as {"value": decoded}
+            normalized = {'value': decoded};
+          }
+        } catch (_) {
+          // Non-JSON body (shouldn't happen on 200/201) -> wrap raw body
+          normalized = {'value': responseBody};
+        }
+
+        return UploadResult.success(normalized);
       } else {
         String errorMessage;
         String? errorCode;
