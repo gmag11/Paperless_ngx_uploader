@@ -47,20 +47,44 @@ android {
 
     signingConfigs {
         create("release") {
-            val storeFilePath = keystoreProperties.getProperty("storeFile")
-            if (!storeFilePath.isNullOrBlank()) {
-                storeFile = file(storeFilePath)
+            // Prefer environment variables for sensitive data; fallback to key.properties if provided
+            val envStorePath = System.getenv("KEYSTORE_PATH")
+            val envStorePassword = System.getenv("KEYSTORE_PASSWORD")
+            val envKeyAlias = System.getenv("KEY_ALIAS")
+            val envKeyPassword = System.getenv("KEY_PASSWORD")
+
+            val resolvedStoreFile = when {
+                !envStorePath.isNullOrBlank() -> file(envStorePath)
+                !keystoreProperties.getProperty("storeFile").isNullOrBlank() -> file(keystoreProperties.getProperty("storeFile"))
+                else -> null
             }
-            storePassword = keystoreProperties.getProperty("storePassword")
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
+            if (resolvedStoreFile != null) {
+                storeFile = resolvedStoreFile
+            }
+
+            storePassword = when {
+                !envStorePassword.isNullOrBlank() -> envStorePassword
+                !keystoreProperties.getProperty("storePassword").isNullOrBlank() -> keystoreProperties.getProperty("storePassword")
+                else -> null
+            }
+
+            keyAlias = when {
+                !envKeyAlias.isNullOrBlank() -> envKeyAlias
+                !keystoreProperties.getProperty("keyAlias").isNullOrBlank() -> keystoreProperties.getProperty("keyAlias")
+                else -> null
+            }
+
+            keyPassword = when {
+                !envKeyPassword.isNullOrBlank() -> envKeyPassword
+                !keystoreProperties.getProperty("keyPassword").isNullOrBlank() -> keystoreProperties.getProperty("keyPassword")
+                else -> null
+            }
         }
     }
 
     buildTypes {
         release {
-            // Temporarily sign with debug keystore as requested
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(

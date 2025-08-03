@@ -1,0 +1,100 @@
+name: Build and Upload Release APKs
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Fetch Flutter dependencies
+        run: flutter pub get
+
+      - name: Download keystore
+        if: ${{ env.HAS_KEYSTORE_BASE64 == 'true' }}
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          HAS_KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 != '' && secrets.KEYSTORE_BASE64 != null }}
+        run: |
+          set -euo pipefail
+          mkdir -p android/app
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/keystore.jks
+          ls -la android/app
+
+      - name: Set signing environment variables
+        if: ${{ env.HAS_KEYSTORE_BASE64 == 'true' }}
+        shell: bash
+        env:
+          HAS_KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 != '' && secrets.KEYSTORE_BASE64 != null }}
+        run: |
+          echo "KEYSTORE_PATH=android/app/keystore.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build split-per-ABI APKs
+        run: flutter build apk --release --split-per-abi
+
+      # Rename outputs to required names
+      - name: Rename APKs to target names
+        run: |
+          set -e
+          # Default Flutter output paths:
+          # build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          # build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          # build/app/outputs/flutter-apk/app-x86_64-release.apk
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/app-arm64.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/app-arm.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist/app-amd64.apk
+          ls -la dist
+
+      - name: Upload app-arm64.apk to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: dist/app-arm64.apk
+          asset_name: app-arm64.apk
+          asset_content_type: application/vnd.android.package-archive
+
+      - name: Upload app-arm.apk to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: dist/app-arm.apk
+          asset_name: app-arm.apk
+          asset_content_type: application/vnd.android.package-archive
+
+      - name: Upload app-amd64.apk to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: dist/app-amd64.apk
+          asset_name: app-amd64.apk
+          asset_content_type: application/vnd.android.package-archive
