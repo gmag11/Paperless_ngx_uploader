@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../models/tag.dart';
 import '../models/connection_status.dart';
 import '../services/paperless_service.dart';
+import 'dart:developer' as developer;
 
 class AppConfigProvider extends ChangeNotifier {
   static const _storage = FlutterSecureStorage();
@@ -68,22 +69,30 @@ class AppConfigProvider extends ChangeNotifier {
               if (tag.id != 0 && tag.name.isNotEmpty && tag.slug.isNotEmpty) {
                 _selectedTags.add(tag);
               } else {
-                debugPrint('Skipping invalid tag data: missing required fields');
+                developer.log('Skipping invalid tag data: missing required fields', 
+                              name: 'AppConfigProvider.loadStoredTags',
+                              error: 'Invalid tag data - $tagData');
               }
             } else {
-              debugPrint('Skipping invalid tag data: not a map - $tagData');
+              developer.log('Skipping invalid tag data: not a map - $tagData',
+                            name: 'AppConfigProvider.loadStoredTags');
             }
           } catch (e) {
-            debugPrint('Error parsing individual tag: $e\nTag data: $tagData');
+            developer.log('Error parsing individual tag: $e\nTag data: $tagData',
+                          name: 'AppConfigProvider.loadStoredTags',
+                          error: e);
             // Continue processing other tags
           }
         }
         
         if (_selectedTags.isEmpty && tagList.isNotEmpty) {
-          debugPrint('Warning: No valid tags could be recovered from stored data');
+          developer.log('Warning: No valid tags could be recovered from stored data',
+                        name: 'AppConfigProvider.loadStoredTags');
         }
       } catch (e) {
-        debugPrint('Error decoding stored tags JSON: $e');
+        developer.log('Error decoding stored tags JSON: $e',
+                      name: 'AppConfigProvider.loadStoredTags',
+                      error: e);
         _selectedTags = [];
       }
     }
@@ -95,7 +104,9 @@ class AppConfigProvider extends ChangeNotifier {
       final tagListJson = jsonEncode(_selectedTags.map((tag) => tag.toJson()).toList());
       await _storage.write(key: _tagStorageKey, value: tagListJson);
     } catch (e) {
-      debugPrint('Error saving tags: $e');
+      developer.log('Error saving tags: $e',
+                    name: 'AppConfigProvider.saveSelectedTags',
+                    error: e);
     }
   }
 

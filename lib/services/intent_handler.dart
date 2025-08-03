@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 
 class IntentHandler {
   static const _channel = MethodChannel('paperless_ngx_android_uploader/intent');
@@ -24,7 +24,9 @@ class IntentHandler {
         _handleSharedFiles(sharedFiles);
       }
     } catch (e) {
-      debugPrint('Error handling initial intent: $e');
+      developer.log('Error handling initial intent: $e',
+                    name: 'IntentHandler._handleInitialIntent',
+                    error: e);
     }
   }
 
