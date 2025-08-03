@@ -79,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!mounted) return;
         if (uploadProvider.uploadSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Subida correcta'), duration: Duration(milliseconds: 800)),
+            const SnackBar(content: Text('File uploaded'), duration: Duration(milliseconds: 800)),
           );
           await Future.delayed(const Duration(milliseconds: 1000));
           if (!mounted) return;
