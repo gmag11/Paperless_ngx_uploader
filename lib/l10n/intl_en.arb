@@ -1,0 +1,209 @@
+{
+  "@@locale": "en",
+  "@@last_modified": "2025-08-03T19:38:00Z",
+
+  "dialog_title_paperless_configuration": "Paperless-NGX Configuration",
+  "@dialog_title_paperless_configuration": {
+    "description": "Title for the dialog where the user configures the Paperless-NGX server URL and credentials."
+  },
+
+  "field_label_server_url": "Server URL",
+  "@field_label_server_url": {
+    "description": "Label for the input field where the user enters the Paperless-NGX server URL."
+  },
+  "field_hint_server_url_example": "https://paperless.example.com",
+  "@field_hint_server_url_example": {
+    "description": "Hint text showing an example of a valid Paperless-NGX server URL."
+  },
+  "validation_enter_server_url": "Please enter server URL",
+  "@validation_enter_server_url": {
+    "description": "Validation message shown when the server URL is empty."
+  },
+  "validation_enter_valid_url": "Please enter a valid URL",
+  "@validation_enter_valid_url": {
+    "description": "Validation message shown when the server URL format is invalid."
+  },
+
+  "field_label_username": "Username",
+  "@field_label_username": {
+    "description": "Label for the username input field."
+  },
+  "validation_enter_username": "Please enter username",
+  "@validation_enter_username": {
+    "description": "Validation message shown when the username is empty."
+  },
+
+  "field_label_password": "Password",
+  "@field_label_password": {
+    "description": "Label for the password input field."
+  },
+  "validation_enter_password": "Please enter password",
+  "@validation_enter_password": {
+    "description": "Validation message shown when the password is empty."
+  },
+
+  "action_cancel": "Cancel",
+  "@action_cancel": {
+    "description": "Button label to cancel the current operation."
+  },
+  "action_save_and_test": "Save & Test",
+  "@action_save_and_test": {
+    "description": "Button label to save server settings and test the connection."
+  },
+
+  "tag_dialog_title_select_tags": "Select Tags",
+  "@tag_dialog_title_select_tags": {
+    "description": "Title of the dialog used to select default/global tags."
+  },
+  "common_error": "Error",
+  "@common_error": {
+    "description": "Generic error title used in error banners or dialogs."
+  },
+  "action_retry": "Retry",
+  "@action_retry": {
+    "description": "Button label to try the previous operation again."
+  },
+  "action_apply": "Apply",
+  "@action_apply": {
+    "description": "Button label to apply selected options."
+  },
+  "search_label_search_tags": "Search tags",
+  "@search_label_search_tags": {
+    "description": "Label or hint for the tag search input."
+  },
+  "action_select_default_tags": "Select Default Tags",
+  "@action_select_default_tags": {
+    "description": "Button to open the tag selection dialog for default tags."
+  },
+
+  "snackbar_received_file_prefix": "Received file: {fileName}",
+  "@snackbar_received_file_prefix": {
+    "description": "Shown when a file is received from the Android share intent",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "example": "document.pdf"
+      }
+    }
+  },
+  "snackbar_file_uploaded": "File uploaded",
+  "@snackbar_file_uploaded": {
+    "description": "Snackbar message shown when a file uploads successfully."
+  },
+  "snackbar_upload_error_prefix": "Upload error: {error}",
+  "@snackbar_upload_error_prefix": {
+    "description": "Shown when upload fails with an error message",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network timeout"
+      }
+    }
+  },
+
+  "appbar_title_home": "Paperless-NGX Uploader",
+  "@appbar_title_home": {
+    "description": "Title shown in the AppBar on the home screen."
+  },
+
+  "welcome_title": "Welcome to Paperless-NGX Uploader",
+  "@welcome_title": {
+    "description": "Title text on the welcome section of the home screen."
+  },
+  "welcome_subtitle": "Configure your Paperless-NGX server to start uploading documents",
+  "@welcome_subtitle": {
+    "description": "Subtitle guiding the user to configure the server before using the app."
+  },
+  "welcome_action_configure_server": "Configure Server",
+  "@welcome_action_configure_server": {
+    "description": "Button label that opens the configuration dialog from the welcome section."
+  },
+
+  "banner_type_warning": "File type {mimeType} may not be supported. Upload will be attempted anyway.",
+  "@banner_type_warning": {
+    "description": "Non-blocking warning shown for potentially unsupported mime types",
+    "placeholders": {
+      "mimeType": {
+        "type": "String",
+        "example": "application/zip"
+      }
+    }
+  },
+
+  "panel_title_uploading_document": "Uploading document",
+  "@panel_title_uploading_document": {
+    "description": "Panel title displayed while a document is being uploaded."
+  },
+  "panel_progress_percentage_with_bytes": "{percent}% ({sentBytes}/{totalBytes} bytes)",
+  "@panel_progress_percentage_with_bytes": {
+    "description": "Progress text with sent and total bytes",
+    "placeholders": {
+      "percent": { "type": "String", "example": "42" },
+      "sentBytes": { "type": "String", "example": "102400" },
+      "totalBytes": { "type": "String", "example": "204800" }
+      }
+  },
+  "panel_progress_percentage_only": "{percent}%",
+  "@panel_progress_percentage_only": {
+    "description": "Progress text only percentage",
+    "placeholders": {
+      "percent": { "type": "String", "example": "42" }
+    }
+  },
+
+  "section_title_server_configuration": "Server Configuration",
+  "@section_title_server_configuration": {
+    "description": "Section header for server configuration block."
+  },
+  "server_not_configured": "Not configured",
+  "@server_not_configured": {
+    "description": "Text indicating the server is not yet configured."
+  },
+
+  "section_title_global_tag_configuration": "Global Tag Configuration",
+  "@section_title_global_tag_configuration": {
+    "description": "Section header for global/default tags configuration."
+  },
+  "tooltip_edit_tags": "Edit tags",
+  "@tooltip_edit_tags": {
+    "description": "Tooltip shown on the control to edit the selected tags."
+  },
+  "empty_tags_title": "No tags selected",
+  "@empty_tags_title": {
+    "description": "Title text shown when there are no tags selected."
+  },
+  "empty_tags_subtitle": "Tap \"Select Tags\" to configure",
+  "@empty_tags_subtitle": {
+    "description": "Subtitle prompting the user to open tag selection when none are selected."
+  },
+  "tags_configured_count": "{count} tag{pluralSuffix} configured",
+  "@tags_configured_count": {
+    "description": "Shows how many tags are configured, plural suffix is '' for 1 and 's' otherwise in current implementation.",
+    "placeholders": {
+      "count": { "type": "String", "example": "3" },
+      "pluralSuffix": { "type": "String", "example": "s" }
+    }
+  },
+
+  "howto_title": "How to use:",
+  "@howto_title": {
+    "description": "Header for the quick start instructions."
+  },
+  "howto_step_1": "1. Share a document from any app",
+  "@howto_step_1": {
+    "description": "First step of the quick start instructions."
+  },
+  "howto_step_2": "2. Select \"Paperless-NGX Uploader\"",
+  "@howto_step_2": {
+    "description": "Second step of the quick start instructions."
+  },
+  "howto_step_3": "3. Upload will happen immediately",
+  "@howto_step_3": {
+    "description": "Third step of the quick start instructions."
+  },
+
+  "snackbar_configure_server_first": "Please configure server connection first",
+  "@snackbar_configure_server_first": {
+    "description": "Snackbar shown when an action requires server configuration beforehand."
+  }
+}

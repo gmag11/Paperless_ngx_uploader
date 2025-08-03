@@ -9,6 +9,7 @@ import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
 import '../services/intent_handler.dart';
 import '../providers/upload_provider.dart';
+import '../l10n/gen/app_localizations.dart';
 // import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
@@ -79,20 +80,20 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!mounted) return;
         if (uploadProvider.uploadSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('File uploaded'), duration: Duration(milliseconds: 800)),
+            SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_file_uploaded), duration: const Duration(milliseconds: 800)),
           );
           await Future.delayed(const Duration(milliseconds: 1000));
           if (!mounted) return;
           SystemNavigator.pop();
         } else if (uploadProvider.uploadError != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(uploadProvider.uploadError!), backgroundColor: Colors.red),
+            SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_upload_error_prefix(uploadProvider.uploadError!)), backgroundColor: Colors.red),
           );
         }
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al subir: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_upload_error_prefix(e.toString())), backgroundColor: Colors.red),
         );
       }
     });
@@ -106,9 +107,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Paperless-NGX Uploader'),
+        title: Text(l10n.appbar_title_home),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -129,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWelcomeScreen(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -141,18 +144,18 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.blue,
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Welcome to Paperless-NGX Uploader',
-              style: TextStyle(
+            Text(
+              l10n.welcome_title,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Configure your Paperless-NGX server to start uploading documents',
-              style: TextStyle(
+            Text(
+              l10n.welcome_subtitle,
+              style: const TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
               ),
@@ -162,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton.icon(
               onPressed: () => _showConfigurationDialog(context),
               icon: const Icon(Icons.settings),
-              label: const Text('Configure Server'),
+              label: Text(l10n.welcome_action_configure_server),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
@@ -184,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Consumer<UploadProvider>(
             builder: (context, up, _) {
               if (up.showTypeWarning) {
-                final mt = up.lastMimeType ?? 'desconocido';
+                final mt = up.lastMimeType ?? '';
                 return Container(
                   width: double.infinity,
                   margin: const EdgeInsets.only(bottom: 12),
@@ -195,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Tipo de archivo $mt puede no estar soportado. Se intentará subir igualmente.',
+                    AppLocalizations.of(context)!.banner_type_warning(mt),
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 );
@@ -214,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'Received file: $_lastReceivedFileName',
+                AppLocalizations.of(context)!.snackbar_received_file_prefix(_lastReceivedFileName ?? ''),
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -232,9 +235,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Uploading document',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      Text(
+                        AppLocalizations.of(context)!.panel_title_uploading_document,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 12),
                       LinearProgressIndicator(
@@ -244,8 +247,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 8),
                       Text(
                         up.bytesTotal > 0
-                            ? '$pct% (${up.bytesSent}/${up.bytesTotal} bytes)'
-                            : '$pct%',
+                            ? AppLocalizations.of(context)!.panel_progress_percentage_with_bytes(
+                                pct,
+                                up.bytesSent.toString(),
+                                up.bytesTotal.toString(),
+                              )
+                            : AppLocalizations.of(context)!.panel_progress_percentage_only(pct),
                         style: const TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -262,9 +269,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'Server Configuration',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.section_title_server_configuration,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -273,7 +280,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    config.serverUrl ?? 'Not configured',
+                    config.serverUrl ?? AppLocalizations.of(context)!.server_not_configured,
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ],
@@ -292,9 +299,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const Icon(Icons.tag, color: Colors.blue),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Global Tag Configuration',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.section_title_global_tag_configuration,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -303,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       IconButton(
                         icon: const Icon(Icons.edit, size: 20),
                         onPressed: () => _showTagSelectionDialog(context),
-                        tooltip: 'Edit tags',
+                        tooltip: AppLocalizations.of(context)!.tooltip_edit_tags,
                       ),
                     ],
                   ),
@@ -313,17 +320,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (config.selectedTags.isEmpty) {
                         return Container(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: const Column(
+                          child: Column(
                             children: [
-                              Icon(Icons.tag_outlined, size: 48, color: Colors.grey),
-                              SizedBox(height: 8),
+                              const Icon(Icons.tag_outlined, size: 48, color: Colors.grey),
+                              const SizedBox(height: 8),
                               Text(
-                                'No tags selected',
-                                style: TextStyle(color: Colors.grey, fontSize: 16),
+                                AppLocalizations.of(context)!.empty_tags_title,
+                                style: const TextStyle(color: Colors.grey, fontSize: 16),
                               ),
                               Text(
-                                'Tap "Select Tags" to configure',
-                                style: TextStyle(color: Colors.grey, fontSize: 12),
+                                AppLocalizations.of(context)!.empty_tags_subtitle,
+                                style: const TextStyle(color: Colors.grey, fontSize: 12),
                               ),
                             ],
                           ),
@@ -333,7 +340,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${config.selectedTags.length} tag${config.selectedTags.length == 1 ? '' : 's'} configured',
+                            AppLocalizations.of(context)!.tags_configured_count(
+                              config.selectedTags.length.toString(),
+                              config.selectedTags.length == 1 ? '' : 's',
+                            ),
                             style: const TextStyle(
                               fontSize: 14,
                               color: Colors.grey,
@@ -373,25 +383,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'How to use:',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.howto_title,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          const Card(
+          Card(
             child: Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('1. Share a document from any app'),
-                  SizedBox(height: 8),
-                  Text('2. Select "Paperless-NGX Uploader"'),
-                  SizedBox(height: 8),
-                  Text('3. Upload will happen inmediately'),
+                  Text(AppLocalizations.of(context)!.howto_step_1),
+                  const SizedBox(height: 8),
+                  Text(AppLocalizations.of(context)!.howto_step_2),
+                  const SizedBox(height: 8),
+                  Text(AppLocalizations.of(context)!.howto_step_3),
                 ],
               ),
             ),
@@ -426,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
     
     if (paperlessService == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please configure server connection first')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_configure_server_first)),
       );
       return;
     }

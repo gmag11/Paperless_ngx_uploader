@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:paperless_ngx_android_uploader/services/secure_storage_service.dart';
 import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
 import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
+import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
 
 class ConfigDialog extends StatefulWidget {
   const ConfigDialog({super.key});
@@ -60,8 +61,9 @@ class _ConfigDialogState extends State<ConfigDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Paperless-NGX Configuration'),
+      title: Text(l10n.dialog_title_paperless_configuration),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -70,17 +72,17 @@ class _ConfigDialogState extends State<ConfigDialog> {
             children: [
               TextFormField(
                 controller: _serverUrlController,
-                decoration: const InputDecoration(
-                  labelText: 'Server URL',
-                  hintText: 'https://paperless.example.com',
-                  prefixIcon: Icon(Icons.link),
+                decoration: InputDecoration(
+                  labelText: l10n.field_label_server_url,
+                  hintText: l10n.field_hint_server_url_example,
+                  prefixIcon: const Icon(Icons.link),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter server URL';
+                    return l10n.validation_enter_server_url;
                   }
                   if (!value.startsWith('http://') && !value.startsWith('https://')) {
-                    return 'Please enter a valid URL';
+                    return l10n.validation_enter_valid_url;
                   }
                   return null;
                 },
@@ -88,13 +90,13 @@ class _ConfigDialogState extends State<ConfigDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                  prefixIcon: Icon(Icons.person),
+                decoration: InputDecoration(
+                  labelText: l10n.field_label_username,
+                  prefixIcon: const Icon(Icons.person),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter username';
+                    return l10n.validation_enter_username;
                   }
                   return null;
                 },
@@ -104,7 +106,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: l10n.field_label_password,
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -119,7 +121,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter password';
+                    return l10n.validation_enter_password;
                   }
                   return null;
                 },
@@ -148,7 +150,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.action_cancel),
         ),
         Consumer<AppConfigProvider>(
           builder: (context, config, child) {
@@ -161,7 +163,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Save & Test'),
+                  : Text(l10n.action_save_and_test),
             );
           },
         ),

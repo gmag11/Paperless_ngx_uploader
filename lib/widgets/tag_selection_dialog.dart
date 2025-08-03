@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:paperless_ngx_android_uploader/models/tag.dart';
 import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
 import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
+import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
 
 class TagSelectionDialog extends StatefulWidget {
   final List<Tag> selectedTags;
@@ -48,7 +49,8 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load tags: $e';
+        // Keep the raw error to display but no hardcoded prefix text here
+        _error = e.toString();
         _isLoading = false;
       });
     }
@@ -117,9 +119,10 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_isLoading) {
       return AlertDialog(
-        title: const Text('Select Tags'),
+        title: Text(l10n.tag_dialog_title_select_tags),
         content: const Center(
           child: CircularProgressIndicator(),
         ),
@@ -128,7 +131,7 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
 
     if (_error != null) {
       return AlertDialog(
-        title: const Text('Error'),
+        title: Text(l10n.common_error),
         content: Text(_error!),
         actions: [
           TextButton(
@@ -139,18 +142,18 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
               });
               _fetchTags();
             },
-            child: const Text('Retry'),
+            child: Text(l10n.action_retry),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(null),
-            child: const Text('Cancel'),
+            child: Text(l10n.action_cancel),
           ),
         ],
       );
     }
 
     return AlertDialog(
-      title: const Text('Select Tags'),
+      title: Text(l10n.tag_dialog_title_select_tags),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -158,16 +161,16 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
           children: [
             TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Search tags',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.search_label_search_tags,
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: _selectDefaults,
-              child: const Text('Select Default Tags'),
+              child: Text(l10n.action_select_default_tags),
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -211,11 +214,11 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Cancel'),
+          child: Text(l10n.action_cancel),
         ),
         ElevatedButton(
           onPressed: () => Navigator.of(context).pop(_selectedTags),
-          child: const Text('Apply'),
+          child: Text(l10n.action_apply),
         ),
       ],
     );
