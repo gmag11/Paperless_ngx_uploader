@@ -15,15 +15,18 @@ android {
 
     // Load keystore properties if present
     val keystoreProperties = Properties().apply {
-        val keystoreFile = rootProject.file("android/key.properties")
+        // IMPORTANT: resolve relative to the :app module directory
+        val keystoreFile = file("../key.properties")
         if (keystoreFile.exists()) {
             keystoreFile.inputStream().use { this.load(it) }
         }
     }
 
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        // Update Java toolchain to 11
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
@@ -32,7 +35,8 @@ android {
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         kotlinOptions {
-            jvmTarget = "1.8"
+            // Match Kotlin bytecode target with Java 11
+            jvmTarget = "11"
         }
     }
 
