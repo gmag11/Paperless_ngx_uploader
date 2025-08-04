@@ -48,22 +48,13 @@ jobs:
           set -euo pipefail
           mkdir -p android/app
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/keystore.jks
-          echo "=== Checking keystore locations ==="
-          echo "Current directory: $PWD"
-          echo "Contents of android/app:"
-          ls -la android/app
-          echo "Checking if keystore exists:"
-          test -f android/app/keystore.jks && echo "Found at android/app/keystore.jks" || echo "Keystore not found at expected location"
 
       - name: Set signing environment variables
         if: steps.detect_keystore.outputs.has_keystore == 'true'
         shell: bash
         run: |
           cd android/app
-          echo "=== Ensuring keystore is readable ==="
           chmod 644 keystore.jks
-          echo "=== Keystore permissions ==="
-          ls -l keystore.jks
           echo "KEYSTORE_PATH=keystore.jks" >> "$GITHUB_ENV"
           cd ../..
           echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
@@ -72,29 +63,16 @@ jobs:
 
       - name: Build split-per-ABI APKs
         shell: bash
-        run: |
-          echo "=== Debug keystore before build ==="
-          echo "PWD: $PWD"
-          echo "android/app contents:"
-          ls -la android/app/
-          echo "Environment variables:"
-          env | grep KEYSTORE
-          echo "=== Starting build ==="
-          flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi
 
       # Rename outputs to required names
       - name: Rename APKs to target names
         run: |
           set -e
-          # Default Flutter output paths:
-          # build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-          # build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-          # build/app/outputs/flutter-apk/app-x86_64-release.apk
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/app-arm64.apk
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/app-arm.apk
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist/app-amd64.apk
-          ls -la dist
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/app-arm64-v8a-release.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/app-armeabi-v7a-release.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist/app-x86_64-release.apk
 
       - name: Upload app-arm64.apk to release
         uses: actions/upload-release-asset@v1
@@ -102,8 +80,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist/app-arm64.apk
-          asset_name: app-arm64.apk
+          asset_path: dist/app-arm64-v8a-release.apk
+          asset_name: app-arm64-v8a-release.apk
           asset_content_type: application/vnd.android.package-archive
 
       - name: Upload app-arm.apk to release
@@ -112,8 +90,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist/app-arm.apk
-          asset_name: app-arm.apk
+          asset_path: dist/app-armeabi-v7a-release.apk
+          asset_name: app-armeabi-v7a-release.apk
           asset_content_type: application/vnd.android.package-archive
 
       - name: Upload app-amd64.apk to release
@@ -122,6 +100,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist/app-amd64.apk
-          asset_name: app-amd64.apk
+          asset_path: dist/app-x86_64-release.apk
+          asset_name: app-x86_64-release.apk
           asset_content_type: application/vnd.android.package-archive
