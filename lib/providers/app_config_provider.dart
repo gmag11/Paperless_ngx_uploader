@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../models/tag.dart';
 import '../models/connection_status.dart';
 import '../services/paperless_service.dart';
+import '../services/secure_storage_service.dart';
 import 'dart:developer' as developer;
 
 class AppConfigProvider extends ChangeNotifier {
@@ -13,6 +14,10 @@ class AppConfigProvider extends ChangeNotifier {
   String? _serverUrl;
   String? _username;
   String? _password;
+  // Auth method/token
+  AuthMethod? _authMethod;
+  String? _apiToken;
+
   ConnectionStatus _connectionStatus = ConnectionStatus.notConfigured;
   String? _connectionError;
   List<Tag> _selectedTags = [];
@@ -23,40 +28,76 @@ class AppConfigProvider extends ChangeNotifier {
   String? get serverUrl => _serverUrl;
   String? get username => _username;
   String? get password => _password;
+  AuthMethod? get authMethod => _authMethod;
+  String? get apiToken => _apiToken;
+
   ConnectionStatus get connectionStatus => _connectionStatus;
   String? get connectionError => _connectionError;
-  bool get isConfigured => _serverUrl != null &&
-                          _username != null &&
-                          _password != null;
+
+  bool get isConfigured {
+    if (_serverUrl == null || _authMethod == null) return false;
+    if (_authMethod == AuthMethod.apiToken) {
+      return _apiToken != null && _apiToken!.isNotEmpty;
+    }
+    return _username != null && _password != null && _username!.isNotEmpty && _password!.isNotEmpty;
+  }
+
   bool get isConnecting => _connectionStatus == ConnectionStatus.connecting;
   bool get isConnected => _connectionStatus == ConnectionStatus.connected;
   List<Tag> get selectedTags => List.unmodifiable(_selectedTags);
 
   PaperlessService? getPaperlessService() {
-    if (!isConfigured) return null;
+    if (!isConfigured) {
+      return null;
+    }
 
-    // Recreate only if any credential changed or cache is empty
-    if (_serviceCache == null ||
+    final useApi = _authMethod == AuthMethod.apiToken;
+    final cacheMismatch =
+        _serviceCache == null ||
         _serviceCache!.baseUrl != _serverUrl ||
-        _serviceCache!.username != _username ||
-        _serviceCache!.password != _password) {
+        _serviceCache!.username != (_username ?? '') ||
+        _serviceCache!.password != (_password ?? '') ||
+        _serviceCache!.useApiToken != useApi ||
+        _serviceCache!.apiToken != (useApi ? _apiToken : null);
+
+    if (cacheMismatch) {
       _serviceCache = PaperlessService(
         baseUrl: _serverUrl!,
-        username: _username!,
-        password: _password!,
+        username: _username ?? '',
+        password: _password ?? '',
+        useApiToken: useApi,
+        apiToken: useApi ? _apiToken : null,
       );
-      if (kDebugMode) {
-        developer.log('Recreated PaperlessService due to credential change',
-            name: 'AppConfigProvider.getPaperlessService');
-      }
     }
     return _serviceCache;
   }
 
   Future<void> loadConfiguration() async {
-    _serverUrl = await _storage.read(key: 'server_url');
-    _username = await _storage.read(key: 'username');
-    _password = await _storage.read(key: 'password');
+    // Use SecureStorageService to load full credential set including method/token
+    final creds = await SecureStorageService.getCredentials();
+    _serverUrl = creds['serverUrl'];
+    final methodName = creds['authMethod'];
+    _authMethod = methodName != null
+        ? AuthMethod.values.firstWhere(
+            (m) => m.name == methodName,
+            orElse: () => AuthMethod.usernamePassword,
+          )
+        : null;
+  
+    if (_authMethod == AuthMethod.apiToken) {
+      _apiToken = creds['apiToken'];
+      _username = '';
+      _password = '';
+    } else if (_authMethod == AuthMethod.usernamePassword) {
+      _username = creds['username'];
+      _password = creds['password'];
+      _apiToken = null;
+    } else {
+      // not configured
+      _username = null;
+      _password = null;
+      _apiToken = null;
+    }
 
     // Reset cache on load; will be lazily created
     _serviceCache = null;
@@ -135,22 +176,56 @@ class AppConfigProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> saveConfiguration(String serverUrl, String username, String password) async {
-    await _storage.write(key: 'server_url', value: serverUrl);
-    await _storage.write(key: 'username', value: username);
-    await _storage.write(key: 'password', value: password);
-    
+  Future<void> saveConfiguration(String serverUrl, String usernameOrEmpty, String passwordOrToken) async {
+    // IMPORTANT: Resolve method from current input first. If username is empty => apiToken.
+    // Do not let previous _authMethod override explicit user intent from dialog.
+    final AuthMethod method =
+        (usernameOrEmpty.isEmpty) ? AuthMethod.apiToken : AuthMethod.usernamePassword;
+  
+    if (method == AuthMethod.apiToken) {
+      await SecureStorageService.saveCredentials(
+        serverUrl: serverUrl,
+        method: AuthMethod.apiToken,
+        apiToken: passwordOrToken,
+      );
+    } else {
+      await SecureStorageService.saveCredentials(
+        serverUrl: serverUrl,
+        method: AuthMethod.usernamePassword,
+        username: usernameOrEmpty,
+        password: passwordOrToken,
+      );
+    }
+  
     // If any value changed, update state and invalidate cache
-    final changed = _serverUrl != serverUrl || _username != username || _password != password;
-
+    final prevServer = _serverUrl;
+    final prevUser = _username;
+    final prevPass = _password;
+    final prevMethod = _authMethod;
+    final prevToken = _apiToken;
+  
     _serverUrl = serverUrl;
-    _username = username;
-    _password = password;
+    _authMethod = method;
+    if (method == AuthMethod.apiToken) {
+      _apiToken = passwordOrToken;
+      _username = '';
+      _password = '';
+    } else {
+      _username = usernameOrEmpty;
+      _password = passwordOrToken;
+      _apiToken = null;
+    }
+  
+    final changed = prevServer != _serverUrl ||
+        prevUser != _username ||
+        prevPass != _password ||
+        prevMethod != _authMethod ||
+        prevToken != _apiToken;
 
     if (changed) {
       _serviceCache = null;
     }
-
+  
     _connectionStatus = ConnectionStatus.connecting;
     _connectionError = null;
     notifyListeners();
@@ -168,7 +243,6 @@ class AppConfigProvider extends ChangeNotifier {
 
     try {
       final service = getPaperlessService()!;
-
       _connectionStatus = await service.testConnection();
       
       _connectionError = switch (_connectionStatus) {
@@ -183,23 +257,25 @@ class AppConfigProvider extends ChangeNotifier {
     } catch (e) {
       _connectionStatus = ConnectionStatus.unknownError;
       _connectionError = e.toString();
+      developer.log('testConnection: exception -> $_connectionError',
+          name: 'AppConfigProvider', error: e);
     }
     
     notifyListeners();
   }
 
   Future<void> clearConfiguration() async {
-    await _storage.delete(key: 'server_url');
-    await _storage.delete(key: 'username');
-    await _storage.delete(key: 'password');
+    await SecureStorageService.clearCredentials();
     
     _serverUrl = null;
     _username = null;
     _password = null;
-
+    _authMethod = null;
+    _apiToken = null;
+  
     // Invalidate cache
     _serviceCache = null;
-
+  
     _connectionStatus = ConnectionStatus.notConfigured;
     _connectionError = null;
     notifyListeners();

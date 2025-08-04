@@ -42,6 +42,13 @@ class PaperlessService {
   final String username;
   final String password;
 
+  // Authentication method: if true, use API token in "Authorization: Token <token>"
+  // If false, use HTTP Basic with username/password.
+  final bool useApiToken;
+
+  // When useApiToken is true, the API token value (without the "Token " prefix)
+  final String? apiToken;
+
   // Shared Dio client configured for streaming, timeouts, and retries
   late final Dio _dio;
 
@@ -49,13 +56,20 @@ class PaperlessService {
     required String baseUrl,
     required this.username,
     required this.password,
+    this.useApiToken = false,
+    this.apiToken,
   })  : baseUrl = _normalizeBaseUrl(baseUrl) {
     _dio = Dio(BaseOptions(
       baseUrl: this.baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 60),
       sendTimeout: const Duration(minutes: 10),
-      headers: _defaultHeaders(username, password),
+      headers: _defaultHeaders(
+        username: username,
+        password: password,
+        useApiToken: useApiToken,
+        apiToken: apiToken,
+      ),
       followRedirects: true,
       validateStatus: (code) => code != null && code >= 200 && code < 600,
     ));
@@ -95,14 +109,30 @@ class PaperlessService {
     return trimmed;
   }
 
-  static Map<String, dynamic> _defaultHeaders(String username, String password) {
-    final credentials = base64Encode(utf8.encode('$username:$password'));
-    return {
-      HttpHeaders.authorizationHeader: 'Basic $credentials',
-    };
+  static Map<String, dynamic> _defaultHeaders({
+    required String username,
+    required String password,
+    required bool useApiToken,
+    String? apiToken,
+  }) {
+    if (useApiToken) {
+      final token = (apiToken ?? '').trim();
+      return {
+        HttpHeaders.authorizationHeader: 'Token $token',
+      };
+    } else {
+      final credentials = base64Encode(utf8.encode('$username:$password'));
+      return {
+        HttpHeaders.authorizationHeader: 'Basic $credentials',
+      };
+    }
   }
 
   String get _authHeader {
+    if (useApiToken) {
+      final token = (apiToken ?? '').trim();
+      return 'Token $token';
+    }
     final credentials = base64Encode(utf8.encode('$username:$password'));
     return 'Basic $credentials';
   }
