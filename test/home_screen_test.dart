@@ -8,6 +8,7 @@ import 'package:paperless_ngx_android_uploader/models/tag.dart';
 import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
 import 'package:paperless_ngx_android_uploader/providers/upload_provider.dart';
 import 'package:paperless_ngx_android_uploader/screens/home_screen.dart';
+import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
 
 // Removed unused _TestUploadProvider (dead code).
 
@@ -128,8 +129,12 @@ Widget _wrapWithFakeProvider(_ViewState provider) {
       ChangeNotifierProvider<UploadProvider>.value(value: provider),
       ChangeNotifierProvider<AppConfigProvider>.value(value: stubConfig),
     ],
-    child: const MaterialApp(
-      home: HomeScreen(),
+    child: MaterialApp(
+      // Use English locale and real localization delegates from l10n
+      locale: const Locale('en'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const HomeScreen(),
     ),
   );
 }
@@ -140,15 +145,19 @@ void main() {
       final provider = _ViewState();
       await tester.pumpWidget(_wrapWithFakeProvider(provider));
 
-      // Initially hidden: the custom Spanish warning text is not present
-      expect(find.textContaining('Tipo de archivo'), findsNothing);
+      // Resolve the English localized banner prefix from ARB so tests don't hardcode strings
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final expectedBanner = l10n.banner_type_warning('application/pdf');
 
-      // Enable warning, matches HomeScreen Spanish banner
+      // Initially hidden
+      expect(find.text(expectedBanner), findsNothing);
+
+      // Enable warning
       provider.setWarning(true, mime: 'application/pdf');
       await tester.pumpAndSettle();
 
-      // Expect the exact banner prefix text in HomeScreen
-      expect(find.textContaining('Tipo de archivo'), findsOneWidget);
+      // Expect exact localized text
+      expect(find.text(expectedBanner), findsOneWidget);
     });
 
     testWidgets('renders progress card with percentage and bytes while uploading', (tester) async {
