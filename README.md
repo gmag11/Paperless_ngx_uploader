@@ -150,7 +150,7 @@ Formatting/linting:
 
 ## Roadmap / TODO
 
-[ ] Add support for token-based login for instances using OpenID login (accept user-provided access token and use it for API calls).
+- [ ] Add support for token-based login for instances using OpenID login (accept user-provided access token and use it for API calls).
 
 ## Credits and license
 
