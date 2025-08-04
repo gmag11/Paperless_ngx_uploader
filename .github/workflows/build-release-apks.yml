@@ -48,19 +48,40 @@ jobs:
           set -euo pipefail
           mkdir -p android/app
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/keystore.jks
+          echo "=== Checking keystore locations ==="
+          echo "Current directory: $PWD"
+          echo "Contents of android/app:"
           ls -la android/app
+          echo "Checking if keystore exists:"
+          test -f android/app/keystore.jks && echo "Found at android/app/keystore.jks"
+          test -f android/app/android/app/keystore.jks && echo "Found at android/app/android/app/keystore.jks"
 
       - name: Set signing environment variables
         if: steps.detect_keystore.outputs.has_keystore == 'true'
         shell: bash
         run: |
-          echo "KEYSTORE_PATH=android/app/keystore.jks" >> "$GITHUB_ENV"
+          cd android/app
+          echo "=== Ensuring keystore is readable ==="
+          chmod 644 keystore.jks
+          echo "=== Keystore permissions ==="
+          ls -l keystore.jks
+          echo "KEYSTORE_PATH=keystore.jks" >> "$GITHUB_ENV"
+          cd ../..
           echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
           echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> "$GITHUB_ENV"
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> "$GITHUB_ENV"
 
       - name: Build split-per-ABI APKs
-        run: flutter build apk --release --split-per-abi
+        shell: bash
+        run: |
+          echo "=== Debug keystore before build ==="
+          echo "PWD: $PWD"
+          echo "android/app contents:"
+          ls -la android/app/
+          echo "Environment variables:"
+          env | grep KEYSTORE
+          echo "=== Starting build ==="
+          flutter build apk --release --split-per-abi
 
       # Rename outputs to required names
       - name: Rename APKs to target names

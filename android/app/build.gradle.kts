@@ -63,6 +63,9 @@ android {
                 else -> null
             }
             if (resolvedStoreFile != null) {
+                println("Current directory: ${projectDir.absolutePath}")
+                println("Keystore path from env: $envStorePath")
+                println("Resolved keystore path: ${resolvedStoreFile.absolutePath}")
                 storeFile = resolvedStoreFile
             }
 
