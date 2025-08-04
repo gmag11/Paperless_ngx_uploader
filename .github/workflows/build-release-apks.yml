@@ -29,12 +29,21 @@ jobs:
       - name: Fetch Flutter dependencies
         run: flutter pub get
 
+      - name: Detect KEYSTORE_BASE64 presence
+        id: detect_keystore
+        shell: bash
+        run: |
+          if [[ -n "${{ secrets.KEYSTORE_BASE64 }}" ]]; then
+            echo "has_keystore=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_keystore=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download keystore
-        if: ${{ env.HAS_KEYSTORE_BASE64 == 'true' }}
+        if: steps.detect_keystore.outputs.has_keystore == 'true'
         shell: bash
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          HAS_KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 != '' && secrets.KEYSTORE_BASE64 != null }}
         run: |
           set -euo pipefail
           mkdir -p android/app
@@ -42,15 +51,13 @@ jobs:
           ls -la android/app
 
       - name: Set signing environment variables
-        if: ${{ env.HAS_KEYSTORE_BASE64 == 'true' }}
+        if: steps.detect_keystore.outputs.has_keystore == 'true'
         shell: bash
-        env:
-          HAS_KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 != '' && secrets.KEYSTORE_BASE64 != null }}
         run: |
-          echo "KEYSTORE_PATH=android/app/keystore.jks" >> $GITHUB_ENV
-          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEYSTORE_PATH=android/app/keystore.jks" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> "$GITHUB_ENV"
 
       - name: Build split-per-ABI APKs
         run: flutter build apk --release --split-per-abi
