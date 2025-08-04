@@ -2,12 +2,12 @@ name: paperless_ngx_android_uploader
 description: "A Flutter app for uploading documents to Paperless-NGX via Android share intent"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.1.0
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
   flutter: ">=3.19.0"
-
+  
 dependencies:
   flutter:
     sdk: flutter
