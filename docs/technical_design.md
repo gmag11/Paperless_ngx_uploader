@@ -1,5 +1,59 @@
 # Technical Design: Phase 1 Reliability Improvements
 
+## 0. Authentication Options and Flow Impact
+
+### Supported Authentication Methods
+
+- Username/Password (basic auth to obtain a session or use HTTP Basic where applicable)
+- API Token (static token created in Paperless‑NGX user profile)
+
+Both methods are mutually exclusive at runtime; the user selects one in the Configuration Dialog.
+
+### Configuration Dialog Changes
+
+- Auth Method selector: Username/Password | API Token
+- Inputs:
+  - For Username/Password: Server URL, Username, Password
+  - For API Token: Server URL, API Token
+- Connection test uses the selected method.
+- UI must persist the selected method and only enable the relevant input fields.
+
+### Credential Storage and Propagation
+
+- Storage:
+  - Server URL and auth method are stored in app preferences.
+  - Secrets (Password or API Token) are stored using secure storage.
+- Propagation:
+  - On app start, configuration is loaded; the active credentials are injected into:
+    - Connection checks
+    - Tag fetching
+    - Upload requests
+- Redaction/Logging:
+  - Never log secrets. Mask values in diagnostics.
+
+### HTTP Request Authentication
+
+- Username/Password:
+  - Prefer Basic Auth header on requests needing authentication:
+    - Authorization: Basic base64(username:password)
+- API Token:
+  - Use Token header scheme supported by Paperless‑NGX:
+    - Authorization: Token {api_token}
+- Header selection is conditional based on the active method. Only one Authorization header is set at a time.
+
+### Flow Impacts
+
+- Connection Check:
+  - Uses the chosen credentials. Failure messaging distinguishes:
+    - Invalid credentials (401/403)
+    - Unreachable host/network (timeout/DNS)
+- Tag Fetch:
+  - Same Authorization strategy as above.
+- Upload:
+  - Apply the same Authorization strategy to the multipart upload request stream.
+- Migration/Compatibility:
+  - If an existing install only has Username/Password, default to that method until user switches to API Token.
+
 ## 1. Intent Handler Enhancements
 
 ### MIME Type Validation
@@ -90,7 +144,7 @@ class CompressionResult {
 }
 
 Future<CompressionResult> prepareFileForUpload(
-  String filePath, 
+  String filePath,
   String mimeType,
   CompressionStrategy strategy
 ) async {
@@ -192,10 +246,12 @@ class ValidationError extends UploadError {
 
 ## Migration Plan
 
-1. Create new implementations alongside existing
-2. Add feature flags for gradual rollout
-3. Monitor error rates during transition
-4. Implement rollback capability
+1. Support both auth methods with a non-destructive migration:
+   - If only Username/Password are present, select that method by default.
+   - If API Token is saved, select API Token by default.
+2. Add feature flags for gradual rollout if needed.
+3. Monitor error rates during transition.
+4. Implement rollback capability (user can switch auth method any time).
 
 ## Supported File Types
 

@@ -5,6 +5,8 @@ import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
 import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
 import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
 
+enum _AuthMethod { userPass, apiToken } // UI enum (distinct from storage AuthMethod)
+
 class ConfigDialog extends StatefulWidget {
   const ConfigDialog({super.key});
 
@@ -17,8 +19,11 @@ class _ConfigDialogState extends State<ConfigDialog> {
   final _serverUrlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _tokenController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _obscureToken = true;
+  _AuthMethod _authMethod = _AuthMethod.userPass;
 
   @override
   void initState() {
@@ -32,18 +37,53 @@ class _ConfigDialogState extends State<ConfigDialog> {
       _serverUrlController.text = credentials['serverUrl'] ?? '';
       _usernameController.text = credentials['username'] ?? '';
       _passwordController.text = credentials['password'] ?? '';
+      _tokenController.text = credentials['apiToken'] ?? '';
+
+      // Map storage enum string to UI enum strictly to avoid cross-enum confusion.
+      final methodName = credentials['authMethod'];
+      switch (methodName) {
+        case 'apiToken':
+          _authMethod = _AuthMethod.apiToken;
+          break;
+        case 'usernamePassword':
+          _authMethod = _AuthMethod.userPass;
+          break;
+        default:
+          // Fallback inference
+          if ((_tokenController.text.isNotEmpty) &&
+              (_usernameController.text.isEmpty && _passwordController.text.isEmpty)) {
+            _authMethod = _AuthMethod.apiToken;
+          } else {
+            _authMethod = _AuthMethod.userPass;
+          }
+      }
     });
   }
 
   Future<void> _saveAndTestConnection() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     final config = Provider.of<AppConfigProvider>(context, listen: false);
-    await config.saveConfiguration(
-      _serverUrlController.text.trim(),
-      _usernameController.text.trim(),
-      _passwordController.text,
-    );
+
+    final server = _serverUrlController.text.trim();
+    // Single source of truth: let provider persist via SecureStorageService internally.
+    if (_authMethod == _AuthMethod.userPass) {
+      await config.saveConfiguration(
+        server,
+        _usernameController.text.trim(),
+        _passwordController.text,
+      );
+    } else {
+      // Token mode: pass empty username so provider infers AuthMethod.apiToken
+      await config.saveConfiguration(
+        server,
+        '',
+        _tokenController.text,
+      );
+    }
+
     await config.testConnection();
 
     if (mounted && config.connectionStatus == ConnectionStatus.connected) {
@@ -56,6 +96,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
     _serverUrlController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _tokenController.dispose();
     super.dispose();
   }
 
@@ -88,44 +129,109 @@ class _ConfigDialogState extends State<ConfigDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  labelText: l10n.field_label_username,
-                  prefixIcon: const Icon(Icons.person),
+
+              // Authentication method selector (Dropdown)
+              DropdownButtonFormField<_AuthMethod>(
+                value: _authMethod,
+                decoration: const InputDecoration(
+                  labelText: 'Authentication Method',
+                  prefixIcon: Icon(Icons.security),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return l10n.validation_enter_username;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: l10n.field_label_password,
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+                items: const [
+                  DropdownMenuItem(
+                    value: _AuthMethod.userPass,
+                    child: Text('Username / Password'),
                   ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return l10n.validation_enter_password;
-                  }
-                  return null;
+                  DropdownMenuItem(
+                    value: _AuthMethod.apiToken,
+                    child: Text('API Token'),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val == null) return;
+                  setState(() {
+                    _authMethod = val;
+                  });
                 },
               ),
+              const SizedBox(height: 8),
+
+              // Conditional fields
+              if (_authMethod == _AuthMethod.userPass) ...[
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: InputDecoration(
+                    labelText: l10n.field_label_username,
+                    prefixIcon: const Icon(Icons.person),
+                  ),
+                  validator: (value) {
+                    // Validate only in Username/Password mode
+                    if (_authMethod == _AuthMethod.userPass) {
+                      if (value == null || value.trim().isEmpty) {
+                        return l10n.validation_enter_username;
+                      }
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: l10n.field_label_password,
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (value) {
+                    // Validate only in Username/Password mode
+                    if (_authMethod == _AuthMethod.userPass) {
+                      if (value == null || value.isEmpty) {
+                        return l10n.validation_enter_password;
+                      }
+                    }
+                    return null;
+                  },
+                ),
+              ] else ...[
+                TextFormField(
+                  controller: _tokenController,
+                  obscureText: _obscureToken,
+                  decoration: InputDecoration(
+                    labelText: 'API Token',
+                    prefixIcon: const Icon(Icons.vpn_key),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureToken ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureToken = !_obscureToken;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (value) {
+                    // Validate only in API Token mode
+                    if (_authMethod == _AuthMethod.apiToken) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter API token';
+                      }
+                    }
+                    return null;
+                  },
+                ),
+              ],
+
               Consumer<AppConfigProvider>(
                 builder: (context, config, child) {
                   if (config.connectionError != null) {
