@@ -157,4 +157,4 @@ Formatting/linting:
 - Inspired by “Paperless Share” by qcasey: <https://github.com/qcasey/paperless_share>
 - This project modernizes that idea for current Android versions and the Flutter ecosystem.
 
-License: specify your chosen license here (e.g., MIT/Apache‑2.0/GPL‑3.0). If a LICENSE file exists in the repo, reference it here.
+License: GNU General Public License v3.0 (GPL-3.0)
