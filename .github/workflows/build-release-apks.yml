@@ -53,8 +53,7 @@ jobs:
           echo "Contents of android/app:"
           ls -la android/app
           echo "Checking if keystore exists:"
-          test -f android/app/keystore.jks && echo "Found at android/app/keystore.jks"
-          test -f android/app/android/app/keystore.jks && echo "Found at android/app/android/app/keystore.jks"
+          test -f android/app/keystore.jks && echo "Found at android/app/keystore.jks" || echo "Keystore not found at expected location"
 
       - name: Set signing environment variables
         if: steps.detect_keystore.outputs.has_keystore == 'true'
