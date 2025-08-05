@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../providers/app_config_provider.dart';
 import '../widgets/tag_selection_dialog.dart';
 import '../widgets/config_dialog.dart';
@@ -47,8 +48,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Visible notification about the received file
       final receivedMsg = 'Received file: ${event.fileName}';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(receivedMsg)),
+      Fluttertoast.showToast(
+        msg: receivedMsg,
+        toastLength: Toast.LENGTH_SHORT,
+        timeInSecForIosWeb: 2,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.black87,
+        textColor: Colors.white,
+        fontSize: 16.0,
       );
 
       // Trigger immediate upload without leaving the main screen
@@ -79,21 +86,39 @@ class _HomeScreenState extends State<HomeScreen> {
         // On success: show confirmation for ~1s then send app to background
         if (!mounted) return;
         if (uploadProvider.uploadSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_file_uploaded), duration: const Duration(milliseconds: 800)),
+          Fluttertoast.showToast(
+            msg: AppLocalizations.of(context)!.snackbar_file_uploaded,
+            toastLength: Toast.LENGTH_SHORT,
+            timeInSecForIosWeb: 2,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+            fontSize: 16.0,
           );
-          await Future.delayed(const Duration(milliseconds: 1000));
+          await Future.delayed(const Duration(seconds: 2));
           if (!mounted) return;
           SystemNavigator.pop();
         } else if (uploadProvider.uploadError != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_upload_error_prefix(uploadProvider.uploadError!)), backgroundColor: Colors.red),
+          Fluttertoast.showToast(
+            msg: AppLocalizations.of(context)!.snackbar_upload_error_prefix(uploadProvider.uploadError!),
+            toastLength: Toast.LENGTH_LONG,
+            timeInSecForIosWeb: 5,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+            fontSize: 16.0,
           );
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_upload_error_prefix(e.toString())), backgroundColor: Colors.red),
+        Fluttertoast.showToast(
+          msg: AppLocalizations.of(context)!.snackbar_upload_error_prefix(e.toString()),
+          toastLength: Toast.LENGTH_LONG,
+          timeInSecForIosWeb: 5,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
         );
       }
     });
@@ -435,8 +460,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final currentSelectedTags = List<Tag>.from(config.selectedTags);
     
     if (paperlessService == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_configure_server_first)),
+      Fluttertoast.showToast(
+        msg: AppLocalizations.of(context)!.snackbar_configure_server_first,
+        toastLength: Toast.LENGTH_LONG,
+        timeInSecForIosWeb: 5,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
       );
       return;
     }

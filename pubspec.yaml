@@ -39,6 +39,9 @@ dependencies:
   # UI components
   flutter_typeahead: ^5.2.0
 
+  # Toast notifications
+  fluttertoast: ^8.2.12
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
