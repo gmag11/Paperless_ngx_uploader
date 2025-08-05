@@ -139,7 +139,7 @@ class PaperlessService {
 
   Future<ConnectionStatus> testConnection() async {
     try {
-      final resp = await _dio.get('/api/status/',
+      final resp = await _dio.get('/api/profile/',
           options: Options(
             headers: {HttpHeaders.authorizationHeader: _authHeader},
             responseType: ResponseType.json,
