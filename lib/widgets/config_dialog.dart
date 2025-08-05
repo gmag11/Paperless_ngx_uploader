@@ -136,7 +136,6 @@ class _ConfigDialogState extends State<ConfigDialog> {
     final status = await tempService.testConnection();
     // Reset any previous provider error so we don't show stale messages under the fields
     if (mounted) {
-      final provider = Provider.of<AppConfigProvider>(context, listen: false);
       // No public API to clear error immediately; rely on local inline error for this attempt
       setState(() {
         _inlineConnectionError = null;
@@ -151,6 +150,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
         await config.saveConfiguration(server, '', secret);
       }
       // Avoid a second verification request; we already know it's connected.
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } else {
       // Map status to inline error to render in red text area (like original UI)

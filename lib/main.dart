@@ -20,9 +20,61 @@ void main() {
         ChangeNotifierProvider(create: (_) => AppConfigProvider()),
         ChangeNotifierProxyProvider<AppConfigProvider, UploadProvider>(
           create: (context) =>
-              UploadProvider(appConfigProvider: Provider.of<AppConfigProvider>(context, listen: false)),
+              UploadProvider(
+                appConfigProvider: Provider.of<AppConfigProvider>(context, listen: false),
+                translate: (key) {
+                  final l10n = AppLocalizations.of(context);
+                  if (l10n == null) return key;
+                  switch (key) {
+                    case 'snackbar_configure_server_first':
+                      return l10n.snackbar_configure_server_first;
+                    case 'error_auth_failed':
+                      return l10n.error_auth_failed;
+                    case 'error_file_too_large':
+                      return l10n.error_file_too_large;
+                    case 'error_unsupported_type':
+                      return l10n.error_unsupported_type;
+                    case 'error_server':
+                      return l10n.error_server;
+                    case 'error_network':
+                      return l10n.error_network;
+                    case 'error_file_read':
+                      return l10n.error_file_read;
+                    case 'error_invalid_response':
+                      return l10n.error_invalid_response;
+                    default:
+                      return key;
+                  }
+                },
+              ),
           update: (context, appConfig, previous) =>
-              previous ?? UploadProvider(appConfigProvider: appConfig),
+              previous ?? UploadProvider(
+                appConfigProvider: appConfig,
+                translate: (key) {
+                  final l10n = AppLocalizations.of(context);
+                  if (l10n == null) return key;
+                  switch (key) {
+                    case 'snackbar_configure_server_first':
+                      return l10n.snackbar_configure_server_first;
+                    case 'error_auth_failed':
+                      return l10n.error_auth_failed;
+                    case 'error_file_too_large':
+                      return l10n.error_file_too_large;
+                    case 'error_unsupported_type':
+                      return l10n.error_unsupported_type;
+                    case 'error_server':
+                      return l10n.error_server;
+                    case 'error_network':
+                      return l10n.error_network;
+                    case 'error_file_read':
+                      return l10n.error_file_read;
+                    case 'error_invalid_response':
+                      return l10n.error_invalid_response;
+                    default:
+                      return key;
+                  }
+                },
+              ),
         ),
       ],
       child: const PaperlessUploaderApp(),

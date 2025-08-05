@@ -205,5 +205,40 @@
   "snackbar_configure_server_first": "Please configure server connection first",
   "@snackbar_configure_server_first": {
     "description": "Snackbar shown when an action requires server configuration beforehand."
+  },
+
+  "error_auth_failed": "Authentication failed. Check username and password.",
+  "@error_auth_failed": {
+    "description": "Error message shown when authentication fails."
+  },
+
+  "error_file_too_large": "The file is too large for the server.",
+  "@error_file_too_large": {
+    "description": "Error message shown when uploaded file exceeds server size limits."
+  },
+
+  "error_unsupported_type": "File type not supported by the server.",
+  "@error_unsupported_type": {
+    "description": "Error message shown when file type is not accepted by server."
+  },
+
+  "error_server": "Server error. Try again later.",
+  "@error_server": {
+    "description": "Generic server error message."
+  },
+
+  "error_network": "Network error. Check your connection.",
+  "@error_network": {
+    "description": "Error message shown when network connection fails."
+  },
+
+  "error_file_read": "Error reading the local file.",
+  "@error_file_read": {
+    "description": "Error message shown when local file cannot be read."
+  },
+
+  "error_invalid_response": "Invalid server response.",
+  "@error_invalid_response": {
+    "description": "Error message shown when server response is malformed or unexpected."
   }
 }

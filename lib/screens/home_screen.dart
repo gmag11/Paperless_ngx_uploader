@@ -99,8 +99,10 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!mounted) return;
           SystemNavigator.pop();
         } else if (uploadProvider.uploadError != null) {
+          final l10n = AppLocalizations.of(context)!;
+          final localized = _localizeError(l10n, uploadProvider.uploadError!);
           Fluttertoast.showToast(
-            msg: AppLocalizations.of(context)!.snackbar_upload_error_prefix(uploadProvider.uploadError!),
+            msg: l10n.snackbar_upload_error_prefix(localized),
             toastLength: Toast.LENGTH_LONG,
             timeInSecForIosWeb: 5,
             gravity: ToastGravity.BOTTOM,
@@ -111,8 +113,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } catch (e) {
         if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
+        final localized = _localizeError(l10n, e.toString());
         Fluttertoast.showToast(
-          msg: AppLocalizations.of(context)!.snackbar_upload_error_prefix(e.toString()),
+          msg: l10n.snackbar_upload_error_prefix(localized),
           toastLength: Toast.LENGTH_LONG,
           timeInSecForIosWeb: 5,
           gravity: ToastGravity.BOTTOM,
@@ -495,5 +499,27 @@ class _HomeScreenState extends State<HomeScreen> {
     // Return black or white depending on the luminance threshold.
     // Threshold 0.5 is a common heuristic for good contrast on most backgrounds.
     return luminance > 0.5 ? Colors.black : Colors.white;
+  }
+
+  String _localizeError(AppLocalizations l10n, String codeOrMessage) {
+    switch (codeOrMessage) {
+      case 'error_auth_failed':
+        return l10n.error_auth_failed;
+      case 'error_file_too_large':
+        return l10n.error_file_too_large;
+      case 'error_unsupported_type':
+        return l10n.error_unsupported_type;
+      case 'error_server':
+        return l10n.error_server;
+      case 'error_network':
+        return l10n.error_network;
+      case 'error_file_read':
+        return l10n.error_file_read;
+      case 'error_invalid_response':
+        return l10n.error_invalid_response;
+      default:
+        // Fallback: if backend already provided a human message, show it.
+        return codeOrMessage;
+    }
   }
 }

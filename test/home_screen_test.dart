@@ -65,6 +65,10 @@ class _ViewState extends ChangeNotifier implements UploadProvider {
   // Satisfy UploadProvider abstract/interface surface expected by HomeScreen.
   // Implement required methods with no-ops suitable for tests.
 
+  // Provide translate getter required by UploadProvider interface.
+  @override
+  TranslateCallback get translate => (key) => key;
+
   @override
   void setIncomingFileWarning({required bool showWarning, String? mimeType}) {
     _showTypeWarning = showWarning;

@@ -6,11 +6,17 @@ import '../models/tag.dart';
 import '../services/paperless_service.dart';
 import 'app_config_provider.dart';
 
+typedef TranslateCallback = String Function(String key);
+
 class UploadProvider extends ChangeNotifier {
   final AppConfigProvider _appConfig;
+  final TranslateCallback translate;
 
-  UploadProvider({required AppConfigProvider appConfigProvider})
-      : _appConfig = appConfigProvider;
+  UploadProvider({
+    required AppConfigProvider appConfigProvider,
+    TranslateCallback? translate,
+  }) : _appConfig = appConfigProvider,
+       translate = translate ?? ((key) => key); // Default to returning the key unchanged
 
   bool _isUploading = false;
   String? _uploadError;
@@ -72,7 +78,7 @@ class UploadProvider extends ChangeNotifier {
       final service = _resolvePaperlessService();
 
       if (service == null) {
-        _uploadError = 'Please configure server connection first';
+        _uploadError = translate('snackbar_configure_server_first');
         _uploadSuccess = false;
         return;
       }
@@ -149,19 +155,19 @@ class UploadProvider extends ChangeNotifier {
   String _mapErrorForUi(String message, String? code) {
     switch (code) {
       case 'AUTH_ERROR':
-        return 'Autenticación fallida. Revisa usuario y contraseña.';
+        return translate('error_auth_failed');
       case 'FILE_TOO_LARGE':
-        return 'El archivo es demasiado grande para el servidor.';
+        return translate('error_file_too_large');
       case 'UNSUPPORTED_TYPE':
-        return 'Tipo de archivo no soportado por el servidor.';
+        return translate('error_unsupported_type');
       case 'SERVER_ERROR':
-        return 'Error del servidor. Inténtalo más tarde.';
+        return translate('error_server');
       case 'NETWORK_ERROR':
-        return 'Error de red. Revisa tu conexión.';
+        return translate('error_network');
       case 'FILE_ERROR':
-        return 'Error leyendo el archivo local.';
+        return translate('error_file_read');
       case 'BAD_RESPONSE':
-        return 'Respuesta no válida del servidor.';
+        return translate('error_invalid_response');
       default:
         return message;
     }

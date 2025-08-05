@@ -9,8 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get dialog_title_paperless_configuration =>
-      'Paperless-NGX Configuration';
+  String get dialog_title_paperless_configuration => 'Paperless-NGX Configuration';
 
   @override
   String get field_label_server_url => 'Server URL';
@@ -80,8 +79,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcome_title => 'Welcome to Paperless-NGX Uploader';
 
   @override
-  String get welcome_subtitle =>
-      'Configure your Paperless-NGX server to start uploading documents';
+  String get welcome_subtitle => 'Configure your Paperless-NGX server to start uploading documents';
 
   @override
   String get welcome_action_configure_server => 'Configure Server';
@@ -95,8 +93,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get panel_title_uploading_document => 'Uploading document';
 
   @override
-  String panel_progress_percentage_with_bytes(
-      String percent, String sentBytes, String totalBytes) {
+  String panel_progress_percentage_with_bytes(String percent, String sentBytes, String totalBytes) {
     return '$percent% ($sentBytes/$totalBytes bytes)';
   }
 
@@ -112,8 +109,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get server_not_configured => 'Not configured';
 
   @override
-  String get section_title_global_tag_configuration =>
-      'Global Tag Configuration';
+  String get section_title_global_tag_configuration => 'Global Tag Configuration';
 
   @override
   String get tooltip_edit_tags => 'Edit tags';
@@ -142,12 +138,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get howto_step_3 => '3. Upload will happen immediately';
 
   @override
-  String get snackbar_configure_server_first =>
-      'Please configure server connection first';
+  String get snackbar_configure_server_first => 'Please configure server connection first';
 
   @override
-  String get error_auth_failed =>
-      'Authentication failed. Check username and password.';
+  String get error_auth_failed => 'Authentication failed. Check username and password.';
 
   @override
   String get error_file_too_large => 'The file is too large for the server.';
