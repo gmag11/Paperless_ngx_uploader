@@ -104,6 +104,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
   }
 
   Future<void> _saveAndTestConnection() async {
+    final l10n = AppLocalizations.of(context)!;
     // Clear inline error on new attempt
     if (mounted) {
       setState(() {
@@ -155,15 +156,16 @@ class _ConfigDialogState extends State<ConfigDialog> {
     } else {
       // Map status to inline error to render in red text area (like original UI)
       final isTokenMode = _authMethod == _AuthMethod.apiToken;
+      // Already have l10n from method start
       final err = switch (status) {
         ConnectionStatus.invalidCredentials => isTokenMode
-            ? 'Invalid token'
-            : 'Invalid username or password',
-        ConnectionStatus.serverUnreachable => 'Server is unreachable',
-        ConnectionStatus.invalidServerUrl => 'Invalid server URL or not a Paperless-NGX server',
-        ConnectionStatus.sslError => 'SSL certificate error',
-        ConnectionStatus.unknownError => 'Unknown connection error occurred',
-        _ => 'Unknown connection error occurred',
+            ? l10n.error_invalid_token
+            : l10n.error_invalid_credentials,
+        ConnectionStatus.serverUnreachable => l10n.error_server_unreachable,
+        ConnectionStatus.invalidServerUrl => l10n.error_invalid_server,
+        ConnectionStatus.sslError => l10n.error_ssl,
+        ConnectionStatus.unknownError => l10n.error_unknown,
+        _ => l10n.error_unknown,
       };
       if (mounted) {
         setState(() {
@@ -215,18 +217,18 @@ class _ConfigDialogState extends State<ConfigDialog> {
               // Authentication method selector (Dropdown)
               DropdownButtonFormField<_AuthMethod>(
                 value: _authMethod,
-                decoration: const InputDecoration(
-                  labelText: 'Authentication Method',
-                  prefixIcon: Icon(Icons.security),
+                decoration: InputDecoration(
+                  labelText: l10n.field_label_auth_method,
+                  prefixIcon: const Icon(Icons.security),
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: _AuthMethod.userPass,
-                    child: Text('Username / Password'),
+                    child: Text(l10n.field_option_auth_user_pass),
                   ),
                   DropdownMenuItem(
                     value: _AuthMethod.apiToken,
-                    child: Text('API Token'),
+                    child: Text(l10n.field_option_auth_token),
                   ),
                 ],
                 onChanged: (val) {
@@ -358,11 +360,11 @@ class _ConfigDialogState extends State<ConfigDialog> {
                     }
                   },
                   decoration: InputDecoration(
-                    labelText: 'API Token',
+                    labelText: l10n.field_label_api_token,
                     prefixIcon: const Icon(Icons.vpn_key),
                     suffixIcon: _tokenLoadedFromStorage
                         ? Tooltip(
-                            message: 'API Token',
+                            message: l10n.field_label_api_token,
                             child: IconButton(
                               icon: const Icon(Icons.visibility_off),
                               onPressed: null, // disabled; cannot reveal loaded secret
@@ -395,7 +397,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
                   validator: (value) {
                     if (_authMethod == _AuthMethod.apiToken) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter API token';
+                        return l10n.validation_enter_token;
                       }
                     }
                     return null;

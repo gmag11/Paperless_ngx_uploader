@@ -166,4 +166,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get error_invalid_response => 'Invalid server response.';
+
+  @override
+  String get field_label_auth_method => 'Authentication Method';
+
+  @override
+  String get field_option_auth_user_pass => 'Username / Password';
+
+  @override
+  String get field_option_auth_token => 'API Token';
+
+  @override
+  String get field_label_api_token => 'API Token';
+
+  @override
+  String get validation_enter_token => 'Please enter API token';
+
+  @override
+  String get error_invalid_token => 'Invalid token';
+
+  @override
+  String get error_invalid_credentials => 'Invalid username or password';
+
+  @override
+  String get error_server_unreachable => 'Server is unreachable';
+
+  @override
+  String get error_invalid_server =>
+      'Invalid server URL or not a Paperless-NGX server';
+
+  @override
+  String get error_ssl => 'SSL certificate error';
+
+  @override
+  String get error_unknown => 'Unknown connection error occurred';
 }

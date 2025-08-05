@@ -240,5 +240,60 @@
   "error_invalid_response": "Invalid server response.",
   "@error_invalid_response": {
     "description": "Error message shown when server response is malformed or unexpected."
+  },
+
+  "field_label_auth_method": "Authentication Method",
+  "@field_label_auth_method": {
+    "description": "Label for the dropdown where user selects authentication method."
+  },
+
+  "field_option_auth_user_pass": "Username / Password",
+  "@field_option_auth_user_pass": {
+    "description": "Option in authentication method dropdown for username/password authentication."
+  },
+
+  "field_option_auth_token": "API Token",
+  "@field_option_auth_token": {
+    "description": "Option in authentication method dropdown for API token authentication."
+  },
+
+  "field_label_api_token": "API Token",
+  "@field_label_api_token": {
+    "description": "Label for the API token input field."
+  },
+
+  "validation_enter_token": "Please enter API token",
+  "@validation_enter_token": {
+    "description": "Validation message shown when the API token is empty."
+  },
+
+  "error_invalid_token": "Invalid token",
+  "@error_invalid_token": {
+    "description": "Error message shown when the provided API token is invalid."
+  },
+
+  "error_invalid_credentials": "Invalid username or password",
+  "@error_invalid_credentials": {
+    "description": "Error message shown when the provided username/password combination is invalid."
+  },
+
+  "error_server_unreachable": "Server is unreachable",
+  "@error_server_unreachable": {
+    "description": "Error message shown when the server cannot be reached."
+  },
+
+  "error_invalid_server": "Invalid server URL or not a Paperless-NGX server",
+  "@error_invalid_server": {
+    "description": "Error message shown when the URL is not a valid Paperless-NGX server."
+  },
+
+  "error_ssl": "SSL certificate error",
+  "@error_ssl": {
+    "description": "Error message shown when there is an SSL certificate validation error."
+  },
+
+  "error_unknown": "Unknown connection error occurred",
+  "@error_unknown": {
+    "description": "Generic error message shown when an unspecified connection error occurs."
   }
 }

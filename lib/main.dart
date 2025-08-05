@@ -97,7 +97,8 @@ class PaperlessUploaderApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('en'),
+      // Remove hardcoded locale to follow device language (es will be picked on Spanish devices)
+      // locale: const Locale('en'),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,

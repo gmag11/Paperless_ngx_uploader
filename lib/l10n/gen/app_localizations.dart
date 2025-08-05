@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
 
 // ignore_for_file: type=lint
 
@@ -92,7 +93,10 @@ abstract class AppLocalizations {
   ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('es')
+  ];
 
   /// Title for the dialog where the user configures the Paperless-NGX server URL and credentials.
   ///
@@ -376,6 +380,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid server response.'**
   String get error_invalid_response;
+
+  /// Label for the dropdown where user selects authentication method.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication Method'**
+  String get field_label_auth_method;
+
+  /// Option in authentication method dropdown for username/password authentication.
+  ///
+  /// In en, this message translates to:
+  /// **'Username / Password'**
+  String get field_option_auth_user_pass;
+
+  /// Option in authentication method dropdown for API token authentication.
+  ///
+  /// In en, this message translates to:
+  /// **'API Token'**
+  String get field_option_auth_token;
+
+  /// Label for the API token input field.
+  ///
+  /// In en, this message translates to:
+  /// **'API Token'**
+  String get field_label_api_token;
+
+  /// Validation message shown when the API token is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter API token'**
+  String get validation_enter_token;
+
+  /// Error message shown when the provided API token is invalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid token'**
+  String get error_invalid_token;
+
+  /// Error message shown when the provided username/password combination is invalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid username or password'**
+  String get error_invalid_credentials;
+
+  /// Error message shown when the server cannot be reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Server is unreachable'**
+  String get error_server_unreachable;
+
+  /// Error message shown when the URL is not a valid Paperless-NGX server.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid server URL or not a Paperless-NGX server'**
+  String get error_invalid_server;
+
+  /// Error message shown when there is an SSL certificate validation error.
+  ///
+  /// In en, this message translates to:
+  /// **'SSL certificate error'**
+  String get error_ssl;
+
+  /// Generic error message shown when an unspecified connection error occurs.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown connection error occurred'**
+  String get error_unknown;
 }
 
 class _AppLocalizationsDelegate
@@ -389,7 +459,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en'].contains(locale.languageCode);
+      <String>['en', 'es'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -400,6 +470,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
   }
 
   throw FlutterError(

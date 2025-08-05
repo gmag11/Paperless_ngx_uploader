@@ -1,0 +1,299 @@
+{
+  "@@locale": "es",
+  "@@last_modified": "2025-08-05T19:21:10Z",
+
+  "dialog_title_paperless_configuration": "Configuración de Paperless-NGX",
+  "@dialog_title_paperless_configuration": {
+    "description": "Título del diálogo donde el usuario configura la URL del servidor Paperless‑NGX y las credenciales."
+  },
+
+  "field_label_server_url": "URL del servidor",
+  "@field_label_server_url": {
+    "description": "Etiqueta del campo donde el usuario introduce la URL del servidor Paperless‑NGX."
+  },
+  "field_hint_server_url_example": "https://paperless.ejemplo.com",
+  "@field_hint_server_url_example": {
+    "description": "Texto de ayuda que muestra un ejemplo de una URL válida de Paperless‑NGX."
+  },
+  "validation_enter_server_url": "Por favor, introduce la URL del servidor",
+  "@validation_enter_server_url": {
+    "description": "Mensaje de validación cuando la URL del servidor está vacía."
+  },
+  "validation_enter_valid_url": "Por favor, introduce una URL válida",
+  "@validation_enter_valid_url": {
+    "description": "Mensaje de validación cuando el formato de la URL del servidor no es válido."
+  },
+
+  "field_label_username": "Usuario",
+  "@field_label_username": {
+    "description": "Etiqueta del campo de nombre de usuario."
+  },
+  "validation_enter_username": "Por favor, introduce el usuario",
+  "@validation_enter_username": {
+    "description": "Mensaje de validación cuando el usuario está vacío."
+  },
+
+  "field_label_password": "Contraseña",
+  "@field_label_password": {
+    "description": "Etiqueta del campo de contraseña."
+  },
+  "validation_enter_password": "Por favor, introduce la contraseña",
+  "@validation_enter_password": {
+    "description": "Mensaje de validación cuando la contraseña está vacía."
+  },
+
+  "action_cancel": "Cancelar",
+  "@action_cancel": {
+    "description": "Etiqueta del botón para cancelar la operación actual."
+  },
+  "action_save_and_test": "Guardar y Probar",
+  "@action_save_and_test": {
+    "description": "Etiqueta del botón para guardar la configuración del servidor y probar la conexión."
+  },
+
+  "tag_dialog_title_select_tags": "Seleccionar etiquetas",
+  "@tag_dialog_title_select_tags": {
+    "description": "Título del diálogo usado para seleccionar etiquetas por defecto/globales."
+  },
+  "common_error": "Error",
+  "@common_error": {
+    "description": "Título genérico de error usado en banners o diálogos."
+  },
+  "action_retry": "Reintentar",
+  "@action_retry": {
+    "description": "Etiqueta del botón para intentar de nuevo la operación previa."
+  },
+  "action_apply": "Aplicar",
+  "@action_apply": {
+    "description": "Etiqueta del botón para aplicar las opciones seleccionadas."
+  },
+  "search_label_search_tags": "Buscar etiquetas",
+  "@search_label_search_tags": {
+    "description": "Etiqueta o sugerencia para el campo de búsqueda de etiquetas."
+  },
+  "action_select_default_tags": "Seleccionar etiquetas por defecto",
+  "@action_select_default_tags": {
+    "description": "Botón para abrir el diálogo de selección de etiquetas por defecto."
+  },
+
+  "snackbar_received_file_prefix": "Archivo recibido: {fileName}",
+  "@snackbar_received_file_prefix": {
+    "description": "Se muestra cuando se recibe un archivo desde la intención de compartir de Android",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "example": "documento.pdf"
+      }
+    }
+  },
+  "snackbar_file_uploaded": "Archivo subido",
+  "@snackbar_file_uploaded": {
+    "description": "Mensaje de snackbar mostrado cuando un archivo se sube correctamente."
+  },
+  "snackbar_upload_error_prefix": "Error de subida: {error}",
+  "@snackbar_upload_error_prefix": {
+    "description": "Se muestra cuando la subida falla con un mensaje de error",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Tiempo de espera agotado"
+      }
+    }
+  },
+
+  "appbar_title_home": "Paperless-NGX Uploader",
+  "@appbar_title_home": {
+    "description": "Título mostrado en el AppBar de la pantalla principal."
+  },
+
+  "welcome_title": "Bienvenido a Paperless-NGX Uploader",
+  "@welcome_title": {
+    "description": "Texto del título en la sección de bienvenida de la pantalla principal."
+  },
+  "welcome_subtitle": "Configura tu servidor Paperless‑NGX para comenzar a subir documentos",
+  "@welcome_subtitle": {
+    "description": "Subtítulo que guía al usuario a configurar el servidor antes de usar la aplicación."
+  },
+  "welcome_action_configure_server": "Configurar servidor",
+  "@welcome_action_configure_server": {
+    "description": "Etiqueta del botón que abre el diálogo de configuración desde la sección de bienvenida."
+  },
+
+  "banner_type_warning": "El tipo de archivo {mimeType} puede no estar soportado. Se intentará la subida igualmente.",
+  "@banner_type_warning": {
+    "description": "Aviso no bloqueante mostrado para tipos MIME potencialmente no soportados",
+    "placeholders": {
+      "mimeType": {
+        "type": "String",
+        "example": "application/zip"
+      }
+    }
+  },
+
+  "panel_title_uploading_document": "Subiendo documento",
+  "@panel_title_uploading_document": {
+    "description": "Título del panel mostrado mientras se está subiendo un documento."
+  },
+  "panel_progress_percentage_with_bytes": "{percent}% ({sentBytes}/{totalBytes} bytes)",
+  "@panel_progress_percentage_with_bytes": {
+    "description": "Texto de progreso con bytes enviados y totales",
+    "placeholders": {
+      "percent": { "type": "String", "example": "42" },
+      "sentBytes": { "type": "String", "example": "102400" },
+      "totalBytes": { "type": "String", "example": "204800" }
+    }
+  },
+  "panel_progress_percentage_only": "{percent}%",
+  "@panel_progress_percentage_only": {
+    "description": "Texto de progreso solo con porcentaje",
+    "placeholders": {
+      "percent": { "type": "String", "example": "42" }
+    }
+  },
+
+  "section_title_server_configuration": "Configuración del servidor",
+  "@section_title_server_configuration": {
+    "description": "Encabezado de sección para el bloque de configuración del servidor."
+  },
+  "server_not_configured": "Sin configurar",
+  "@server_not_configured": {
+    "description": "Texto que indica que el servidor aún no está configurado."
+  },
+
+  "section_title_global_tag_configuration": "Configuración de etiquetas",
+  "@section_title_global_tag_configuration": {
+    "description": "Encabezado de sección para la configuración de etiquetas globales/por defecto."
+  },
+  "tooltip_edit_tags": "Editar etiquetas",
+  "@tooltip_edit_tags": {
+    "description": "Texto de ayuda mostrado en el control para editar las etiquetas seleccionadas."
+  },
+  "empty_tags_title": "No hay etiquetas seleccionadas",
+  "@empty_tags_title": {
+    "description": "Título mostrado cuando no hay etiquetas seleccionadas."
+  },
+  "empty_tags_subtitle": "Pulsa \"Seleccionar etiquetas\" para configurar",
+  "@empty_tags_subtitle": {
+    "description": "Subtítulo que invita al usuario a abrir la selección de etiquetas cuando no hay ninguna seleccionada."
+  },
+  "tags_configured_count": "{count} etiqueta{pluralSuffix} configurada{pluralSuffix}",
+  "@tags_configured_count": {
+    "description": "Muestra cuántas etiquetas están configuradas. En inglés se usa sufijo plural, aquí se adapta a español añadiendo sufijo cuando corresponde.",
+    "placeholders": {
+      "count": { "type": "String", "example": "3" },
+      "pluralSuffix": { "type": "String", "example": "s" }
+    }
+  },
+
+  "howto_title": "Cómo usar:",
+  "@howto_title": {
+    "description": "Encabezado de las instrucciones rápidas."
+  },
+  "howto_step_1": "1. Comparte un documento desde cualquier app",
+  "@howto_step_1": {
+    "description": "Primer paso de las instrucciones rápidas."
+  },
+  "howto_step_2": "2. Selecciona \"Paperless-NGX Uploader\"",
+  "@howto_step_2": {
+    "description": "Segundo paso de las instrucciones rápidas."
+  },
+  "howto_step_3": "3. La subida se realizará inmediatamente",
+  "@howto_step_3": {
+    "description": "Tercer paso de las instrucciones rápidas."
+  },
+
+  "snackbar_configure_server_first": "Por favor, configura primero la conexión con el servidor",
+  "@snackbar_configure_server_first": {
+    "description": "Snackbar mostrado cuando una acción requiere la configuración previa del servidor."
+  },
+
+  "error_auth_failed": "Autenticación fallida. Revisa el usuario y la contraseña.",
+  "@error_auth_failed": {
+    "description": "Mensaje de error mostrado cuando falla la autenticación."
+  },
+
+  "error_file_too_large": "El archivo es demasiado grande para el servidor.",
+  "@error_file_too_large": {
+    "description": "Mensaje de error mostrado cuando el archivo subido excede los límites del servidor."
+  },
+
+  "error_unsupported_type": "Tipo de archivo no soportado por el servidor.",
+  "@error_unsupported_type": {
+    "description": "Mensaje de error mostrado cuando el tipo de archivo no es aceptado por el servidor."
+  },
+
+  "error_server": "Error del servidor. Inténtalo de nuevo más tarde.",
+  "@error_server": {
+    "description": "Mensaje genérico de error del servidor."
+  },
+
+  "error_network": "Error de red. Revisa tu conexión.",
+  "@error_network": {
+    "description": "Mensaje de error mostrado cuando falla la conexión de red."
+  },
+
+  "error_file_read": "Error al leer el archivo local.",
+  "@error_file_read": {
+    "description": "Mensaje de error mostrado cuando no se puede leer el archivo local."
+  },
+
+  "error_invalid_response": "Respuesta del servidor no válida.",
+  "@error_invalid_response": {
+    "description": "Mensaje de error mostrado cuando la respuesta del servidor es incorrecta o inesperada."
+  },
+
+  "field_label_auth_method": "Método de autenticación",
+  "@field_label_auth_method": {
+    "description": "Etiqueta del desplegable donde el usuario selecciona el método de autenticación."
+  },
+
+  "field_option_auth_user_pass": "Usuario / Contraseña",
+  "@field_option_auth_user_pass": {
+    "description": "Opción en el desplegable de método de autenticación para autenticación por usuario/contraseña."
+  },
+
+  "field_option_auth_token": "Token API",
+  "@field_option_auth_token": {
+    "description": "Opción en el desplegable de método de autenticación para autenticación por token API."
+  },
+
+  "field_label_api_token": "Token API",
+  "@field_label_api_token": {
+    "description": "Etiqueta del campo de entrada del token API."
+  },
+
+  "validation_enter_token": "Por favor, introduce el token API",
+  "@validation_enter_token": {
+    "description": "Mensaje de validación cuando el token API está vacío."
+  },
+
+  "error_invalid_token": "Token no válido",
+  "@error_invalid_token": {
+    "description": "Mensaje de error mostrado cuando el token API proporcionado no es válido."
+  },
+
+  "error_invalid_credentials": "Usuario o contraseña no válidos",
+  "@error_invalid_credentials": {
+    "description": "Mensaje de error mostrado cuando la combinación de usuario/contraseña no es válida."
+  },
+
+  "error_server_unreachable": "El servidor no está accesible",
+  "@error_server_unreachable": {
+    "description": "Mensaje de error mostrado cuando no se puede acceder al servidor."
+  },
+
+  "error_invalid_server": "URL de servidor no válida o no es un servidor Paperless-NGX",
+  "@error_invalid_server": {
+    "description": "Mensaje de error mostrado cuando la URL no corresponde a un servidor Paperless-NGX válido."
+  },
+
+  "error_ssl": "Error de certificado SSL",
+  "@error_ssl": {
+    "description": "Mensaje de error mostrado cuando hay un error de validación del certificado SSL."
+  },
+
+  "error_unknown": "Se ha producido un error de conexión desconocido",
+  "@error_unknown": {
+    "description": "Mensaje de error genérico mostrado cuando ocurre un error de conexión no especificado."
+  }
+}

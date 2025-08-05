@@ -9,7 +9,7 @@ plugins {
 
 android {
     // Apply final namespace/applicationId
-    namespace = "net.gmartin.paperlessngx_share"
+    namespace = "net.gmartin.paperlessngx_uploader"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -41,7 +41,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "net.gmartin.paperlessngx_share"
+        applicationId = "net.gmartin.paperlessngx_uploader"
         // Ensure minSdk >= 29 per project spec
         minSdk = maxOf(29, flutter.minSdkVersion)
         targetSdk = flutter.targetSdkVersion
