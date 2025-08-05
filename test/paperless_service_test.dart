@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
-import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
+// import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
 
 void main() {
   group('PaperlessService - Authentication headers', () {
@@ -14,12 +14,12 @@ void main() {
       const baseUrl = 'https://example.org';
       const username = 'user';
       const password = 'pass';
-      final service = PaperlessService(
-        baseUrl: baseUrl,
-        username: username,
-        password: password,
-        useApiToken: false,
-      );
+      // final service = PaperlessService(
+      //   baseUrl: baseUrl,
+      //   username: username,
+      //   password: password,
+      //   useApiToken: false,
+      // );
 
       // Create a mockable Dio with adapter to inspect request headers
       final dio = Dio(BaseOptions(baseUrl: baseUrl));
@@ -59,13 +59,13 @@ void main() {
       // Arrange
       const baseUrl = 'https://example.org';
       const token = '  abc123  '; // contains whitespace, service trims
-      final service = PaperlessService(
-        baseUrl: baseUrl,
-        username: 'ignored',
-        password: 'ignored',
-        useApiToken: true,
-        apiToken: token,
-      );
+      // final service = PaperlessService(
+      //   baseUrl: baseUrl,
+      //   username: 'ignored',
+      //   password: 'ignored',
+      //   useApiToken: true,
+      //   apiToken: token,
+      // );
 
       final dio = Dio(BaseOptions(baseUrl: baseUrl));
       final adapter = DioAdapter(dio: dio);
@@ -93,14 +93,14 @@ void main() {
     test('Malformed/empty token still sends "Authorization: Token " (space after Token)', () async {
       // Arrange
       const baseUrl = 'https://example.org';
-      const token = '   '; // empty/whitespace
-      final service = PaperlessService(
-        baseUrl: baseUrl,
-        username: 'ignored',
-        password: 'ignored',
-        useApiToken: true,
-        apiToken: token,
-      );
+      // const token = '   '; // empty/whitespace
+      // final service = PaperlessService(
+      //   baseUrl: baseUrl,
+      //   username: 'ignored',
+      //   password: 'ignored',
+      //   useApiToken: true,
+      //   apiToken: token,
+      // );
 
       final dio = Dio(BaseOptions(baseUrl: baseUrl));
       final adapter = DioAdapter(dio: dio);
@@ -136,11 +136,11 @@ void main() {
     const password = 'pass';
 
     test('Maps 200 to connected', () async {
-      final service = PaperlessService(
-        baseUrl: baseUrl,
-        username: username,
-        password: password,
-      );
+      // final service = PaperlessService(
+      //   baseUrl: baseUrl,
+      //   username: username,
+      //   password: password,
+      // );
 
       final dio = Dio(BaseOptions(baseUrl: baseUrl));
       final adapter = DioAdapter(dio: dio);
@@ -165,11 +165,11 @@ void main() {
     });
 
     test('Maps 401 to invalidCredentials', () async {
-      final service = PaperlessService(
-        baseUrl: baseUrl,
-        username: username,
-        password: password,
-      );
+      // final service = PaperlessService(
+      //   baseUrl: baseUrl,
+      //   username: username,
+      //   password: password,
+      // );
 
       final dio = Dio(BaseOptions(baseUrl: baseUrl));
       final adapter = DioAdapter(dio: dio);
@@ -194,11 +194,11 @@ void main() {
     });
 
     test('Maps 404 to invalidServerUrl', () async {
-      final service = PaperlessService(
-        baseUrl: baseUrl,
-        username: username,
-        password: password,
-      );
+      // final service = PaperlessService(
+      //   baseUrl: baseUrl,
+      //   username: username,
+      //   password: password,
+      // );
 
       final dio = Dio(BaseOptions(baseUrl: baseUrl));
       final adapter = DioAdapter(dio: dio);

@@ -235,7 +235,7 @@ void main() {
         apiToken: 'tok',
       );
 
-      final has = await svc.SecureStorageService.hasCredentials();
+      // final has = await svc.SecureStorageService.hasCredentials();
       // Empty string is considered present by getCredentials, but service writes empty string,
       // which is not null; spec requires presence (non-null). hasCredentials checks non-null only.
       // To enforce test of "missing", ensure truly missing by clearing again:
