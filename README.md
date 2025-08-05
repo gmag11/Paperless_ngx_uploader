@@ -78,9 +78,10 @@ When opening/using the app for the first time:
 
 - Enter the server URL (including protocol, e.g., <https://paperless.example.tld>).
 - Enter Paperless‑NGX username and password.
+- Alternatively, if your Paperless‑NGX instance uses OpenID login, you can provide an access token instead of username/password.
 - Tap “Test connection”. You’ll see one of:
   - Success: credentials stored, tags fetched.
-  - Invalid credentials: check username/password.
+  - Invalid credentials: check username/password or access token.
   - Unreachable host: verify URL or network.
 - Optionally select default tags. The selection is saved and restored on startup.
 
@@ -150,7 +151,7 @@ Formatting/linting:
 
 ## Roadmap / TODO
 
-- [ ] Add support for token-based login for instances using OpenID login (accept user-provided access token and use it for API calls).
+- [X] Add support for token-based login for instances using OpenID login (accept user-provided access token and use it for API calls).
 - [ ] Publish app to F-Droid and/or Google Play Store.
 
 ## Credits and license
