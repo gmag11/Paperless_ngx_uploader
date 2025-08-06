@@ -64,7 +64,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String snackbar_received_file_prefix(String fileName) {
-    return 'Archivo recibido: $fileName';
+    return 'Archivo: $fileName';
   }
 
   @override

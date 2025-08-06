@@ -76,7 +76,7 @@
     "description": "Button to open the tag selection dialog for default tags."
   },
 
-  "snackbar_received_file_prefix": "Received file: {fileName}",
+  "snackbar_received_file_prefix": "File: {fileName}",
   "@snackbar_received_file_prefix": {
     "description": "Shown when a file is received from the Android share intent",
     "placeholders": {

@@ -76,7 +76,7 @@
     "description": "Botón para abrir el diálogo de selección de etiquetas por defecto."
   },
 
-  "snackbar_received_file_prefix": "Archivo recibido: {fileName}",
+  "snackbar_received_file_prefix": "Archivo: {fileName}",
   "@snackbar_received_file_prefix": {
     "description": "Se muestra cuando se recibe un archivo desde la intención de compartir de Android",
     "placeholders": {

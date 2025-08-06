@@ -203,7 +203,7 @@ abstract class AppLocalizations {
   /// Shown when a file is received from the Android share intent
   ///
   /// In en, this message translates to:
-  /// **'Received file: {fileName}'**
+  /// **'File: {fileName}'**
   String snackbar_received_file_prefix(String fileName);
 
   /// Snackbar message shown when a file uploads successfully.
