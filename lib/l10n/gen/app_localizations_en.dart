@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get action_select_none => 'Select none';
 
   @override
+  String get connectionSuccess => 'Connection successful';
+
+  @override
   String get dialog_title_paperless_configuration =>
       'Paperless-NGX Configuration';
 

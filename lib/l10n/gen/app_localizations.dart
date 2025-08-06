@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Select none'**
   String get action_select_none;
 
+  /// Shown when testing the server connection succeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection successful'**
+  String get connectionSuccess;
+
   /// Title for the dialog where the user configures the Paperless-NGX server URL and credentials.
   ///
   /// In en, this message translates to:

@@ -12,6 +12,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get action_select_none => 'Borrar todo';
 
   @override
+  String get connectionSuccess => 'Conexión correcta';
+
+  @override
   String get dialog_title_paperless_configuration =>
       'Configuración de Paperless-NGX';
 

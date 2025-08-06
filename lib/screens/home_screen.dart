@@ -86,8 +86,9 @@ class _HomeScreenState extends State<HomeScreen> {
         // On success: show confirmation for ~1s then send app to background
         if (!mounted) return;
         if (uploadProvider.uploadSuccess) {
+          final l10n = AppLocalizations.of(context)!;
           Fluttertoast.showToast(
-            msg: AppLocalizations.of(context)!.snackbar_file_uploaded,
+            msg: l10n.snackbar_file_uploaded,
             toastLength: Toast.LENGTH_SHORT,
             timeInSecForIosWeb: 2,
             gravity: ToastGravity.BOTTOM,
@@ -209,6 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Non-blocking type warning banner
           Consumer<UploadProvider>(
             builder: (context, up, _) {
+              final l10n = AppLocalizations.of(context)!;
               if (up.showTypeWarning) {
                 final mt = up.lastMimeType ?? '';
                 return Container(
@@ -221,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    AppLocalizations.of(context)!.banner_type_warning(mt),
+                    l10n.banner_type_warning(mt),
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 );
@@ -239,9 +241,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: Border.all(color: Colors.green),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                AppLocalizations.of(context)!.snackbar_received_file_prefix(_lastReceivedFileName ?? ''),
-                style: const TextStyle(fontWeight: FontWeight.w600),
+              child: Builder(
+                builder: (context) {
+                  final l10n = AppLocalizations.of(context)!;
+                  return Text(
+                    l10n.snackbar_received_file_prefix(_lastReceivedFileName ?? ''),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  );
+                },
               ),
             ),
           // Progress indicator card
@@ -258,9 +265,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        AppLocalizations.of(context)!.panel_title_uploading_document,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      Builder(
+                        builder: (context) {
+                          final l10n = AppLocalizations.of(context)!;
+                          return Text(
+                            l10n.panel_title_uploading_document,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       LinearProgressIndicator(
@@ -268,15 +280,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         minHeight: 8,
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        up.bytesTotal > 0
-                            ? AppLocalizations.of(context)!.panel_progress_percentage_with_bytes(
-                                pct,
-                                up.bytesSent.toString(),
-                                up.bytesTotal.toString(),
-                              )
-                            : AppLocalizations.of(context)!.panel_progress_percentage_only(pct),
-                        style: const TextStyle(color: Colors.grey),
+                      Builder(
+                        builder: (context) {
+                          final l10n = AppLocalizations.of(context)!;
+                          return Text(
+                            up.bytesTotal > 0
+                                ? l10n.panel_progress_percentage_with_bytes(
+                                    pct,
+                                    up.bytesSent.toString(),
+                                    up.bytesTotal.toString(),
+                                  )
+                                : l10n.panel_progress_percentage_only(pct),
+                            style: const TextStyle(color: Colors.grey),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -294,25 +311,40 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          AppLocalizations.of(context)!.section_title_server_configuration,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Builder(
+                          builder: (context) {
+                            final l10n = AppLocalizations.of(context)!;
+                            return Text(
+                              l10n.section_title_server_configuration,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
                         ),
                         const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () => _showConfigurationDialog(context),
-                          tooltip: AppLocalizations.of(context)!.tooltip_edit_tags,
+                        Builder(
+                          builder: (context) {
+                            final l10n = AppLocalizations.of(context)!;
+                            return IconButton(
+                              icon: const Icon(Icons.edit, size: 20),
+                              onPressed: () => _showConfigurationDialog(context),
+                              tooltip: l10n.tooltip_edit_tags,
+                            );
+                          },
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      config.serverUrl ?? AppLocalizations.of(context)!.server_not_configured,
-                      style: const TextStyle(color: Colors.grey),
+                    Builder(
+                      builder: (context) {
+                        final l10n = AppLocalizations.of(context)!;
+                        return Text(
+                          config.serverUrl ?? l10n.server_not_configured,
+                          style: const TextStyle(color: Colors.grey),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -331,18 +363,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const Icon(Icons.tag, color: Colors.blue),
                       const SizedBox(width: 8),
-                      Text(
-                        AppLocalizations.of(context)!.section_title_tag_configuration,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final l10n = AppLocalizations.of(context)!;
+                          return Text(
+                            l10n.section_title_tag_configuration,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
                       ),
                       const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.edit, size: 20),
-                        onPressed: () => _showTagSelectionDialog(context),
-                        tooltip: AppLocalizations.of(context)!.tooltip_edit_tags,
+                      Builder(
+                        builder: (context) {
+                          final l10n = AppLocalizations.of(context)!;
+                          return IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _showTagSelectionDialog(context),
+                            tooltip: l10n.tooltip_edit_tags,
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -356,13 +398,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               const Icon(Icons.tag_outlined, size: 48, color: Colors.grey),
                               const SizedBox(height: 8),
-                              Text(
-                                AppLocalizations.of(context)!.empty_tags_title,
-                                style: const TextStyle(color: Colors.grey, fontSize: 16),
-                              ),
-                              Text(
-                                AppLocalizations.of(context)!.empty_tags_subtitle,
-                                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              Builder(
+                                builder: (context) {
+                                  final l10n = AppLocalizations.of(context)!;
+                                  return Column(
+                                    children: [
+                                      Text(
+                                        l10n.empty_tags_title,
+                                        style: const TextStyle(color: Colors.grey, fontSize: 16),
+                                      ),
+                                      Text(
+                                        l10n.empty_tags_subtitle,
+                                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -371,15 +422,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            AppLocalizations.of(context)!.tags_configured_count(
-                              config.selectedTags.length.toString(),
-                              config.selectedTags.length == 1 ? '' : 's',
-                            ),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
+                          Builder(
+                            builder: (context) {
+                              final l10n = AppLocalizations.of(context)!;
+                              return Text(
+                                l10n.tags_configured_count(
+                                  config.selectedTags.length.toString(),
+                                  config.selectedTags.length == 1 ? '' : 's',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(height: 8),
                           Wrap(
@@ -415,12 +471,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            AppLocalizations.of(context)!.howto_title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context)!;
+              return Text(
+                l10n.howto_title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 8),
           Card(
@@ -429,11 +490,21 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppLocalizations.of(context)!.howto_step_1),
-                  const SizedBox(height: 8),
-                  Text(AppLocalizations.of(context)!.howto_step_2),
-                  const SizedBox(height: 8),
-                  Text(AppLocalizations.of(context)!.howto_step_3),
+                  Builder(
+                    builder: (context) {
+                      final l10n = AppLocalizations.of(context)!;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.howto_step_1),
+                          const SizedBox(height: 8),
+                          Text(l10n.howto_step_2),
+                          const SizedBox(height: 8),
+                          Text(l10n.howto_step_3),
+                        ],
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -467,8 +538,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final currentSelectedTags = List<Tag>.from(config.selectedTags);
     
     if (paperlessService == null) {
+      final l10n = AppLocalizations.of(context)!;
       Fluttertoast.showToast(
-        msg: AppLocalizations.of(context)!.snackbar_configure_server_first,
+        msg: l10n.snackbar_configure_server_first,
         toastLength: Toast.LENGTH_LONG,
         timeInSecForIosWeb: 5,
         gravity: ToastGravity.BOTTOM,

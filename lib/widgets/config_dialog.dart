@@ -5,6 +5,7 @@ import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
 import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
 import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
 import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 enum _AuthMethod { userPass, apiToken } // UI enum (distinct from storage AuthMethod)
 
@@ -152,6 +153,16 @@ class _ConfigDialogState extends State<ConfigDialog> {
       }
       // Avoid a second verification request; we already know it's connected.
       if (!mounted) return;
+
+      // Show green toast with white text (no auto-close of dialog beyond existing behavior)
+      Fluttertoast.showToast(
+        msg: l10n.connectionSuccess,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+
       Navigator.of(context).pop(true);
     } else {
       // Map status to inline error to render in red text area (like original UI)

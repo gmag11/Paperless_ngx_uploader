@@ -6,6 +6,11 @@
   },
   "@@last_modified": "2025-08-05T19:21:10Z",
 
+  "connectionSuccess": "Conexión correcta",
+  "@connectionSuccess": {
+    "description": "Se muestra cuando la prueba de conexión con el servidor es correcta."
+  },
+
   "dialog_title_paperless_configuration": "Configuración de Paperless-NGX",
   "@dialog_title_paperless_configuration": {
     "description": "Título del diálogo donde el usuario configura la URL del servidor Paperless‑NGX y las credenciales."
