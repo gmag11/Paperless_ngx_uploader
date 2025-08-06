@@ -186,23 +186,27 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
                       value: isSelected,
                       onChanged: (value) => _toggleTag(tag),
                     ),
-                    title: Text(tag.name),
-                    subtitle: tag.color != null
-                        ? Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: _parseColor(tag.color!),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text('#${tag.color!}'),
-                            ],
-                          )
-                        : null,
+                    title: Row(
+                      children: [
+                        if (tag.color != null) ...[
+                          Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: _parseColor(tag.color!),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Expanded(
+                          child: Text(
+                            tag.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                     onTap: () => _toggleTag(tag),
                   );
                 },

@@ -140,12 +140,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appbar_title_home),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _showConfigurationDialog(context),
-          ),
-        ],
       ),
       body: Consumer<AppConfigProvider>(
         builder: (context, config, child) {
@@ -290,29 +284,38 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.section_title_server_configuration,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+          InkWell(
+            
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.section_title_server_configuration,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    config.serverUrl ?? AppLocalizations.of(context)!.server_not_configured,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => _showConfigurationDialog(context),
+                          tooltip: AppLocalizations.of(context)!.tooltip_edit_tags,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      config.serverUrl ?? AppLocalizations.of(context)!.server_not_configured,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
