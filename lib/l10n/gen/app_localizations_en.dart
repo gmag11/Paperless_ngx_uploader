@@ -9,6 +9,9 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get action_select_none => 'Select none';
+
+  @override
   String get dialog_title_paperless_configuration =>
       'Paperless-NGX Configuration';
 
@@ -96,7 +99,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String panel_progress_percentage_with_bytes(
-      String percent, String sentBytes, String totalBytes) {
+    String percent,
+    String sentBytes,
+    String totalBytes,
+  ) {
     return '$percent% ($sentBytes/$totalBytes bytes)';
   }
 

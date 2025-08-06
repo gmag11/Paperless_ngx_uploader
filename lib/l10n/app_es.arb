@@ -1,5 +1,9 @@
 {
   "@@locale": "es",
+  "action_select_none": "Borrar todo",
+  "@action_select_none": {
+    "description": "Etiqueta del botón para limpiar todas las etiquetas seleccionadas en el diálogo de selección de etiquetas"
+  },
   "@@last_modified": "2025-08-05T19:21:10Z",
 
   "dialog_title_paperless_configuration": "Configuración de Paperless-NGX",

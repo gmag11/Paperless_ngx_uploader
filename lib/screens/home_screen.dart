@@ -483,7 +483,6 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => TagSelectionDialog(
         selectedTags: currentSelectedTags,
-        defaultTags: const [], // Empty for now, will be implemented later
         configProvider: config,
         paperlessService: paperlessService,
       ),

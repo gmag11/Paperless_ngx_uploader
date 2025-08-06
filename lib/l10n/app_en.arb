@@ -1,5 +1,9 @@
 {
   "@@locale": "en",
+  "action_select_none": "Select none",
+  "@action_select_none": {
+    "description": "Button label to clear all selected tags in the tag selection dialog"
+  },
   "@@last_modified": "2025-08-03T19:38:00Z",
 
   "dialog_title_paperless_configuration": "Paperless-NGX Configuration",

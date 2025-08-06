@@ -6,14 +6,12 @@ import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
 
 class TagSelectionDialog extends StatefulWidget {
   final List<Tag> selectedTags;
-  final List<Tag> defaultTags;
   final AppConfigProvider configProvider;
   final PaperlessService paperlessService;
 
   const TagSelectionDialog({
     super.key,
     required this.selectedTags,
-    required this.defaultTags,
     required this.configProvider,
     required this.paperlessService,
   });
@@ -97,17 +95,9 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
     });
   }
 
-  void _selectDefaults() {
+  void _clearSelection() {
     setState(() {
-      _selectedTags.clear();
-      for (final defaultTag in widget.defaultTags) {
-        // Find matching tag from the original list to preserve properties
-        final matchingTag = _allTags.firstWhere(
-          (t) => t.id == defaultTag.id,
-          orElse: () => defaultTag,
-        );
-        _selectedTags.add(matchingTag);
-      }
+      _selectedTags = [];
     });
   }
 
@@ -169,8 +159,8 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
             ),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: _selectDefaults,
-              child: Text(l10n.action_select_default_tags),
+              onPressed: _clearSelection,
+              child: Text(l10n.action_select_none),
             ),
             const SizedBox(height: 8),
             Expanded(
