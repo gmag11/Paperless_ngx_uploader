@@ -101,10 +101,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String panel_progress_percentage_with_bytes(
-    String percent,
-    String sentBytes,
-    String totalBytes,
-  ) {
+      String percent, String sentBytes, String totalBytes) {
     return '$percent% ($sentBytes/$totalBytes bytes)';
   }
 
@@ -114,14 +111,13 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get section_title_server_configuration => 'Configuración del servidor';
+  String get section_title_server_configuration => 'Servidor Paperless-ngx';
 
   @override
   String get server_not_configured => 'Sin configurar';
 
   @override
-  String get section_title_global_tag_configuration =>
-      'Configuración de etiquetas';
+  String get section_title_tag_configuration => 'Configuración de etiquetas';
 
   @override
   String get tooltip_edit_tags => 'Editar etiquetas';

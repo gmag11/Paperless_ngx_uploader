@@ -276,8 +276,8 @@ abstract class AppLocalizations {
   /// Section header for global/default tags configuration.
   ///
   /// In en, this message translates to:
-  /// **'Global Tag Configuration'**
-  String get section_title_global_tag_configuration;
+  /// **'Tag Configuration'**
+  String get section_title_tag_configuration;
 
   /// Tooltip shown on the control to edit the selected tags.
   ///

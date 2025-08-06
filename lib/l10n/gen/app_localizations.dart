@@ -63,7 +63,7 @@ import 'app_localizations_es.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,16 +86,16 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('es'),
+    Locale('es')
   ];
 
   /// Button label to clear all selected tags in the tag selection dialog
@@ -265,10 +265,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{percent}% ({sentBytes}/{totalBytes} bytes)'**
   String panel_progress_percentage_with_bytes(
-    String percent,
-    String sentBytes,
-    String totalBytes,
-  );
+      String percent, String sentBytes, String totalBytes);
 
   /// Progress text only percentage
   ///
@@ -279,7 +276,7 @@ abstract class AppLocalizations {
   /// Section header for server configuration block.
   ///
   /// In en, this message translates to:
-  /// **'Server Configuration'**
+  /// **'Paperless-ngx server'**
   String get section_title_server_configuration;
 
   /// Text indicating the server is not yet configured.
@@ -288,11 +285,11 @@ abstract class AppLocalizations {
   /// **'Not configured'**
   String get server_not_configured;
 
-  /// Section header for global/default tags configuration.
+  /// Section header for tags configuration dialog.
   ///
   /// In en, this message translates to:
-  /// **'Global Tag Configuration'**
-  String get section_title_global_tag_configuration;
+  /// **'Tag Configuration'**
+  String get section_title_tag_configuration;
 
   /// Tooltip shown on the control to edit the selected tags.
   ///
@@ -484,9 +481,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

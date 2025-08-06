@@ -103,13 +103,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get section_title_server_configuration => 'Server Configuration';
+  String get section_title_server_configuration => 'Paperless-ngx server';
 
   @override
   String get server_not_configured => 'Not configured';
 
   @override
-  String get section_title_global_tag_configuration => 'Global Tag Configuration';
+  String get section_title_tag_configuration => 'Global Tag Configuration';
 
   @override
   String get tooltip_edit_tags => 'Edit tags';

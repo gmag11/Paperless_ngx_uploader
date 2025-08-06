@@ -155,7 +155,7 @@
     }
   },
 
-  "section_title_server_configuration": "Configuración del servidor",
+  "section_title_server_configuration": "Servidor Paperless-ngx",
   "@section_title_server_configuration": {
     "description": "Encabezado de sección para el bloque de configuración del servidor."
   },
@@ -164,9 +164,9 @@
     "description": "Texto que indica que el servidor aún no está configurado."
   },
 
-  "section_title_global_tag_configuration": "Configuración de etiquetas",
-  "@section_title_global_tag_configuration": {
-    "description": "Encabezado de sección para la configuración de etiquetas globales/por defecto."
+  "section_title_tag_configuration": "Configuración de etiquetas",
+  "@section_title_tag_configuration": {
+    "description": "Encabezado de sección para la configuración de etiquetas."
   },
   "tooltip_edit_tags": "Editar etiquetas",
   "@tooltip_edit_tags": {

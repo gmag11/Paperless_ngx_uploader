@@ -332,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Icon(Icons.tag, color: Colors.blue),
                       const SizedBox(width: 8),
                       Text(
-                        AppLocalizations.of(context)!.section_title_global_tag_configuration,
+                        AppLocalizations.of(context)!.section_title_tag_configuration,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
