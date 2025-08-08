@@ -65,9 +65,9 @@ jobs:
         shell: bash
         run: flutter build apk --release --split-per-abi
 
-      - name: Build app bundle (AAB)
+      - name: Build universal APK (all ABIs in one)
         shell: bash
-        run: flutter build appbundle --release
+        run: flutter build apk --release
 
       # Rename outputs to required names
       - name: Rename APKs and bundle to target names
@@ -77,6 +77,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/app-arm64-v8a-release.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/app-armeabi-v7a-release.apk
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist/app-x86_64-release.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/app-universal-release.apk
           cp build/app/outputs/bundle/release/app-release.aab dist/app-release.aab
 
       - name: Upload app-arm64-v8a-release.apk to release
@@ -109,12 +110,12 @@ jobs:
           asset_name: app-x86_64-release.apk
           asset_content_type: application/vnd.android.package-archive
 
-      - name: Upload app-release.aab to release
+      - name: Upload app-universal-release.apk to release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist/app-release.aab
-          asset_name: app-release.aab
-          asset_content_type: application/octet-stream
+          asset_path: dist/app-universal-release.apk
+          asset_name: app-universal-release.apk
+          asset_content_type: application/vnd.android.package-archive
