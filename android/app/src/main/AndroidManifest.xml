@@ -6,7 +6,8 @@
     <application
         android:label="Paperless NGX Uploader"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         
         <activity
             android:name="com.example.paperless_ngx_android_uploader.ShareReceiverActivity"

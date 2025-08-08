@@ -10,7 +10,7 @@ plugins {
 android {
     // Apply final namespace/applicationId
     namespace = "net.gmartin.paperlessngx_uploader"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     // Load keystore properties if present
@@ -44,7 +44,7 @@ android {
         applicationId = "net.gmartin.paperlessngx_uploader"
         // Ensure minSdk >= 29 per project spec
         minSdk = maxOf(29, flutter.minSdkVersion)
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
