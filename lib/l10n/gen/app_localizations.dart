@@ -458,6 +458,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown connection error occurred'**
   String get error_unknown;
+
+  /// Title for the dialog shown when a new app version is available.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Available'**
+  String get update_available_title;
+
+  /// Message shown in the update dialog with the new version number
+  ///
+  /// In en, this message translates to:
+  /// **'A new version {version} is available. Would you like to download it?'**
+  String update_available_message(String version);
+
+  /// Button label to download the new version
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get action_download;
+
+  /// Button label to dismiss the update notification
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get action_later;
 }
 
 class _AppLocalizationsDelegate

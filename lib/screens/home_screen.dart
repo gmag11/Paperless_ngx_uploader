@@ -9,12 +9,18 @@ import '../widgets/tag_selection_dialog.dart';
 import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
 import '../services/intent_handler.dart';
+import '../services/version_check_service.dart';
 import '../providers/upload_provider.dart';
 import '../l10n/gen/app_localizations.dart';
 // import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VersionCheckResult? versionCheckResult;
+  
+  const HomeScreen({
+    super.key,
+    this.versionCheckResult,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -30,6 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final config = Provider.of<AppConfigProvider>(context, listen: false);
       config.loadConfiguration();
+      
+      // Check for app updates and show notification if available
+      _checkForUpdatesAndNotify();
     });
 
     // Listen for share intent events (filename + file path)
@@ -133,6 +142,63 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _intentSub?.cancel();
     super.dispose();
+  }
+
+  /// Checks for app updates and shows a notification dialog if a new version is available
+  void _checkForUpdatesAndNotify() {
+    // Use the version check result passed from main.dart
+    final versionCheckResult = widget.versionCheckResult;
+    
+    // Only show notification if:
+    // 1. A check was performed (not skipped due to rate limiting)
+    // 2. A new version is available
+    // 3. We have valid version and URL information
+    if (versionCheckResult != null &&
+        !versionCheckResult.skipped &&
+        versionCheckResult.hasUpdate &&
+        versionCheckResult.latestVersion != null &&
+        versionCheckResult.releaseUrl != null) {
+      
+      // Show update notification after a brief delay to ensure UI is ready
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _showUpdateNotification(
+            versionCheckResult.latestVersion!,
+            versionCheckResult.releaseUrl!,
+          );
+        }
+      });
+    }
+  }
+
+  /// Shows a dialog notifying the user about the available update
+  void _showUpdateNotification(String newVersion, String releaseUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Update Available'),
+          content: Text('A new version $newVersion is available.\n\nRelease URL: $releaseUrl'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Later'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Close the dialog
+                Navigator.of(context).pop();
+                
+                // The release URL is displayed in the dialog content
+                // Users can copy it or manually navigate to it
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -444,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: config.selectedTags.map((tag) {
                               final colorHex = tag.color ?? '#808080';
                               final color = Color(
-                                int.parse(colorHex.replaceFirst('#', '0xFF')),
+                                int.parse(colorHex.replaceFirst('#', '0xff'), radix: 16),
                               );
                               return Chip(
                                 label: Text(

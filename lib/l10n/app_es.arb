@@ -304,5 +304,31 @@
   "error_unknown": "Se ha producido un error de conexión desconocido",
   "@error_unknown": {
     "description": "Mensaje de error genérico mostrado cuando ocurre un error de conexión no especificado."
+  },
+
+  "update_available_title": "Actualización disponible",
+  "@update_available_title": {
+    "description": "Título del diálogo que se muestra cuando hay una nueva versión de la aplicación disponible."
+  },
+
+  "update_available_message": "Una nueva versión {version} está disponible. ¿Te gustaría descargarla?",
+  "@update_available_message": {
+    "description": "Mensaje mostrado en el diálogo de actualización con el número de la nueva versión",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "v1.5.0"
+      }
+    }
+  },
+
+  "action_download": "Descargar",
+  "@action_download": {
+    "description": "Etiqueta del botón para descargar la nueva versión"
+  },
+
+  "action_later": "Más tarde",
+  "@action_later": {
+    "description": "Etiqueta del botón para posponer la notificación de actualización"
   }
 }

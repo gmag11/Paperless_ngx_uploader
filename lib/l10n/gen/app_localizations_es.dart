@@ -212,4 +212,18 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get error_unknown =>
       'Se ha producido un error de conexión desconocido';
+
+  @override
+  String get update_available_title => 'Actualización disponible';
+
+  @override
+  String update_available_message(String version) {
+    return 'Una nueva versión $version está disponible. ¿Te gustaría descargarla?';
+  }
+
+  @override
+  String get action_download => 'Descargar';
+
+  @override
+  String get action_later => 'Más tarde';
 }

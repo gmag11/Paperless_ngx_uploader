@@ -5,14 +5,22 @@ import 'screens/home_screen.dart';
 import 'providers/app_config_provider.dart';
 import 'providers/upload_provider.dart';
 import 'services/intent_handler.dart';
+import 'services/version_check_service.dart';
 import 'l10n/gen/app_localizations.dart';
 
-void main() {
+void main() async {
   // Ensure bindings so we can initialize platform channels safely
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Android share intent handling
   IntentHandler.initialize();
+
+  // Initialize version check service and perform version check on startup
+  final versionCheckService = VersionCheckService();
+  
+  // Perform version check respecting once-per-day logic
+  // The checkForUpdates method will handle the once-per-day logic internally
+  final versionCheckResult = await versionCheckService.checkForUpdates();
 
   runApp(
     MultiProvider(
@@ -77,13 +85,18 @@ void main() {
               ),
         ),
       ],
-      child: const PaperlessUploaderApp(),
+      child: PaperlessUploaderApp(versionCheckResult: versionCheckResult),
     ),
   );
 }
 
 class PaperlessUploaderApp extends StatelessWidget {
-  const PaperlessUploaderApp({super.key});
+  final VersionCheckResult? versionCheckResult;
+  
+  const PaperlessUploaderApp({
+    super.key,
+    this.versionCheckResult,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +128,7 @@ class PaperlessUploaderApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const HomeScreen(),
+        '/': (context) => HomeScreen(versionCheckResult: versionCheckResult),
       },
     );
   }

@@ -304,5 +304,31 @@
   "error_unknown": "Unknown connection error occurred",
   "@error_unknown": {
     "description": "Generic error message shown when an unspecified connection error occurs."
+  },
+
+  "update_available_title": "Update Available",
+  "@update_available_title": {
+    "description": "Title for the dialog shown when a new app version is available."
+  },
+
+  "update_available_message": "A new version {version} is available. Would you like to download it?",
+  "@update_available_message": {
+    "description": "Message shown in the update dialog with the new version number",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "v1.5.0"
+      }
+    }
+  },
+
+  "action_download": "Download",
+  "@action_download": {
+    "description": "Button label to download the new version"
+  },
+
+  "action_later": "Later",
+  "@action_later": {
+    "description": "Button label to dismiss the update notification"
   }
 }

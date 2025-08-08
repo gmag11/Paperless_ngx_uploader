@@ -42,6 +42,10 @@ dependencies:
   # Toast notifications
   fluttertoast: ^8.2.12
 
+  # App info and version checking
+  package_info_plus: ^8.1.2
+  shared_preferences: ^2.3.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

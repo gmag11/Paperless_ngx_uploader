@@ -205,4 +205,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get error_unknown => 'Unknown connection error occurred';
+
+  @override
+  String get update_available_title => 'Update Available';
+
+  @override
+  String update_available_message(String version) {
+    return 'A new version $version is available. Would you like to download it?';
+  }
+
+  @override
+  String get action_download => 'Download';
+
+  @override
+  String get action_later => 'Later';
 }
