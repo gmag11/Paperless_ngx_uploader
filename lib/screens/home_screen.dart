@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_config_provider.dart';
 import '../widgets/tag_selection_dialog.dart';
 import '../widgets/config_dialog.dart';
@@ -186,12 +187,41 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text('Later'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 // Close the dialog
                 Navigator.of(context).pop();
                 
-                // The release URL is displayed in the dialog content
-                // Users can copy it or manually navigate to it
+                // Launch the release URL in browser
+                final uri = Uri.tryParse(releaseUrl);
+                if (uri != null) {
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (e) {
+                    // Handle launch errors gracefully
+                    if (!mounted) return;
+                    Fluttertoast.showToast(
+                      msg: 'Could not open browser: ${e.toString()}',
+                      toastLength: Toast.LENGTH_LONG,
+                      timeInSecForIosWeb: 5,
+                      gravity: ToastGravity.BOTTOM,
+                      backgroundColor: Colors.red,
+                      textColor: Colors.white,
+                      fontSize: 16.0,
+                    );
+                  }
+                } else {
+                  // Handle invalid URL
+                  if (!mounted) return;
+                  Fluttertoast.showToast(
+                    msg: 'Invalid URL format',
+                    toastLength: Toast.LENGTH_LONG,
+                    timeInSecForIosWeb: 5,
+                    gravity: ToastGravity.BOTTOM,
+                    backgroundColor: Colors.red,
+                    textColor: Colors.white,
+                    fontSize: 16.0,
+                  );
+                }
               },
               child: const Text('OK'),
             ),
