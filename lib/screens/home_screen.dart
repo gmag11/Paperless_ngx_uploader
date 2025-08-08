@@ -510,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: config.selectedTags.map((tag) {
                               final colorHex = tag.color ?? '#808080';
                               final color = Color(
-                                int.parse(colorHex.replaceFirst('#', '0xff'), radix: 16),
+                                int.parse(colorHex.replaceFirst('#', '0xff')),
                               );
                               return Chip(
                                 label: Text(
