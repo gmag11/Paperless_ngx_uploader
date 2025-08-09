@@ -5,6 +5,8 @@ Flutter application for Android that uploads a single document to Paperless‑NG
 Origin project: Paperless Share — <https://github.com/qcasey/paperless_share>  
 This repository is an updated/re‑implemented version inspired by that project, using Flutter and current Android support.
 
+![Screenshot_2025-08-09-15-40-28-450_net gmartin paperlessngx_uploader-edit](https://github.com/user-attachments/assets/54182f13-1bd1-45b6-82c5-8033bc0a2f3b)
+
 ## Features
 
 - Android native Share Intent integration (one action = one file).
