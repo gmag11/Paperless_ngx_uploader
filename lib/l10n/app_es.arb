@@ -99,6 +99,16 @@
   "@snackbar_file_uploaded": {
     "description": "Mensaje de snackbar mostrado cuando un archivo se sube correctamente."
   },
+  "snackbar_all_files_uploaded": "Todos los {count} archivos se subieron correctamente",
+  "@snackbar_all_files_uploaded": {
+    "description": "Mensaje de snackbar mostrado cuando todos los archivos en una subida múltiple tienen éxito",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
   "snackbar_upload_error_prefix": "Error de subida: {error}",
   "@snackbar_upload_error_prefix": {
     "description": "Se muestra cuando la subida falla con un mensaje de error",
@@ -305,6 +315,16 @@
   "@error_unknown": {
     "description": "Mensaje de error genérico mostrado cuando ocurre un error de conexión no especificado."
   },
+  "error_multiple_files_failed": "{count} archivos fallaron al subir",
+  "@error_multiple_files_failed": {
+    "description": "Mensaje de error mostrado cuando varios archivos fallan al subir",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "2"
+      }
+    }
+  },
 
   "update_available_title": "Actualización disponible",
   "@update_available_title": {
@@ -330,5 +350,25 @@
   "action_later": "Más tarde",
   "@action_later": {
     "description": "Etiqueta del botón para posponer la notificación de actualización"
+  },
+
+  "permission_required_title": "Permisos de almacenamiento requeridos",
+  "@permission_required_title": {
+    "description": "Título del diálogo que se muestra cuando se requieren permisos de almacenamiento"
+  },
+
+  "permission_required_message": "Esta aplicación necesita permisos de almacenamiento para acceder a los archivos para subir. Por favor, concede los permisos en la configuración de la aplicación.",
+  "@permission_required_message": {
+    "description": "Mensaje explicando por qué se necesitan los permisos de almacenamiento"
+  },
+
+  "action_open_settings": "Abrir configuración",
+  "@action_open_settings": {
+    "description": "Etiqueta del botón para abrir la configuración de la aplicación para permisos"
+  },
+
+  "error_permission_denied": "Permisos de almacenamiento denegados. No se pueden acceder a los archivos para subir.",
+  "@error_permission_denied": {
+    "description": "Mensaje de error mostrado cuando se deniegan los permisos de almacenamiento"
   }
 }

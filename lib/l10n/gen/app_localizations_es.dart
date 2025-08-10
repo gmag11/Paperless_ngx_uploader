@@ -77,8 +77,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get snackbar_file_uploaded => 'Archivo subido';
 
   @override
+  String snackbar_all_files_uploaded(String count) {
+    return 'Todos los $count archivos se subieron correctamente';
+  }
+
+  @override
   String snackbar_upload_error_prefix(String error) {
     return 'Error de subida: $error';
+  }
+
+  @override
+  String snackbar_multiple_uploads_failed(String failed, String total) {
+    return '$failed of $total files failed to upload';
   }
 
   @override
@@ -226,4 +236,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get action_later => 'Más tarde';
+
+  @override
+  String get permission_required_title =>
+      'Permisos de almacenamiento requeridos';
+
+  @override
+  String get permission_required_message =>
+      'Esta aplicación necesita permisos de almacenamiento para acceder a los archivos para subir. Por favor, concede los permisos en la configuración de la aplicación.';
+
+  @override
+  String get action_open_settings => 'Abrir configuración';
+
+  @override
+  String get error_permission_denied =>
+      'Permisos de almacenamiento denegados. No se pueden acceder a los archivos para subir.';
 }

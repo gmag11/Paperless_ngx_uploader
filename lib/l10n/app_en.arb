@@ -99,6 +99,16 @@
   "@snackbar_file_uploaded": {
     "description": "Snackbar message shown when a file uploads successfully."
   },
+  "snackbar_all_files_uploaded": "All {count} files uploaded successfully",
+  "@snackbar_all_files_uploaded": {
+    "description": "Snackbar message shown when all files in a multi-file upload succeed",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
   "snackbar_upload_error_prefix": "Upload error: {error}",
   "@snackbar_upload_error_prefix": {
     "description": "Shown when upload fails with an error message",
@@ -106,6 +116,20 @@
       "error": {
         "type": "String",
         "example": "Network timeout"
+      }
+    }
+  },
+  "snackbar_multiple_uploads_failed": "{failed} of {total} files failed to upload",
+  "@snackbar_multiple_uploads_failed": {
+    "description": "Snackbar message shown when some files in a multi-file upload fail",
+    "placeholders": {
+      "failed": {
+        "type": "String",
+        "example": "2"
+      },
+      "total": {
+        "type": "String",
+        "example": "3"
       }
     }
   },
@@ -330,5 +354,25 @@
   "action_later": "Later",
   "@action_later": {
     "description": "Button label to dismiss the update notification"
+  },
+
+  "permission_required_title": "Storage Permissions Required",
+  "@permission_required_title": {
+    "description": "Title for the dialog shown when storage permissions are required"
+  },
+
+  "permission_required_message": "This app needs storage permissions to access files for upload. Please grant the permissions in app settings.",
+  "@permission_required_message": {
+    "description": "Message explaining why storage permissions are needed"
+  },
+
+  "action_open_settings": "Open Settings",
+  "@action_open_settings": {
+    "description": "Button label to open app settings for permissions"
+  },
+
+  "error_permission_denied": "Storage permissions denied. Cannot access files for upload.",
+  "@error_permission_denied": {
+    "description": "Error message shown when storage permissions are denied"
   }
 }

@@ -25,6 +25,17 @@ class ShareReceivedEvent {
   });
 }
 
+/// Batch event for multiple files received from share intent
+class ShareReceivedBatchEvent {
+  final List<ShareReceivedEvent> files;
+
+  ShareReceivedBatchEvent({required this.files});
+
+  bool get hasUnsupportedFiles => files.any((f) => !f.supportedType);
+  int get totalFiles => files.length;
+  int get supportedFilesCount => files.where((f) => f.supportedType).length;
+}
+
 class IntentHandler {
   // Supported MIME types and common extensions
   static final Map<String, List<String>> _supportedTypes = {
@@ -36,12 +47,15 @@ class IntentHandler {
     'image/webp': ['.webp'],
   };
 
-  // Broadcast stream for UI to listen for received share events
+  // Broadcast streams for UI to listen for received share events
   static final StreamController<ShareReceivedEvent> _eventController =
       StreamController<ShareReceivedEvent>.broadcast();
+  static final StreamController<ShareReceivedBatchEvent> _batchEventController =
+      StreamController<ShareReceivedBatchEvent>.broadcast();
   static StreamSubscription<List<SharedMediaFile>>? _mediaSub;
 
   static Stream<ShareReceivedEvent> get eventStream => _eventController.stream;
+  static Stream<ShareReceivedBatchEvent> get batchEventStream => _batchEventController.stream;
 
   static Future<void> initialize() async {
     if (!Platform.isAndroid) return;
@@ -65,6 +79,7 @@ class IntentHandler {
   static Future<void> dispose() async {
     await _mediaSub?.cancel();
     await _eventController.close();
+    await _batchEventController.close();
   }
 
   static Future<void> _handleInitialIntent() async {
@@ -85,35 +100,47 @@ class IntentHandler {
   static void _handleSharedFiles(List<SharedMediaFile> files) async {
     if (files.isEmpty) return;
 
-    final file = files.first;
-    final filePath = file.path;
-    final fileName = _deriveFileName(file);
+    final events = <ShareReceivedEvent>[];
+    
+    // Process each file to create events
+    for (final file in files) {
+      final filePath = file.path;
+      final fileName = _deriveFileName(file);
 
-    // Best-effort MIME detection: prefer SharedMediaFile type if present, else by extension.
-    String? mime = _guessMime(file, filePath);
-    // Best-effort size (works for file:// paths)
-    int? size;
-    try {
-      final f = File(filePath);
-      if (await f.exists()) {
-        size = await f.length();
+      // Best-effort MIME detection: prefer SharedMediaFile type if present, else by extension.
+      String? mime = _guessMime(file, filePath);
+      // Best-effort size (works for file:// paths)
+      int? size;
+      try {
+        final f = File(filePath);
+        if (await f.exists()) {
+          size = await f.length();
+        }
+      } catch (_) {}
+
+      final supported = _isSupported(mime, fileName);
+      final showWarning = !supported; // per product decision, warn but proceed
+
+      final event = ShareReceivedEvent(
+        fileName: fileName,
+        filePath: filePath,
+        mimeType: mime,
+        fileSizeBytes: size,
+        supportedType: supported,
+        showWarning: showWarning,
+      );
+
+      events.add(event);
+
+      // Emit individual events for backward compatibility
+      if (!_eventController.isClosed) {
+        _eventController.add(event);
       }
-    } catch (_) {}
+    }
 
-    final supported = _isSupported(mime, fileName);
-    final showWarning = !supported; // per product decision, warn but proceed
-
-    final event = ShareReceivedEvent(
-      fileName: fileName,
-      filePath: filePath,
-      mimeType: mime,
-      fileSizeBytes: size,
-      supportedType: supported,
-      showWarning: showWarning,
-    );
-
-    if (!_eventController.isClosed) {
-      _eventController.add(event);
+    // Emit batch event for multi-file support
+    if (events.isNotEmpty && !_batchEventController.isClosed) {
+      _batchEventController.add(ShareReceivedBatchEvent(files: events));
     }
   }
 

@@ -1,6 +1,6 @@
 # Paperless‑NGX Android Uploader
 
-Flutter application for Android that uploads a single document to Paperless‑NGX directly from the system Share menu. This project updates and adapts the original “Paperless Share” by qcasey to modern Android versions while keeping the same simple “share and upload” workflow.
+Flutter application for Android that uploads documents to Paperless‑NGX directly from the system Share menu. This project updates and adapts the original "Paperless Share" by qcasey to modern Android versions while keeping the same simple "share and upload" workflow.
 
 Origin project: Paperless Share — <https://github.com/qcasey/paperless_share>  
 This repository is an updated/re‑implemented version inspired by that project, using Flutter and current Android support.
@@ -9,7 +9,7 @@ This repository is an updated/re‑implemented version inspired by that project,
 
 ## Features
 
-- Android native Share Intent integration (one action = one file).
+- Android native Share Intent integration (supports multiple files in a single action).
 - Paperless‑NGX server configuration (URL), username and password.
 - Secure credential storage with automatic recovery on startup.
 - Connection test with feedback (success, invalid credentials, unreachable host).
@@ -18,7 +18,7 @@ This repository is an updated/re‑implemented version inspired by that project,
   - Tag selection dialog with search/filter.
   - Option to set default tags for uploads.
   - Selected tags are persisted and restored on startup.
-- Uploads the shared document with the configured/default tags.
+- Uploads shared documents with the configured/default tags.
 - Upload status indicator; on failure, a Snackbar notifies the user.
 - On success, the app returns to background.
 
@@ -27,15 +27,15 @@ Platform: Flutter (multi‑platform scaffold present; Android is the target plat
 
 ## How it works
 
-1. From any app that supports sharing (PDF viewer, gallery, file manager), share a document and choose “Paperless‑NGX Android Uploader”.
+1. From any app that supports sharing (PDF viewer, gallery, file manager), share one or more documents and choose "Paperless‑NGX Android Uploader".
 2. On first use, configure the server URL, username and password; the app stores them securely.
 3. The app tests the connection and downloads available tags from your Paperless‑NGX server.
 4. Select any default tags you want to apply.
-5. The app uploads the shared file with the selected tags and shows the result.
+5. The app uploads all shared files with the selected tags and shows the result.
 
 Notes:
 
-- Only one file per share action is supported.
+- Multiple files can be uploaded in a single share action.
 - Tag configuration is optional. You can upload without changing tags and set them later if needed.
 
 ## Requirements
@@ -81,7 +81,7 @@ When opening/using the app for the first time:
 - Enter the server URL (including protocol, e.g., <https://paperless.example.tld>).
 - Enter Paperless‑NGX username and password.
 - Alternatively, if your Paperless‑NGX instance uses OpenID login, you can provide an access token instead of username/password.
-- Tap “Test connection”. You’ll see one of:
+- Tap "Test connection". You'll see one of:
   - Success: credentials stored, tags fetched.
   - Invalid credentials: check username/password or access token.
   - Unreachable host: verify URL or network.
@@ -91,16 +91,17 @@ The app will not repeatedly prompt for tags; configure them when convenient.
 
 ## Usage
 
-1. In another app, choose “Share”.
-2. Select “Paperless‑NGX Uploader”.
-3. The app uses your configuration and default tags to upload the document.
-4. Check the upload status:
+1. In another app, choose "Share".
+2. Select one or more files to share.
+3. Select "Paperless‑NGX Uploader".
+4. The app uses your configuration and default tags to upload all selected documents.
+5. Check the upload status:
    - Success: the app returns to background.
    - Error: a Snackbar message explains the issue.
 
 ## Permissions
 
-- Access to the shared file via the Android Share Intent.
+- Access to the shared files via the Android Share Intent.
 - Network access to communicate with the Paperless‑NGX server.
 
 No unrelated device resources are accessed.
@@ -113,10 +114,10 @@ No unrelated device resources are accessed.
 
 ## Troubleshooting
 
-- “Invalid credentials”: recheck username/password in settings.
-- “Server unreachable” or timeout: verify URL, network, or TLS certificates.
-- “Upload failed”: check file size/type limits and server status, then retry.
-- Tags don’t appear: ensure the connection test succeeded and your user has the necessary permissions.
+- "Invalid credentials": recheck username/password in settings.
+- "Server unreachable" or timeout: verify URL, network, or TLS certificates.
+- "Upload failed": check file size/type limits and server status, then retry.
+- Tags don't appear: ensure the connection test succeeded and your user has the necessary permissions.
 
 ## Development
 
@@ -148,17 +149,18 @@ Formatting/linting:
 ## Scope and status
 
 - Supports a single Paperless‑NGX server.
-- One file per share action.
+- Multiple files per share action.
 - Simple, focused UI to complete uploads quickly.
 
 ## Roadmap / TODO
 
 - [X] Add support for token-based login for instances using OpenID login (accept user-provided access token and use it for API calls).
+- [X] Implement multiple file upload.
 - [ ] Publish app to F-Droid and/or Google Play Store.
 
 ## Credits and license
 
-- Inspired by “Paperless Share” by qcasey: <https://github.com/qcasey/paperless_share>
+- Inspired by "Paperless Share" by qcasey: <https://github.com/qcasey/paperless_share>
 - This project modernizes that idea for current Android versions and the Flutter ecosystem.
 
 License: GNU General Public License v3.0 (GPL-3.0)

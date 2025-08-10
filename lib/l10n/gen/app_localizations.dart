@@ -224,11 +224,23 @@ abstract class AppLocalizations {
   /// **'File uploaded'**
   String get snackbar_file_uploaded;
 
+  /// Snackbar message shown when all files in a multi-file upload succeed
+  ///
+  /// In en, this message translates to:
+  /// **'All {count} files uploaded successfully'**
+  String snackbar_all_files_uploaded(String count);
+
   /// Shown when upload fails with an error message
   ///
   /// In en, this message translates to:
   /// **'Upload error: {error}'**
   String snackbar_upload_error_prefix(String error);
+
+  /// Snackbar message shown when some files in a multi-file upload fail
+  ///
+  /// In en, this message translates to:
+  /// **'{failed} of {total} files failed to upload'**
+  String snackbar_multiple_uploads_failed(String failed, String total);
 
   /// Title shown in the AppBar on the home screen.
   ///
@@ -482,6 +494,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Later'**
   String get action_later;
+
+  /// Title for the dialog shown when storage permissions are required
+  ///
+  /// In en, this message translates to:
+  /// **'Storage Permissions Required'**
+  String get permission_required_title;
+
+  /// Message explaining why storage permissions are needed
+  ///
+  /// In en, this message translates to:
+  /// **'This app needs storage permissions to access files for upload. Please grant the permissions in app settings.'**
+  String get permission_required_message;
+
+  /// Button label to open app settings for permissions
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get action_open_settings;
+
+  /// Error message shown when storage permissions are denied
+  ///
+  /// In en, this message translates to:
+  /// **'Storage permissions denied. Cannot access files for upload.'**
+  String get error_permission_denied;
 }
 
 class _AppLocalizationsDelegate

@@ -8,7 +8,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class ShareReceiverActivity : FlutterActivity() {
     private val CHANNEL = "com.example.paperless_ngx_android_uploader/share"
-    private var sharedFilePath: String? = null
+    private var sharedFilePaths: List<String> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,8 +24,8 @@ class ShareReceiverActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getSharedFile" -> {
-                        result.success(sharedFilePath)
-                        sharedFilePath = null // Clear after reading
+                        result.success(sharedFilePaths)
+                        sharedFilePaths = emptyList() // Clear after reading
                     }
                     else -> result.notImplemented()
                 }
@@ -43,7 +43,9 @@ class ShareReceiverActivity : FlutterActivity() {
                 if (intent.type != null) {
                     val uri = intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)
                     uri?.let {
-                        sharedFilePath = getRealPathFromURI(it)
+                        getRealPathFromURI(it)?.let { path ->
+                            sharedFilePaths = listOf(path)
+                        }
                     }
                 }
             }

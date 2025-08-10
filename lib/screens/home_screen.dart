@@ -11,6 +11,7 @@ import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
 import '../services/intent_handler.dart';
 import '../services/version_check_service.dart';
+import '../services/permission_service.dart';
 import '../providers/upload_provider.dart';
 import '../l10n/gen/app_localizations.dart';
 // import 'dart:developer' as developer;
@@ -38,6 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final config = Provider.of<AppConfigProvider>(context, listen: false);
       config.loadConfiguration();
       
+      // Check storage permissions on startup
+      _checkStoragePermissions();
+      
       // Check for app updates and show notification if available
       _checkForUpdatesAndNotify();
     });
@@ -48,6 +52,23 @@ class _HomeScreenState extends State<HomeScreen> {
         _lastReceivedFileName = event.fileName;
       });
       if (!mounted) return;
+
+      // Check storage permissions before proceeding with upload
+      final hasPermission = await PermissionService.checkAndRequestStoragePermissions(context);
+      if (!mounted) return;
+      if (!hasPermission) {
+        final l10n = AppLocalizations.of(context)!;
+        Fluttertoast.showToast(
+          msg: l10n.snackbar_upload_error_prefix(l10n.error_permission_denied),
+          toastLength: Toast.LENGTH_LONG,
+          timeInSecForIosWeb: 5,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+        return;
+      }
 
       // Inform provider about warning preference (non-blocking)
       final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
@@ -169,6 +190,16 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       });
+    }
+  }
+
+  /// Checks storage permissions and shows appropriate messages
+  Future<void> _checkStoragePermissions() async {
+    final hasPermission = await PermissionService.hasStoragePermissions();
+    if (!hasPermission) {
+      // Don't show dialog on startup, just log it
+      // The permission will be requested when user tries to upload
+      debugPrint('Storage permissions not granted, will request when needed');
     }
   }
 

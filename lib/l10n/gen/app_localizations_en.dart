@@ -75,8 +75,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get snackbar_file_uploaded => 'File uploaded';
 
   @override
+  String snackbar_all_files_uploaded(String count) {
+    return 'All $count files uploaded successfully';
+  }
+
+  @override
   String snackbar_upload_error_prefix(String error) {
     return 'Upload error: $error';
+  }
+
+  @override
+  String snackbar_multiple_uploads_failed(String failed, String total) {
+    return '$failed of $total files failed to upload';
   }
 
   @override
@@ -219,4 +229,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get action_later => 'Later';
+
+  @override
+  String get permission_required_title => 'Storage Permissions Required';
+
+  @override
+  String get permission_required_message =>
+      'This app needs storage permissions to access files for upload. Please grant the permissions in app settings.';
+
+  @override
+  String get action_open_settings => 'Open Settings';
+
+  @override
+  String get error_permission_denied =>
+      'Storage permissions denied. Cannot access files for upload.';
 }
