@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import 'package:paperless_ngx_android_uploader/models/tag.dart';
+import 'package:paperless_ngx_android_uploader/models/upload_result.dart';
 import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
 import 'package:paperless_ngx_android_uploader/providers/upload_provider.dart';
 import 'package:paperless_ngx_android_uploader/screens/home_screen.dart';
@@ -25,6 +26,11 @@ class _ViewState extends ChangeNotifier implements UploadProvider {
   int _bytesTotal;
   bool _showTypeWarning;
   String? _lastMimeType;
+
+  // Multi-file upload state
+  List<UploadResult> _uploadResults = [];
+  int _currentFileIndex = 0;
+  int _totalFiles = 0;
 
   _ViewState({
     bool isUploading = false,
@@ -62,6 +68,16 @@ class _ViewState extends ChangeNotifier implements UploadProvider {
   @override
   String? get lastMimeType => _lastMimeType;
 
+  // Multi-file upload getters
+  @override
+  List<UploadResult> get uploadResults => _uploadResults;
+  @override
+  int get currentFileIndex => _currentFileIndex;
+  @override
+  int get totalFiles => _totalFiles;
+  @override
+  bool get isMultiFileUpload => _totalFiles > 1;
+
   // Satisfy UploadProvider abstract/interface surface expected by HomeScreen.
   // Implement required methods with no-ops suitable for tests.
 
@@ -82,6 +98,15 @@ class _ViewState extends ChangeNotifier implements UploadProvider {
   }
 
   @override
+  Future<void> uploadMultipleFiles(
+    List<File> files,
+    List<String> filenames,
+    List<Tag> selectedTags,
+  ) async {
+    // No-op in UI tests
+  }
+
+  @override
   void resetUploadState() {
     _uploadError = null;
     _uploadSuccess = false;
@@ -91,6 +116,9 @@ class _ViewState extends ChangeNotifier implements UploadProvider {
     _bytesTotal = 0;
     _showTypeWarning = false;
     _lastMimeType = null;
+    _uploadResults = [];
+    _currentFileIndex = 0;
+    _totalFiles = 0;
     notifyListeners();
   }
 
