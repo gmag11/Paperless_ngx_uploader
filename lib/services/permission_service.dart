@@ -123,7 +123,7 @@ class PermissionService {
       bool videosGranted = await Permission.videos.isGranted;
       bool audioGranted = await Permission.audio.isGranted;
       // Considera concedido si al menos uno está concedido
-      return photosGranted || videosGranted || audioGranted;
+      return photosGranted && videosGranted && audioGranted;
     } else {
       // Para Android 12 y anteriores
       return await Permission.storage.isGranted;
