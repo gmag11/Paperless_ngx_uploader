@@ -3,14 +3,14 @@
     
     <uses-permission android:name="android.permission.INTERNET" />
     
-    <!-- Required for file access from external storage -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    
-    <!-- Required for Android 13+ (API 33+) media access -->
+    <!-- Permisos para acceso a archivos y multimedia -->
+    <!-- Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS" />
+    <!-- Android 12 y anteriores -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     
     <!-- Required for url_launcher to work with HTTP/HTTPS URLs -->
     <queries>
@@ -27,11 +27,11 @@
     </queries>
     
     <application
-        android:label="Paperless NGX Uploader"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:enableOnBackInvokedCallback="true"
-        android:requestLegacyExternalStorage="true">
+    android:label="Paperless NGX Uploader"
+    android:name="${applicationName}"
+    android:icon="@mipmap/ic_launcher"
+    android:enableOnBackInvokedCallback="true"
+    android:requestLegacyExternalStorage="true">
         
         <activity
             android:name="com.example.paperless_ngx_android_uploader.ShareReceiverActivity"

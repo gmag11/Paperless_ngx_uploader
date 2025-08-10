@@ -88,7 +88,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String snackbar_multiple_uploads_failed(String failed, String total) {
-    return '$failed of $total files failed to upload';
+    return '$failed de $total archivos fallaron al subir';
   }
 
   @override

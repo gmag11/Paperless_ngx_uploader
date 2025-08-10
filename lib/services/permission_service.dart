@@ -1,28 +1,31 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../l10n/gen/app_localizations.dart';
 
 class PermissionService {
   /// Checks and requests storage permissions based on Android version
   static Future<bool> checkAndRequestStoragePermissions(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     // Determine which permissions to request based on Android version
     Map<Permission, PermissionStatus> permissions = {};
 
-    // For Android 13+ (API 33+)
+    // Para Android 13+ (API 33+)
     if (await _isAndroid13OrAbove()) {
       permissions[Permission.photos] = await Permission.photos.status;
       permissions[Permission.videos] = await Permission.videos.status;
       permissions[Permission.audio] = await Permission.audio.status;
-      permissions[Permission.mediaLibrary] = await Permission.mediaLibrary.status;
+      // Si necesitas documentos, puedes agregar aquí lógica adicional
     } else {
-      // For Android 12 and below
+      // Para Android 12 y anteriores
       permissions[Permission.storage] = await Permission.storage.status;
     }
 
     // Check if any permission is denied
     bool hasDenied = permissions.values.any((status) =>
-        status.isDenied || status.isPermanentlyDenied);
+        status.isDenied || status.isPermanentlyDenied || status.isLimited);
 
     if (!hasDenied) {
       return true; // All permissions granted
@@ -31,7 +34,7 @@ class PermissionService {
     // Request permissions that are not granted
     List<Permission> permissionsToRequest = [];
     for (var entry in permissions.entries) {
-      if (entry.value.isDenied || entry.value.isPermanentlyDenied) {
+      if (entry.value.isDenied || entry.value.isPermanentlyDenied || entry.value.isLimited) {
         permissionsToRequest.add(entry.key);
       }
     }
@@ -46,8 +49,9 @@ class PermissionService {
       results[permission] = await permission.request();
     }
 
-    // Check if all permissions are now granted
-    bool allGranted = results.values.every((status) => status.isGranted);
+    // Check if all permissions are now granted or limited (acceptable for media)
+    bool allGranted = results.values.every((status) =>
+        status.isGranted || status.isLimited);
 
     if (!allGranted) {
       // Handle denied permissions
@@ -57,7 +61,7 @@ class PermissionService {
         _showPermissionDeniedDialog(context);
       } else {
         Fluttertoast.showToast(
-          msg: "Storage permissions are required to upload files",
+          msg: l10n.error_permission_denied,
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Colors.red,
@@ -71,9 +75,16 @@ class PermissionService {
 
   /// Checks if device is running Android 13 or above
   static Future<bool> _isAndroid13OrAbove() async {
-    // This is a simplified check - in a real app, you might want to use
-    // device_info_plus to get the actual Android version
-    return true; // For now, assume Android 13+ behavior
+    try {
+      if (!Platform.isAndroid) return false;
+      
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      return androidInfo.version.sdkInt >= 33;
+    } catch (e) {
+      debugPrint('Error checking Android version: $e');
+      return false; // Default to Android 12 behavior
+    }
   }
 
   /// Shows a dialog when permissions are permanently denied
@@ -107,25 +118,14 @@ class PermissionService {
   /// Checks if storage permissions are granted without requesting
   static Future<bool> hasStoragePermissions() async {
     if (await _isAndroid13OrAbove()) {
-      // For Android 13+, check all relevant media permissions
+      // Para Android 13+, revisa los permisos relevantes de media
       bool photosGranted = await Permission.photos.isGranted;
       bool videosGranted = await Permission.videos.isGranted;
       bool audioGranted = await Permission.audio.isGranted;
-      bool mediaLibraryGranted = await Permission.mediaLibrary.isGranted;
-      
-      // Check if documents permission is available and granted
-      bool documentsGranted = true;
-      try {
-        documentsGranted = await Permission.documents.isGranted;
-      } catch (e) {
-        // Permission.documents might not be available on all devices
-        documentsGranted = true;
-      }
-      
-      return photosGranted && videosGranted && audioGranted &&
-             mediaLibraryGranted && documentsGranted;
+      // Considera concedido si al menos uno está concedido
+      return photosGranted || videosGranted || audioGranted;
     } else {
-      // For Android 12 and below
+      // Para Android 12 y anteriores
       return await Permission.storage.isGranted;
     }
   }

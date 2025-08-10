@@ -119,6 +119,20 @@
       }
     }
   },
+  "snackbar_multiple_uploads_failed": "{failed} de {total} archivos fallaron al subir",
+  "@snackbar_multiple_uploads_failed": {
+    "description": "Mensaje de snackbar mostrado cuando algunos archivos en una subida múltiple fallan",
+    "placeholders": {
+      "failed": {
+        "type": "String",
+        "example": "2"
+      },
+      "total": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
 
   "appbar_title_home": "Paperless-NGX Uploader",
   "@appbar_title_home": {
