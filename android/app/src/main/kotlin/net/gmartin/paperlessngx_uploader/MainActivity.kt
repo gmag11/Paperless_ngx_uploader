@@ -1,4 +1,4 @@
-package com.example.paperless_ngx_android_uploader
+package net.gmartin.paperlessngx_uploader
 
 import io.flutter.embedding.android.FlutterActivity
 

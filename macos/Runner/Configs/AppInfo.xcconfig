@@ -8,7 +8,7 @@
 PRODUCT_NAME = paperless_ngx_android_uploader
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.paperlessNgxAndroidUploader
+PRODUCT_BUNDLE_IDENTIFIER = net.gmartin.paperlessngx_uploader
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2025 net.gmartin. All rights reserved.

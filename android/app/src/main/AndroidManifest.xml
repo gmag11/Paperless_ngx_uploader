@@ -34,7 +34,7 @@
     android:requestLegacyExternalStorage="true">
         
         <activity
-            android:name="com.example.paperless_ngx_android_uploader.ShareReceiverActivity"
+            android:name="net.gmartin.paperlessngx_uploader.ShareReceiverActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/LaunchTheme"
