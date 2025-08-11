@@ -45,7 +45,7 @@ android {
         // Ensure minSdk >= 29 per project spec
         minSdk = maxOf(29, flutter.minSdkVersion)
         targetSdk = 35
-        versionCode = flutter.versionCode
+        versionCode = 12  // Incremented for F-Droid/IzzyOnDroid compatibility
         versionName = flutter.versionName
     }
 
@@ -102,6 +102,13 @@ android {
         debug {
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+
+    dependenciesInfo {
+        // Disables dependency metadata when building APKs (for IzzyOnDroid/F-Droid)
+        includeInApk = false
+        // Disables dependency metadata when building Android App Bundles (for Google Play)
+        includeInBundle = false
     }
 }
 
