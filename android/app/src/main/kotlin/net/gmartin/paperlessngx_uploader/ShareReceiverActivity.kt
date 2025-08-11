@@ -1,4 +1,4 @@
-package com.example.paperless_ngx_android_uploader
+package net.gmartin.paperlessngx_uploader
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,7 +7,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class ShareReceiverActivity : FlutterActivity() {
-    private val CHANNEL = "com.example.paperless_ngx_android_uploader/share"
+    private val CHANNEL = "net.gmartin.paperlessngx_uploader/share"
     private var sharedFilePaths: List<String> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {

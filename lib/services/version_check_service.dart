@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'installer_source_service.dart';
 
 /// Service for checking if a new version of the app is available on GitHub.
 ///
@@ -43,6 +44,18 @@ class VersionCheckService {
   Future<VersionCheckResult> checkForUpdates() async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
+
+    // Skip version checks if installed from Play Store or F-Droid
+    final isFromStore = await InstallerSourceService.isFromStore();
+    if (isFromStore) {
+      return VersionCheckResult(
+        hasUpdate: false,
+        latestVersion: null,
+        releaseUrl: null,
+        skipped: true,
+        lastCheck: now,
+      );
+    }
 
     // Check if we should skip the API call due to rate limiting
     final lastCheckTimestamp = prefs.getInt(_lastCheckKey);

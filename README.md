@@ -22,8 +22,16 @@ This repository is an updated/re‑implemented version inspired by that project,
 - Upload status indicator; on failure, a Snackbar notifies the user.
 - On success, the app returns to background.
 
-Compatibility: Android 10+  
+Compatibility: Android 10+
 Platform: Flutter (multi‑platform scaffold present; Android is the target platform)
+
+## Update Checks and Installer Source
+
+The app automatically disables GitHub version checking if it is installed from the Play Store or F-Droid.
+
+**Rationale:** Users who install from official stores receive updates through those channels, so in-app update checks are unnecessary for them.
+
+No user action is required; this logic is automatic.
 
 ## How it works
 
