@@ -1,6 +1,7 @@
 # Test Suite Summary
 
-This document summarizes the existing tests in the `test/` directory. It describes each test at a high level, outlines covered scenarios, expected results, and groups them by functionality with rationale.
+This document summarizes the existing tests in the `test/` directory. It describes each test at a high level, outlines covered scenarios, expected results, and groups them by functionality with rationale.  
+**Note:** The suite now includes comprehensive coverage for SSL certificate validation and the "allow self-signed certificates" option, ensuring correct persistence, propagation, and runtime behavior.
 
 ## Detailed Test Table
 
@@ -16,6 +17,18 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | testConnection updates connectionStatus from PaperlessService | Verify provider’s connection status transitions and final mapping (without network) | Configure token; call `testConnection()`; assert final state is within allowed enum outcomes | `connectionStatus` transitions to `connecting` then to one of: connected/invalidCredentials/serverUnreachable/invalidServerUrl/sslError/unknownError |
 | [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Manual store with SecureStorageService then loadConfiguration | Ensure provider loads pre-existing stored Username/Password credentials | Persist via `SecureStorageService`; call `provider.loadConfiguration()` | Provider mirrors stored values; `PaperlessService` created with basic auth |
 | [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Manual store for token then loadConfiguration maps correctly | Ensure provider loads pre-existing stored token credentials | Persist token via `SecureStorageService`; call `provider.loadConfiguration()` | Provider in token mode with `apiToken` set; `username/password` cleared; service uses token |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Loads default false value when no SSL setting stored | Ensure SSL flag defaults to false if not present in storage | Load configuration with no SSL flag present | `allowSelfSignedCertificates` is `false` |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Loads stored SSL setting from secure storage | Ensure SSL flag is loaded as true from storage | Store SSL flag as true; load configuration | `allowSelfSignedCertificates` is `true` |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Loads false SSL setting from secure storage | Ensure SSL flag is loaded as false from storage | Store SSL flag as false; load configuration | `allowSelfSignedCertificates` is `false` |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Persists SSL setting via setAllowSelfSignedCertificates | Ensure SSL flag is persisted to storage | Set SSL flag to true; check storage | Storage reflects `true`; provider reflects `true` |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Persists SSL setting changes via setAllowSelfSignedCertificates | Ensure SSL flag changes are persisted | Set SSL flag to true, then false | Storage reflects changes; provider reflects changes |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Clear configuration removes SSL setting | Ensure clearing config removes SSL flag from storage | Set SSL flag; clear config | Storage SSL flag is null; provider flag is `false` |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | PaperlessService receives allowSelfSignedCertificates=false by default | Ensure PaperlessService gets SSL validation enabled by default | Save config; get service | Service created with SSL validation enabled |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | PaperlessService receives allowSelfSignedCertificates=true when set | Ensure PaperlessService gets SSL validation disabled when flag set | Save config; set SSL flag true; get service | Service created with SSL validation disabled |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Cache invalidates when SSL setting changes | Ensure service cache invalidates on SSL flag change | Save config; get service; change SSL flag; get service | Service instances differ after SSL flag change |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | SSL setting included in cache invalidation check | Ensure SSL flag is part of cache key | Save config; set SSL flag; get service; change SSL flag; get service | Service instances differ after SSL flag change |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | Complete configuration round-trip with SSL setting | Ensure full persistence and restoration of SSL flag with config | Save config; set SSL flag; reload config | All fields and SSL flag restored |
+| [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart) | SSL setting survives configuration changes | Ensure SSL flag persists across config changes | Set SSL flag; change config | SSL flag remains set in provider and storage |
 | [`test/secure_storage_service_test.dart`](test/secure_storage_service_test.dart) | Username/Password: saving and retrieving | Validate storage and retrieval of user/pass credentials | Save user/pass; get credentials; check presence | Stored values match; `hasCredentials() = true` |
 | [`test/secure_storage_service_test.dart`](test/secure_storage_service_test.dart) | API Token: saving and retrieving | Validate storage and retrieval of token credentials | Save token; get credentials; check presence | Stored values match token mode; `hasCredentials() = true` |
 | [`test/secure_storage_service_test.dart`](test/secure_storage_service_test.dart) | Switch from Username/Password to API Token clears old creds | Ensure switching method removes stale user/pass keys | Save user/pass; save token on same server | Stored mode is token; user/pass keys are absent; `hasCredentials() = true` |
@@ -28,6 +41,10 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Generates Basic auth header for username/password | Ensure Basic Authorization header formatting | Compute expected Basic header; stub GET requiring header; request with header | 200 OK received; header matches expected format |
 | [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Generates Token auth header for API token | Ensure Token Authorization header formatting and trimming | Compute expected Token header with trimmed token; stub GET requiring header; request with header | 200 OK received; header matches expected format |
 | [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Malformed/empty token still sends "Authorization: Token " | Confirm behavior for empty/whitespace token | Expect `"Token "` header; stub GET; request with header | 401 Unauthorized received; mapping symbol assertion holds |
+| [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Creates Dio instance with SSL validation enabled by default | Ensure SSL validation is enabled by default | Create service with no SSL flag | Service created with SSL validation enabled |
+| [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Creates Dio instance with SSL validation disabled when allowSelfSignedCertificates=true | Ensure SSL validation is disabled when flag is set | Create service with SSL flag true | Service created with SSL validation disabled |
+| [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Creates Dio instance with SSL validation enabled when allowSelfSignedCertificates=false | Ensure SSL validation is enabled when flag is false | Create service with SSL flag false | Service created with SSL validation enabled |
+| [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | SSL setting applies to API token authentication as well | Ensure SSL flag is respected for API token auth | Create service with API token and SSL flag true | Service created with SSL validation disabled |
 | [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Maps 200 to connected | Validate mapping of 200 to connected (symbolic) | Stub GET 200 with Basic header | Assert 200; symbolic enum equality |
 | [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Maps 401 to invalidCredentials | Validate mapping of 401 to invalid credentials (symbolic) | Stub GET 401 | Assert 401; symbolic enum equality |
 | [`test/paperless_service_test.dart`](test/paperless_service_test.dart) | Maps 404 to invalidServerUrl | Validate mapping of 404 to invalid server URL (symbolic) | Stub GET 404 | Assert 404; symbolic enum equality |
@@ -42,17 +59,17 @@ This document summarizes the existing tests in the `test/` directory. It describ
 1) Configuration and State Management (AppConfigProvider)
 
 - Files: `app_config_provider_test.dart`
-- Importance: Verifies core configuration flows (auth method switching, persistence, service propagation, connection status transitions). These tests ensure reliable loading/saving of credentials and consistent behavior across method changes, directly affecting onboarding and connectivity UX.
+- Importance: Verifies core configuration flows (auth method switching, persistence, service propagation, connection status transitions, and SSL/self-signed certificate flag). These tests ensure reliable loading/saving of credentials, correct SSL flag handling, and consistent behavior across method and SSL changes, directly affecting onboarding, connectivity, and security UX.
 
 2) Secure Storage Layer (SecureStorageService)
 
 - Files: `secure_storage_service_test.dart`
 - Importance: Ensures secrets and non-secrets are stored and validated correctly. Critical for security, correctness of persisted state, and determining whether the app can operate without reconfiguration.
 
-3) HTTP/Auth Integration Semantics (PaperlessService)
+3) HTTP/Auth/SSL Integration Semantics (PaperlessService)
 
 - Files: `paperless_service_test.dart`
-- Importance: Validates correctness of Authorization headers and expected mapping of HTTP outcomes to connection statuses. Fundamental for interoperability with Paperless‑NGX and for clear error reporting in the UI.
+- Importance: Validates correctness of Authorization headers, expected mapping of HTTP outcomes to connection statuses, and SSL certificate validation logic. Fundamental for interoperability with Paperless‑NGX, secure communications, and for clear error reporting in the UI.
 
 4) UI Rendering and Feedback (HomeScreen)
 

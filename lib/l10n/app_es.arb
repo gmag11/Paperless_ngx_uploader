@@ -384,5 +384,15 @@
   "error_permission_denied": "Permisos de almacenamiento denegados. No se pueden acceder a los archivos para subir.",
   "@error_permission_denied": {
     "description": "Mensaje de error mostrado cuando se deniegan los permisos de almacenamiento"
+  },
+
+  "allow_self_signed_certificates": "Permitir certificados autofirmados",
+  "@allow_self_signed_certificates": {
+    "description": "Etiqueta para el interruptor que permite certificados SSL autofirmados"
+  },
+
+  "allow_self_signed_certificates_description": "Permitir conexiones a servidores con certificados SSL autofirmados o inválidos (no recomendado para producción)",
+  "@allow_self_signed_certificates_description": {
+    "description": "Descripción para el interruptor de certificados autofirmados"
   }
 }

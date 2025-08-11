@@ -156,6 +156,7 @@ Formatting/linting:
 
 - [X] Add support for token-based login for instances using OpenID login (accept user-provided access token and use it for API calls).
 - [X] Implement multiple file upload.
+- [X] Add support for self-signed certificates.
 - [ ] Publish app to F-Droid and/or Google Play Store.
 
 ## Credits and license

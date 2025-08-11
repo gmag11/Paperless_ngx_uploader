@@ -15,7 +15,10 @@ Both methods are mutually exclusive at runtime; the user selects one in the Conf
 - Inputs:
   - For Username/Password: Server URL, Username, Password
   - For API Token: Server URL, API Token
-- Connection test uses the selected method.
+- **Allow self-signed certificates**: Checkbox option in the Configuration Dialog. When enabled, the app will accept self-signed or otherwise invalid SSL/TLS certificates for the configured server URL.
+  - **UI Location:** This option appears below the Server URL input in the Configuration Dialog.
+  - **Security Implications:** Enabling this option reduces connection security by allowing potentially untrusted servers. It should only be used for trusted, private servers or testing environments. When disabled (recommended), only valid, CA-signed certificates are accepted.
+- Connection test uses the selected method and certificate validation setting.
 - UI must persist the selected method and only enable the relevant input fields.
 
 ### Credential Storage and Propagation

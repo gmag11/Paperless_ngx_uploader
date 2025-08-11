@@ -243,4 +243,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get error_permission_denied =>
       'Storage permissions denied. Cannot access files for upload.';
+
+  @override
+  String get allow_self_signed_certificates => 'Allow self-signed certificates';
+
+  @override
+  String get allow_self_signed_certificates_description =>
+      'Allow connections to servers with self-signed or invalid SSL certificates (not recommended for production)';
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
 import 'package:paperless_ngx_android_uploader/models/tag.dart';
@@ -49,6 +50,9 @@ class PaperlessService {
   // When useApiToken is true, the API token value (without the "Token " prefix)
   final String? apiToken;
 
+  // Whether SSL certificate validation is disabled for self-signed certificates
+  final bool allowSelfSignedCertificates;
+
   // Shared Dio client configured for streaming, timeouts, and retries
   late final Dio _dio;
 
@@ -58,6 +62,7 @@ class PaperlessService {
     required this.password,
     this.useApiToken = false,
     this.apiToken,
+    this.allowSelfSignedCertificates = false,
   })  : baseUrl = _normalizeBaseUrl(baseUrl) {
     _dio = Dio(BaseOptions(
       baseUrl: this.baseUrl,
@@ -73,6 +78,15 @@ class PaperlessService {
       followRedirects: true,
       validateStatus: (code) => code != null && code >= 200 && code < 600,
     ));
+
+    // Configure SSL certificate validation
+    if (allowSelfSignedCertificates) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback = (cert, host, port) => true;
+        return client;
+      };
+    }
 
     // Simple logging (debug only)
     _dio.interceptors.add(InterceptorsWrapper(

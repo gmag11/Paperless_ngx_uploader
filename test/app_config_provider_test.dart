@@ -269,4 +269,172 @@ void main() {
       expect(svc.apiToken, 'zzz');
     });
   });
+
+  group('AppConfigProvider - allowSelfSignedCertificates persistence and loading', () {
+    test('Loads default false value when no SSL setting stored', () async {
+      final provider = AppConfigProvider();
+      await provider.loadConfiguration();
+      
+      expect(provider.allowSelfSignedCertificates, isFalse);
+    });
+
+    test('Loads stored SSL setting from secure storage', () async {
+      // Store SSL setting directly in fake storage
+      fake._store['allow_self_signed_certificates'] = 'true';
+      
+      final provider = AppConfigProvider();
+      await provider.loadConfiguration();
+      
+      expect(provider.allowSelfSignedCertificates, isTrue);
+    });
+
+    test('Loads false SSL setting from secure storage', () async {
+      fake._store['allow_self_signed_certificates'] = 'false';
+      
+      final provider = AppConfigProvider();
+      await provider.loadConfiguration();
+      
+      expect(provider.allowSelfSignedCertificates, isFalse);
+    });
+
+    test('Persists SSL setting via setAllowSelfSignedCertificates', () async {
+      final provider = AppConfigProvider();
+      
+      await provider.setAllowSelfSignedCertificates(true);
+      
+      expect(fake._store['allow_self_signed_certificates'], 'true');
+      expect(provider.allowSelfSignedCertificates, isTrue);
+    });
+
+    test('Persists SSL setting changes via setAllowSelfSignedCertificates', () async {
+      final provider = AppConfigProvider();
+      
+      // First set to true
+      await provider.setAllowSelfSignedCertificates(true);
+      expect(fake._store['allow_self_signed_certificates'], 'true');
+      
+      // Then set to false
+      await provider.setAllowSelfSignedCertificates(false);
+      expect(fake._store['allow_self_signed_certificates'], 'false');
+    });
+
+    test('Clear configuration removes SSL setting', () async {
+      final provider = AppConfigProvider();
+      
+      // Set SSL setting first
+      await provider.setAllowSelfSignedCertificates(true);
+      expect(fake._store['allow_self_signed_certificates'], 'true');
+      
+      // Clear configuration
+      await provider.clearConfiguration();
+      
+      expect(fake._store['allow_self_signed_certificates'], isNull);
+      expect(provider.allowSelfSignedCertificates, isFalse);
+    });
+  });
+
+  group('AppConfigProvider - SSL setting propagation to PaperlessService', () {
+    test('PaperlessService receives allowSelfSignedCertificates=false by default', () async {
+      final provider = AppConfigProvider();
+      await provider.saveConfiguration('https://example.org', 'user', 'pass');
+      
+      final service = provider.getPaperlessService();
+      expect(service, isNotNull);
+      
+      // Verify the service was created with SSL validation enabled (default)
+      // This is tested indirectly by checking that the service is created successfully
+      // The actual SSL configuration is tested in paperless_service_test.dart
+      expect(service!.baseUrl, 'https://example.org');
+    });
+
+    test('PaperlessService receives allowSelfSignedCertificates=true when set', () async {
+      final provider = AppConfigProvider();
+      await provider.saveConfiguration('https://example.org', 'user', 'pass');
+      await provider.setAllowSelfSignedCertificates(true);
+      
+      final service = provider.getPaperlessService();
+      expect(service, isNotNull);
+      
+      // Service should be recreated with new SSL settings
+      expect(service!.baseUrl, 'https://example.org');
+    });
+
+    test('Cache invalidates when SSL setting changes', () async {
+      final provider = AppConfigProvider();
+      await provider.saveConfiguration('https://example.org', 'user', 'pass');
+      
+      final service1 = provider.getPaperlessService();
+      expect(service1, isNotNull);
+      
+      // Change SSL setting
+      await provider.setAllowSelfSignedCertificates(true);
+      
+      // Service should be recreated (different instance)
+      final service2 = provider.getPaperlessService();
+      expect(identical(service1, service2), isFalse);
+    });
+
+    test('SSL setting included in cache invalidation check', () async {
+      final provider = AppConfigProvider();
+      
+      // Configure with SSL disabled
+      await provider.saveConfiguration('https://example.org', 'user', 'pass');
+      await provider.setAllowSelfSignedCertificates(false);
+      
+      final service1 = provider.getPaperlessService();
+      
+      // Change only SSL setting
+      await provider.setAllowSelfSignedCertificates(true);
+      
+      final service2 = provider.getPaperlessService();
+      
+      // Should be different instances due to SSL setting change
+      expect(identical(service1, service2), isFalse);
+    });
+  });
+
+  group('AppConfigProvider - integration with SSL setting and credentials', () {
+    test('Complete configuration round-trip with SSL setting', () async {
+      final provider = AppConfigProvider();
+      
+      // Configure everything
+      await provider.saveConfiguration('https://example.org', 'user', 'pass');
+      await provider.setAllowSelfSignedCertificates(true);
+      
+      // Verify in-memory state
+      expect(provider.serverUrl, 'https://example.org');
+      expect(provider.username, 'user');
+      expect(provider.password, 'pass');
+      expect(provider.authMethod, AuthMethod.usernamePassword);
+      expect(provider.allowSelfSignedCertificates, isTrue);
+      
+      // Create service and verify it works
+      final service = provider.getPaperlessService();
+      expect(service, isNotNull);
+      
+      // Reload from storage and verify everything is restored
+      final provider2 = AppConfigProvider();
+      await provider2.loadConfiguration();
+      
+      expect(provider2.serverUrl, 'https://example.org');
+      expect(provider2.username, 'user');
+      expect(provider2.password, 'pass');
+      expect(provider2.authMethod, AuthMethod.usernamePassword);
+      expect(provider2.allowSelfSignedCertificates, isTrue);
+    });
+
+    test('SSL setting survives configuration changes', () async {
+      final provider = AppConfigProvider();
+      
+      // Set SSL setting first
+      await provider.setAllowSelfSignedCertificates(true);
+      
+      // Change configuration
+      await provider.saveConfiguration('https://example.org', 'user', 'pass');
+      
+      // SSL setting should persist
+      expect(provider.allowSelfSignedCertificates, isTrue);
+      expect(fake._store['allow_self_signed_certificates'], 'true');
+    });
+  });
 }

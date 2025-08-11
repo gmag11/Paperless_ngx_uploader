@@ -132,6 +132,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       password: useApi ? '' : secret,
       useApiToken: useApi,
       apiToken: useApi ? secret : null,
+      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
     );
 
     // Perform test
@@ -417,6 +418,18 @@ class _ConfigDialogState extends State<ConfigDialog> {
                 // Note: Per-field inline error widgets removed to prevent duplication.
               ],
 
+              Consumer<AppConfigProvider>(
+                builder: (context, config, child) {
+                  return SwitchListTile(
+                    title: Text(l10n.allow_self_signed_certificates),
+                    subtitle: Text(l10n.allow_self_signed_certificates_description),
+                    value: config.allowSelfSignedCertificates,
+                    onChanged: (value) {
+                      config.setAllowSelfSignedCertificates(value);
+                    },
+                  );
+                },
+              ),
               Consumer<AppConfigProvider>(
                 builder: (context, config, child) {
                   // Show only ONE error: prefer inline error when present (pre-save test),

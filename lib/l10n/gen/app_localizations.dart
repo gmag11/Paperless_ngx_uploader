@@ -518,6 +518,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Storage permissions denied. Cannot access files for upload.'**
   String get error_permission_denied;
+
+  /// Label for the toggle to allow self-signed SSL certificates
+  ///
+  /// In en, this message translates to:
+  /// **'Allow self-signed certificates'**
+  String get allow_self_signed_certificates;
+
+  /// Description for the self-signed certificates toggle
+  ///
+  /// In en, this message translates to:
+  /// **'Allow connections to servers with self-signed or invalid SSL certificates (not recommended for production)'**
+  String get allow_self_signed_certificates_description;
 }
 
 class _AppLocalizationsDelegate

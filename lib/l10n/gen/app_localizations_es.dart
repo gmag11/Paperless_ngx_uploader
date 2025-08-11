@@ -251,4 +251,12 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get error_permission_denied =>
       'Permisos de almacenamiento denegados. No se pueden acceder a los archivos para subir.';
+
+  @override
+  String get allow_self_signed_certificates =>
+      'Permitir certificados autofirmados';
+
+  @override
+  String get allow_self_signed_certificates_description =>
+      'Permitir conexiones a servidores con certificados SSL autofirmados o inválidos (no recomendado para producción)';
 }

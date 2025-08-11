@@ -17,6 +17,7 @@ class AppConfigProvider extends ChangeNotifier {
   // Auth method/token
   AuthMethod? _authMethod;
   String? _apiToken;
+  bool _allowSelfSignedCertificates = false;
 
   ConnectionStatus _connectionStatus = ConnectionStatus.notConfigured;
   String? _connectionError;
@@ -30,6 +31,7 @@ class AppConfigProvider extends ChangeNotifier {
   String? get password => _password;
   AuthMethod? get authMethod => _authMethod;
   String? get apiToken => _apiToken;
+  bool get allowSelfSignedCertificates => _allowSelfSignedCertificates;
 
   ConnectionStatus get connectionStatus => _connectionStatus;
   String? get connectionError => _connectionError;
@@ -67,6 +69,7 @@ class AppConfigProvider extends ChangeNotifier {
         password: _password ?? '',
         useApiToken: useApi,
         apiToken: useApi ? _apiToken : null,
+        allowSelfSignedCertificates: _allowSelfSignedCertificates,
       );
     }
     return _serviceCache;
@@ -98,6 +101,10 @@ class AppConfigProvider extends ChangeNotifier {
       _password = null;
       _apiToken = null;
     }
+
+    // Load SSL certificate setting
+    final sslSetting = await _storage.read(key: 'allow_self_signed_certificates');
+    _allowSelfSignedCertificates = sslSetting == 'true';
 
     // Reset cache on load; will be lazily created
     _serviceCache = null;
@@ -203,6 +210,7 @@ class AppConfigProvider extends ChangeNotifier {
     final prevPass = _password;
     final prevMethod = _authMethod;
     final prevToken = _apiToken;
+    final prevSsl = _allowSelfSignedCertificates;
   
     _serverUrl = serverUrl;
     _authMethod = method;
@@ -220,7 +228,8 @@ class AppConfigProvider extends ChangeNotifier {
         prevUser != _username ||
         prevPass != _password ||
         prevMethod != _authMethod ||
-        prevToken != _apiToken;
+        prevToken != _apiToken ||
+        prevSsl != _allowSelfSignedCertificates;
 
     if (changed) {
       _serviceCache = null;
@@ -266,18 +275,31 @@ class AppConfigProvider extends ChangeNotifier {
 
   Future<void> clearConfiguration() async {
     await SecureStorageService.clearCredentials();
+    await _storage.delete(key: 'allow_self_signed_certificates');
     
     _serverUrl = null;
     _username = null;
     _password = null;
     _authMethod = null;
     _apiToken = null;
+    _allowSelfSignedCertificates = false;
   
     // Invalidate cache
     _serviceCache = null;
   
     _connectionStatus = ConnectionStatus.notConfigured;
     _connectionError = null;
+    notifyListeners();
+  }
+
+  Future<void> setAllowSelfSignedCertificates(bool allow) async {
+    _allowSelfSignedCertificates = allow;
+    await _storage.write(
+      key: 'allow_self_signed_certificates',
+      value: allow.toString(),
+    );
+    // Invalidate cache to recreate service with new SSL settings
+    _serviceCache = null;
     notifyListeners();
   }
 

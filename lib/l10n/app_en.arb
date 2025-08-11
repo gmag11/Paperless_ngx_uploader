@@ -374,5 +374,15 @@
   "error_permission_denied": "Storage permissions denied. Cannot access files for upload.",
   "@error_permission_denied": {
     "description": "Error message shown when storage permissions are denied"
+  },
+
+  "allow_self_signed_certificates": "Allow self-signed certificates",
+  "@allow_self_signed_certificates": {
+    "description": "Label for the toggle to allow self-signed SSL certificates"
+  },
+
+  "allow_self_signed_certificates_description": "Allow connections to servers with self-signed or invalid SSL certificates (not recommended for production)",
+  "@allow_self_signed_certificates_description": {
+    "description": "Description for the self-signed certificates toggle"
   }
 }
