@@ -6,6 +6,7 @@ This document summarizes the existing tests in the `test/` directory. It describ
 ## Test Tables by File
 
 ### [`test/app_config_provider_test.dart`](test/app_config_provider_test.dart)
+
 | Test Name | Purpose | Scenarios Covered | Expected Result |
 |---|---|---|---|
 | Saves and loads Username/Password via SecureStorageService | Validate persistence and recovery of Username/Password configuration through provider and secure storage | Save configuration with server URL, username, password; then load configuration | Provider fields reflect saved values; `isConfigured = true`; `apiToken = null`; method set to Username/Password |
@@ -32,6 +33,7 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | SSL setting survives configuration changes | Ensure SSL flag persists across config changes | Set SSL flag; change config | SSL flag remains set in provider and storage |
 
 ### [`test/secure_storage_service_test.dart`](test/secure_storage_service_test.dart)
+
 | Test Name | Purpose | Scenarios Covered | Expected Result |
 |---|---|---|---|
 | Username/Password: saving and retrieving | Validate storage and retrieval of user/pass credentials | Save user/pass; get credentials; check presence | Stored values match; `hasCredentials() = true` |
@@ -45,6 +47,7 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | Server URL missing fails hasCredentials | Ensure missing server URL results in false presence | Manipulate store to end with missing server URL | `hasCredentials() = false` |
 
 ### [`test/paperless_service_test.dart`](test/paperless_service_test.dart)
+
 | Test Name | Purpose | Scenarios Covered | Expected Result |
 |---|---|---|---|
 | Generates Basic auth header for username/password | Ensure Basic Authorization header formatting | Compute expected Basic header; stub GET requiring header; request with header | 200 OK received; header matches expected format |
@@ -61,12 +64,14 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | Maps HandshakeException to sslError | Symbolic expectation for SSL errors | No network call; reference enum value | Enum value equals itself |
 
 ### [`test/home_screen_test.dart`](test/home_screen_test.dart)
+
 | Test Name | Purpose | Scenarios Covered | Expected Result |
 |---|---|---|---|
 | shows warning banner when showTypeWarning is true | Ensure HomeScreen shows localized banner when MIME type warning is active | Provide stubbed providers; toggle warning true with MIME type; use real localization delegates | Localized banner text appears exactly once when enabled |
 | renders progress card with percentage and bytes while uploading | Ensure upload progress UI elements show/hide correctly | Toggle progress state to uploading with bytes and percent; then finish and reset | `LinearProgressIndicator` appears during upload; percentage texts found; indicator hidden after reset |
 
 ### [`test/intent_handler_test.dart`](test/intent_handler_test.dart)
+
 | Test Name | Purpose | Scenarios Covered | Expected Result |
 |---|---|---|---|
 | creates event with correct properties | Validate ShareReceivedEvent creation with full properties | Create ShareReceivedEvent with all properties | All properties match input values |
@@ -86,6 +91,7 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | dispose can be called without throwing | Validate cleanup behavior | Call IntentHandler.dispose() | Returns normally without throwing |
 
 ### [`test/permission_service_test.dart`](test/permission_service_test.dart)
+
 | Test Name | Purpose | Scenarios Covered | Expected Result |
 |---|---|---|---|
 | has storage permission constant | Validate permission constants exist | Check Permission.storage | Permission.storage is not null |
@@ -99,6 +105,7 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | has limited status | Validate permission status constants exist | Check PermissionStatus.limited | PermissionStatus.limited is not null |
 
 ### [`test/upload_initiation_test.dart`](test/upload_initiation_test.dart)
+
 | Test Name | Purpose | Scenarios Covered | Expected Result |
 |---|---|---|---|
 | initiates file upload with valid file path | Validate upload initiation with valid file | Create upload with valid file path | Upload initiated successfully |
@@ -108,6 +115,7 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | handles upload cancellation | Validate upload cancellation behavior | Start upload then cancel | Cancellation handled properly |
 
 ### [`test/widget_test.dart`](test/widget_test.dart)
+
 | Test Name | Purpose | Scenarios Covered | Expected Result |
 |---|---|---|---|
 | template widget test disabled | Placeholder template test disabled for this project | Skipped unimplemented template | Test is skipped; no effect |

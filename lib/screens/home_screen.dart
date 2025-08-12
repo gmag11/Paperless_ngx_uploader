@@ -4,24 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_config_provider.dart';
 import '../widgets/tag_selection_dialog.dart';
 import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
 import '../services/intent_handler.dart';
-import '../services/version_check_service.dart';
 import '../services/permission_service.dart';
 import '../providers/upload_provider.dart';
 import '../l10n/gen/app_localizations.dart';
 // import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
-  final VersionCheckResult? versionCheckResult;
-  
   const HomeScreen({
     super.key,
-    this.versionCheckResult,
   });
 
   @override
@@ -41,9 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
       
       // Check storage permissions on startup
       _checkStoragePermissions();
-      
-      // Check for app updates and show notification if available
-      _checkForUpdatesAndNotify();
     });
 
     // Listen for share intent events (filename + file path)
@@ -166,32 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  /// Checks for app updates and shows a notification dialog if a new version is available
-  void _checkForUpdatesAndNotify() {
-    // Use the version check result passed from main.dart
-    final versionCheckResult = widget.versionCheckResult;
-    
-    // Only show notification if:
-    // 1. A check was performed (not skipped due to rate limiting)
-    // 2. A new version is available
-    // 3. We have valid version and URL information
-    if (versionCheckResult != null &&
-        !versionCheckResult.skipped &&
-        versionCheckResult.hasUpdate &&
-        versionCheckResult.latestVersion != null &&
-        versionCheckResult.releaseUrl != null) {
-      
-      // Show update notification after a brief delay to ensure UI is ready
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _showUpdateNotification(
-            versionCheckResult.latestVersion!,
-            versionCheckResult.releaseUrl!,
-          );
-        }
-      });
-    }
-  }
+  // Version checking functionality removed - no longer needed
 
   /// Checks storage permissions and shows appropriate messages
   Future<void> _checkStoragePermissions() async {
@@ -203,64 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Shows a dialog notifying the user about the available update
-  void _showUpdateNotification(String newVersion, String releaseUrl) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Update Available'),
-          content: Text('A new version $newVersion is available.\n\nRelease URL: $releaseUrl'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Later'),
-            ),
-            TextButton(
-              onPressed: () async {
-                // Close the dialog
-                Navigator.of(context).pop();
-                
-                // Launch the release URL in browser
-                final uri = Uri.tryParse(releaseUrl);
-                if (uri != null) {
-                  try {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } catch (e) {
-                    // Handle launch errors gracefully
-                    if (!mounted) return;
-                    Fluttertoast.showToast(
-                      msg: 'Could not open browser: ${e.toString()}',
-                      toastLength: Toast.LENGTH_LONG,
-                      timeInSecForIosWeb: 5,
-                      gravity: ToastGravity.BOTTOM,
-                      backgroundColor: Colors.red,
-                      textColor: Colors.white,
-                      fontSize: 16.0,
-                    );
-                  }
-                } else {
-                  // Handle invalid URL
-                  if (!mounted) return;
-                  Fluttertoast.showToast(
-                    msg: 'Invalid URL format',
-                    toastLength: Toast.LENGTH_LONG,
-                    timeInSecForIosWeb: 5,
-                    gravity: ToastGravity.BOTTOM,
-                    backgroundColor: Colors.red,
-                    textColor: Colors.white,
-                    fontSize: 16.0,
-                  );
-                }
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // Update notification functionality removed - no longer needed
 
   @override
   Widget build(BuildContext context) {
