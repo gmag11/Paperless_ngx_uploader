@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:paperless_ngx_android_uploader/services/secure_storage_service.dart' as svc;
+import 'package:paperlessngx_uploader/services/secure_storage_service.dart' as svc;
 
 // A lightweight in-memory fake for flutter_secure_storage method channel.
 // flutter_secure_storage uses channel 'plugins.it_nomads.com/flutter_secure_storage'

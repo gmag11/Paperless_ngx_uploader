@@ -54,8 +54,8 @@ Notes:
 2) Clone the repository:
 
 ```bash
-git clone https://github.com/USER_OR_ORG/paperless_ngx_android_uploader.git
-cd paperless_ngx_android_uploader
+git clone https://github.com/gmag11/paperless_ngx_uploader.git
+cd paperless_ngx_uploader
 ```
 
 3) Get dependencies and run:
@@ -128,8 +128,8 @@ No unrelated device resources are accessed.
   - Services: [`intent_handler.dart`](lib/services/intent_handler.dart), [`paperless_service.dart`](lib/services/paperless_service.dart), [`secure_storage_service.dart`](lib/services/secure_storage_service.dart)
   - UI widgets: [`config_dialog.dart`](lib/widgets/config_dialog.dart), [`tag_selection_dialog.dart`](lib/widgets/tag_selection_dialog.dart)
 - Android integration / Share Intent:
-  - Main activity: [`MainActivity.kt`](android/app/src/main/kotlin/com/example/paperless_ngx_android_uploader/MainActivity.kt)
-  - Share receiver: [`ShareReceiverActivity.kt`](android/app/src/main/kotlin/com/example/paperless_ngx_android_uploader/ShareReceiverActivity.kt)
+  - Main activity: [`MainActivity.kt`](android/app/src/main/kotlin/net/gmartin/paperlessngx_uploader/MainActivity.kt)
+  - Share receiver: [`ShareReceiverActivity.kt`](android/app/src/main/kotlin/net/gmartin/paperlessngx_uploader/ShareReceiverActivity.kt)
   - Manifest: [`AndroidManifest.xml`](android/app/src/main/AndroidManifest.xml)
 - Additional docs:
   - Technical design: [`technical_design.md`](docs/technical_design.md)

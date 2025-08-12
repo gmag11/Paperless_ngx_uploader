@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
-import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
-import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
+import 'package:paperlessngx_uploader/models/connection_status.dart';
+import 'package:paperlessngx_uploader/services/paperless_service.dart';
 
 void main() {
   group('PaperlessService - Authentication headers', () {

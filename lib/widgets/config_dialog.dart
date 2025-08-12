@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:paperless_ngx_android_uploader/services/secure_storage_service.dart';
-import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
-import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
-import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
-import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
+import 'package:paperlessngx_uploader/services/secure_storage_service.dart';
+import 'package:paperlessngx_uploader/models/connection_status.dart';
+import 'package:paperlessngx_uploader/providers/app_config_provider.dart';
+import 'package:paperlessngx_uploader/l10n/gen/app_localizations.dart';
+import 'package:paperlessngx_uploader/services/paperless_service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 enum _AuthMethod { userPass, apiToken } // UI enum (distinct from storage AuthMethod)
