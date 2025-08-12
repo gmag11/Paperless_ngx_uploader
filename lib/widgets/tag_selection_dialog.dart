@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:paperless_ngx_android_uploader/models/tag.dart';
-import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
-import 'package:paperless_ngx_android_uploader/services/paperless_service.dart';
-import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
+import 'package:paperlessngx_uploader/models/tag.dart';
+import 'package:paperlessngx_uploader/providers/app_config_provider.dart';
+import 'package:paperlessngx_uploader/services/paperless_service.dart';
+import 'package:paperlessngx_uploader/l10n/gen/app_localizations.dart';
 
 class TagSelectionDialog extends StatefulWidget {
   final List<Tag> selectedTags;

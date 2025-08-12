@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
-import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
-import 'package:paperless_ngx_android_uploader/services/secure_storage_service.dart';
+import 'package:paperlessngx_uploader/models/connection_status.dart';
+import 'package:paperlessngx_uploader/providers/app_config_provider.dart';
+import 'package:paperlessngx_uploader/services/secure_storage_service.dart';
 
 /// Fake for flutter_secure_storage channel used by both SecureStorageService and
 /// AppConfigProvider.loadStoredTags()/saveSelectedTags().

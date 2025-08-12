@@ -18,6 +18,10 @@ void main() async {
   // Initialize version check service and perform version check on startup
   final versionCheckService = VersionCheckService();
   
+  // Get install source and log it
+  // final source = await versionCheckService.getInstallSource();
+  // developer.log("Install source: $source", name: "VersionCheck");
+
   // Perform version check respecting once-per-day logic
   // The checkForUpdates method will handle the once-per-day logic internally
   final versionCheckResult = await versionCheckService.checkForUpdates();
