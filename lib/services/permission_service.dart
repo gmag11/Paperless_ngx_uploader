@@ -12,14 +12,11 @@ class PermissionService {
     // Determine which permissions to request based on Android version
     Map<Permission, PermissionStatus> permissions = {};
 
-    // Para Android 13+ (API 33+)
+    // For Android 13+ (API 33+)
     if (await _isAndroid13OrAbove()) {
       permissions[Permission.photos] = await Permission.photos.status;
-      permissions[Permission.videos] = await Permission.videos.status;
-      permissions[Permission.audio] = await Permission.audio.status;
-      // Si necesitas documentos, puedes agregar aquí lógica adicional
     } else {
-      // Para Android 12 y anteriores
+      // For Android 12 and below
       permissions[Permission.storage] = await Permission.storage.status;
     }
 
@@ -118,14 +115,10 @@ class PermissionService {
   /// Checks if storage permissions are granted without requesting
   static Future<bool> hasStoragePermissions() async {
     if (await _isAndroid13OrAbove()) {
-      // Para Android 13+, revisa los permisos relevantes de media
-      bool photosGranted = await Permission.photos.isGranted;
-      bool videosGranted = await Permission.videos.isGranted;
-      bool audioGranted = await Permission.audio.isGranted;
-      // Considera concedido si al menos uno está concedido
-      return photosGranted && videosGranted && audioGranted;
+      // For Android 13+, we only need photo permission for documents/images
+      return await Permission.photos.isGranted;
     } else {
-      // Para Android 12 y anteriores
+      // For Android 12 and below
       return await Permission.storage.isGranted;
     }
   }
