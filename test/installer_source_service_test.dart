@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paperless_ngx_android_uploader/services/installer_source_service.dart';
+import 'package:paperlessngx_uploader/services/installer_source_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
