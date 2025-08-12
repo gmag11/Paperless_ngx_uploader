@@ -1,6 +1,6 @@
 {
-    "name": "paperless_ngx_android_uploader",
-    "short_name": "paperless_ngx_android_uploader",
+    "name": "paperlessngx_uploader",
+    "short_name": "paperlessngx_uploader",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

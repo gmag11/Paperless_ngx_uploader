@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-import 'package:paperless_ngx_android_uploader/models/tag.dart';
-import 'package:paperless_ngx_android_uploader/models/upload_result.dart';
-import 'package:paperless_ngx_android_uploader/providers/app_config_provider.dart';
-import 'package:paperless_ngx_android_uploader/providers/upload_provider.dart';
-import 'package:paperless_ngx_android_uploader/screens/home_screen.dart';
-import 'package:paperless_ngx_android_uploader/l10n/gen/app_localizations.dart';
+import 'package:paperlessngx_uploader/models/tag.dart';
+import 'package:paperlessngx_uploader/models/upload_result.dart';
+import 'package:paperlessngx_uploader/providers/app_config_provider.dart';
+import 'package:paperlessngx_uploader/providers/upload_provider.dart';
+import 'package:paperlessngx_uploader/screens/home_screen.dart';
+import 'package:paperlessngx_uploader/l10n/gen/app_localizations.dart';
 
 // Removed unused _TestUploadProvider (dead code).
 

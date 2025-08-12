@@ -5,8 +5,8 @@ import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
-import 'package:paperless_ngx_android_uploader/models/connection_status.dart';
-import 'package:paperless_ngx_android_uploader/models/tag.dart';
+import 'package:paperlessngx_uploader/models/connection_status.dart';
+import 'package:paperlessngx_uploader/models/tag.dart';
 
 class UploadResult {
   final bool success;

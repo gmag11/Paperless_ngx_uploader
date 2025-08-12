@@ -46,6 +46,18 @@ class VersionCheckService {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
 
+    // Check install source - only check for updates if installed from APK
+    final installSource = await getInstallSource();
+    if (installSource != 'apk') {
+      return VersionCheckResult(
+        hasUpdate: false,
+        latestVersion: null,
+        releaseUrl: null,
+        skipped: true,
+        lastCheck: now,
+      );
+    }
+
     // Check if we should skip the API call due to rate limiting
     final lastCheckTimestamp = prefs.getInt(_lastCheckKey);
     if (lastCheckTimestamp != null) {

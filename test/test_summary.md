@@ -53,6 +53,9 @@ This document summarizes the existing tests in the `test/` directory. It describ
 | [`test/home_screen_test.dart`](test/home_screen_test.dart) | shows warning banner when showTypeWarning is true | Ensure HomeScreen shows localized banner when MIME type warning is active | Provide stubbed providers; toggle warning true with MIME type; use real localization delegates | Localized banner text appears exactly once when enabled |
 | [`test/home_screen_test.dart`](test/home_screen_test.dart) | renders progress card with percentage and bytes while uploading | Ensure upload progress UI elements show/hide correctly | Toggle progress state to uploading with bytes and percent; then finish and reset | `LinearProgressIndicator` appears during upload; percentage texts found; indicator hidden after reset |
 | [`test/widget_test.dart`](test/widget_test.dart) | template widget test disabled | Placeholder template test disabled for this project | Skipped unimplemented template | Test is skipped; no effect |
+| [`test/version_check_service_test.dart`](test/version_check_service_test.dart) | checkForUpdates performs GitHub API call for APK install source | Verify that update check uses GitHub API when app is installed via APK | Mock install source as APK; call checkForUpdates(); verify GitHub API interaction | GitHub API call initiated; update check proceeds for APK installs |
+| [`test/version_check_service_test.dart`](test/version_check_service_test.dart) | checkForUpdates skips GitHub check for Play Store install source | Verify that update check is skipped when app is installed via Play Store | Mock install source as PLAY_STORE; call checkForUpdates(); verify no API call | No GitHub API call made; update check is bypassed for Play Store installs |
+| [`test/version_check_service_test.dart`](test/version_check_service_test.dart) | checkForUpdates skips GitHub check for F-Droid install source | Verify that update check is skipped when app is installed via F-Droid | Mock install source as F_DROID; call checkForUpdates(); verify no API call | No GitHub API call made; update check is bypassed for F-Droid installs |
 
 ## Classification by Functionality
 
@@ -76,7 +79,12 @@ This document summarizes the existing tests in the `test/` directory. It describ
 - Files: `home_screen_test.dart`
 - Importance: Confirms critical UI feedback behaviors (warnings and upload progress visibility) and integration with localization. Directly impacts user trust and usability during upload operations.
 
-5) Template/Scaffold
+5) Update Checking and Version Management (VersionCheckService)
+
+- Files: `version_check_service_test.dart`
+- Importance: Validates the behavior of automatic update checking based on app installation source. Ensures that GitHub API calls are only made for APK installations while Play Store and F-Droid installations skip update checks, preventing unnecessary network traffic and respecting platform-specific update mechanisms.
+
+6) Template/Scaffold
 
 - Files: `widget_test.dart`
 - Importance: Disabled placeholder; no functional impact, but indicates standard Flutter template scaffolding has been intentionally skipped.
