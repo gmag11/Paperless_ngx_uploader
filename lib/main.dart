@@ -5,7 +5,6 @@ import 'screens/home_screen.dart';
 import 'providers/app_config_provider.dart';
 import 'providers/upload_provider.dart';
 import 'services/intent_handler.dart';
-import 'services/version_check_service.dart';
 import 'l10n/gen/app_localizations.dart';
 
 void main() async {
@@ -14,17 +13,6 @@ void main() async {
 
   // Initialize Android share intent handling
   IntentHandler.initialize();
-
-  // Initialize version check service and perform version check on startup
-  final versionCheckService = VersionCheckService();
-  
-  // Get install source and log it
-  // final source = await versionCheckService.getInstallSource();
-  // developer.log("Install source: $source", name: "VersionCheck");
-
-  // Perform version check respecting once-per-day logic
-  // The checkForUpdates method will handle the once-per-day logic internally
-  final versionCheckResult = await versionCheckService.checkForUpdates();
 
   runApp(
     MultiProvider(
@@ -89,17 +77,14 @@ void main() async {
               ),
         ),
       ],
-      child: PaperlessUploaderApp(versionCheckResult: versionCheckResult),
+      child: const PaperlessUploaderApp(),
     ),
   );
 }
 
 class PaperlessUploaderApp extends StatelessWidget {
-  final VersionCheckResult? versionCheckResult;
-  
   const PaperlessUploaderApp({
     super.key,
-    this.versionCheckResult,
   });
 
   @override
@@ -132,7 +117,7 @@ class PaperlessUploaderApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => HomeScreen(versionCheckResult: versionCheckResult),
+        '/': (context) => const HomeScreen(),
       },
     );
   }

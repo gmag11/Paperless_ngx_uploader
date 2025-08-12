@@ -1,6 +1,6 @@
 # Roo Code Rules for Paperless-NGX Android Uploader
 
-- All implementation must strictly follow the specifications in [`paperless_ngx_android_spec.md`](.roo\rules\02-paperless_ngx_uploader_spec).
+- All implementation must strictly follow the specifications in [`paperlessngx_uploader_spec.md`](.roo\rules\02-paperlessngx_uploader_spec.md).
 - Any architectural, UI, or workflow decisions must reference and comply with the specification document.
 - Changes to requirements must be reflected in both this rules file and the specification document.
 - Use the specification as the single source of truth for development and review.

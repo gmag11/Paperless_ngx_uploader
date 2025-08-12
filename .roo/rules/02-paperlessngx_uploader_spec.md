@@ -28,9 +28,9 @@
   - Tags selection dialog reflect the already selected tags.
 
 - **File Upload**
-  - Receives file document from Android share intent
+  - Receives file documents from Android share intent
   - Files are doc, pdf, image or other document types
-  - Uploads document with selected/default tags
+  - Uploads documents with selected/default tags
   - Shows upload result/status and sends the application to background
   - If the upload fails, the user is notified with a snackbar message.
 
