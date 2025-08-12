@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'providers/app_config_provider.dart';
@@ -18,6 +19,10 @@ void main() async {
   // Initialize version check service and perform version check on startup
   final versionCheckService = VersionCheckService();
   
+  // Get install source and log it
+  // final source = await versionCheckService.getInstallSource();
+  // developer.log("Install source: $source", name: "VersionCheck");
+
   // Perform version check respecting once-per-day logic
   // The checkForUpdates method will handle the once-per-day logic internally
   final versionCheckResult = await versionCheckService.checkForUpdates();

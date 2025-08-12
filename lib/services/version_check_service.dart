@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -174,6 +176,21 @@ class VersionCheckService {
     return timestamp != null
         ? DateTime.fromMillisecondsSinceEpoch(timestamp)
         : null;
+  }
+
+  /// Gets the install source of the app.
+  ///
+  /// Returns a string indicating how the app was installed (e.g., 'play_store', 'fdroid', 'sideload').
+  Future<String> getInstallSource() async {
+    try {
+      const platform = MethodChannel('net.gmartin.paperlessngx_uploader/installSource');
+      final String source = await platform.invokeMethod('getInstallSource');
+      developer.log('Install source: $source', name: 'VersionCheckService');
+      return source;
+    } catch (e) {
+      developer.log('Failed to get install source: $e', name: 'VersionCheckService');
+      return 'unknown';
+    }
   }
 }
 
