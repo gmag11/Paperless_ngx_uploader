@@ -5,7 +5,7 @@ Flutter application for Android that uploads documents to Paperless‑NGX direct
 Origin project: Paperless Share — <https://github.com/qcasey/paperless_share>  
 This repository is an updated/re‑implemented version inspired by that project, using Flutter and current Android support.
 
-![Screenshot_2025-08-09-15-40-28-450_net gmartin paperlessngx_uploader-edit](https://github.com/user-attachments/assets/54182f13-1bd1-45b6-82c5-8033bc0a2f3b)
+![Screenshot](https://github.com/gmag11/Paperless_ngx_uploader/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/03.png)
 
 ## Features
 
