@@ -58,13 +58,18 @@ class IntentHandler {
   static Stream<ShareReceivedBatchEvent> get batchEventStream => _batchEventController.stream;
 
   static Future<void> initialize() async {
-    if (!Platform.isAndroid) return;
+    developer.log('IntentHandler.initialize: start', name: 'IntentHandler');
+    if (!Platform.isAndroid) {
+      developer.log('IntentHandler.initialize: not Android, skipping', name: 'IntentHandler');
+      return;
+    }
 
     await _handleInitialIntent();
 
     _mediaSub?.cancel();
     _mediaSub = ReceiveSharingIntent.instance.getMediaStream().listen(
       (List<SharedMediaFile> value) {
+        developer.log('IntentHandler.getMediaStream: received ${value.length} files', name: 'IntentHandler');
         if (value.isNotEmpty) {
           _handleSharedFiles(value);
         }
@@ -74,6 +79,7 @@ class IntentHandler {
             name: 'IntentHandler', error: e, stackTrace: st);
       },
     );
+    developer.log('IntentHandler.initialize: end', name: 'IntentHandler');
   }
 
   static Future<void> dispose() async {
@@ -83,9 +89,11 @@ class IntentHandler {
   }
 
   static Future<void> _handleInitialIntent() async {
+    developer.log('IntentHandler._handleInitialIntent: start', name: 'IntentHandler');
     try {
       final sharedFiles =
           await ReceiveSharingIntent.instance.getInitialMedia();
+      developer.log('IntentHandler._handleInitialIntent: received ${sharedFiles.length} files', name: 'IntentHandler');
       if (sharedFiles.isNotEmpty) {
         _handleSharedFiles(sharedFiles);
       }
@@ -95,10 +103,15 @@ class IntentHandler {
           error: e,
           stackTrace: st);
     }
+    developer.log('IntentHandler._handleInitialIntent: end', name: 'IntentHandler');
   }
 
   static void _handleSharedFiles(List<SharedMediaFile> files) async {
-    if (files.isEmpty) return;
+    developer.log('IntentHandler._handleSharedFiles: start (${files.length} files)', name: 'IntentHandler');
+    if (files.isEmpty) {
+      developer.log('IntentHandler._handleSharedFiles: no files', name: 'IntentHandler');
+      return;
+    }
 
     final events = <ShareReceivedEvent>[];
     
@@ -107,16 +120,25 @@ class IntentHandler {
       final filePath = file.path;
       final fileName = _deriveFileName(file);
 
+      developer.log('IntentHandler._handleSharedFiles: processing file $filePath', name: 'IntentHandler');
+
       // Best-effort MIME detection: prefer SharedMediaFile type if present, else by extension.
       String? mime = _guessMime(file, filePath);
       // Best-effort size (works for file:// paths)
       int? size;
       try {
         final f = File(filePath);
+        developer.log('IntentHandler._handleSharedFiles: checking file exists $filePath', name: 'IntentHandler');
         if (await f.exists()) {
           size = await f.length();
+          developer.log('IntentHandler._handleSharedFiles: file exists, size=$size', name: 'IntentHandler');
+        } else {
+          developer.log('IntentHandler._handleSharedFiles: file does not exist', name: 'IntentHandler');
         }
-      } catch (_) {}
+      } catch (e, st) {
+        developer.log('IntentHandler._handleSharedFiles: error accessing file $filePath: $e',
+            name: 'IntentHandler', error: e, stackTrace: st);
+      }
 
       final supported = _isSupported(mime, fileName);
       final showWarning = !supported; // per product decision, warn but proceed
@@ -142,6 +164,7 @@ class IntentHandler {
     if (events.isNotEmpty && !_batchEventController.isClosed) {
       _batchEventController.add(ShareReceivedBatchEvent(files: events));
     }
+    developer.log('IntentHandler._handleSharedFiles: end', name: 'IntentHandler');
   }
 
   static bool _isSupported(String? mime, String fileName) {

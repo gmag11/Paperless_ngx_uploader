@@ -104,6 +104,49 @@ class _ConfigDialogState extends State<ConfigDialog> {
     });
   }
 
+  Future<String> _determineProtocol(String serverWithoutProtocol, AppConfigProvider config) async {
+    final username = _authMethod == _AuthMethod.userPass ? _usernameController.text.trim() : '';
+    final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
+    final useApi = _authMethod == _AuthMethod.apiToken;
+
+    // Try HTTPS first
+    final httpsServer = 'https://$serverWithoutProtocol';
+    final httpsService = PaperlessService(
+      baseUrl: httpsServer,
+      username: username,
+      password: useApi ? '' : secret,
+      useApiToken: useApi,
+      apiToken: useApi ? secret : null,
+      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+    );
+
+    final httpsStatus = await httpsService.testConnection();
+    
+    if (httpsStatus == ConnectionStatus.connected) {
+      return httpsServer;
+    }
+
+    // Try HTTP as fallback
+    final httpServer = 'http://$serverWithoutProtocol';
+    final httpService = PaperlessService(
+      baseUrl: httpServer,
+      username: username,
+      password: useApi ? '' : secret,
+      useApiToken: useApi,
+      apiToken: useApi ? secret : null,
+      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+    );
+
+    final httpStatus = await httpService.testConnection();
+    
+    if (httpStatus == ConnectionStatus.connected) {
+      return httpServer;
+    }
+
+    // If both fail, return HTTP as default and let the main error handling deal with it
+    return httpServer;
+  }
+
   Future<void> _saveAndTestConnection() async {
     final l10n = AppLocalizations.of(context)!;
     // Clear inline error on new attempt
@@ -120,7 +163,18 @@ class _ConfigDialogState extends State<ConfigDialog> {
 
     final config = Provider.of<AppConfigProvider>(context, listen: false);
 
-    final server = _serverUrlController.text.trim();
+    var server = _serverUrlController.text.trim();
+    
+    // Determine the correct protocol when none is provided
+    if (!server.startsWith('http://') && !server.startsWith('https://')) {
+      server = await _determineProtocol(server, config);
+      if (server.isEmpty) {
+        // Error already set by _determineProtocol
+        return;
+      }
+      _serverUrlController.text = server;
+    }
+    
     final username = _authMethod == _AuthMethod.userPass ? _usernameController.text.trim() : '';
     final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
 
@@ -218,8 +272,10 @@ class _ConfigDialogState extends State<ConfigDialog> {
                   if (value == null || value.isEmpty) {
                     return l10n.validation_enter_server_url;
                   }
-                  if (!value.startsWith('http://') && !value.startsWith('https://')) {
-                    return l10n.validation_enter_valid_url;
+                  // Allow URLs without protocol - we'll add http:// implicitly
+                  final trimmedValue = value.trim();
+                  if (trimmedValue.isEmpty) {
+                    return l10n.validation_enter_server_url;
                   }
                   return null;
                 },
@@ -420,13 +476,41 @@ class _ConfigDialogState extends State<ConfigDialog> {
 
               Consumer<AppConfigProvider>(
                 builder: (context, config, child) {
-                  return SwitchListTile(
-                    title: Text(l10n.allow_self_signed_certificates),
-                    subtitle: Text(l10n.allow_self_signed_certificates_description),
-                    value: config.allowSelfSignedCertificates,
-                    onChanged: (value) {
-                      config.setAllowSelfSignedCertificates(value);
-                    },
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: SwitchListTile(
+                          title: Row(
+                            children: [
+                              Expanded(child: Text(l10n.allow_self_signed_certificates)),
+                              IconButton(
+                                icon: const Icon(Icons.help_outline),
+                                tooltip: l10n.allow_self_signed_certificates_description,
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: Text(l10n.allow_self_signed_certificates),
+                                      content: Text(l10n.allow_self_signed_certificates_description),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: Text(MaterialLocalizations.of(context).okButtonLabel),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          value: config.allowSelfSignedCertificates,
+                          onChanged: (value) {
+                            config.setAllowSelfSignedCertificates(value);
+                          },
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),

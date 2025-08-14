@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -12,7 +13,6 @@ import '../services/intent_handler.dart';
 import '../services/permission_service.dart';
 import '../providers/upload_provider.dart';
 import '../l10n/gen/app_localizations.dart';
-// import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -40,15 +40,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Listen for share intent events (filename + file path)
     _intentSub = IntentHandler.eventStream.listen((event) async {
+      developer.log('HomeScreen: Share intent received for file ${event.fileName}', name: 'HomeScreen');
       setState(() {
         _lastReceivedFileName = event.fileName;
       });
-      if (!mounted) return;
+      if (!mounted) {
+        developer.log('HomeScreen: Widget not mounted after intent', name: 'HomeScreen');
+        return;
+      }
 
       // Check storage permissions before proceeding with upload
+      developer.log('HomeScreen: Checking storage permissions before upload', name: 'HomeScreen');
       final hasPermission = await PermissionService.checkAndRequestStoragePermissions(context);
-      if (!mounted) return;
+      developer.log('HomeScreen: PermissionService.checkAndRequestStoragePermissions returned $hasPermission', name: 'HomeScreen');
+      if (!mounted) {
+        developer.log('HomeScreen: Widget not mounted after permission check', name: 'HomeScreen');
+        return;
+      }
       if (!hasPermission) {
+        developer.log('HomeScreen: Permissions not granted, aborting upload', name: 'HomeScreen');
         final l10n = AppLocalizations.of(context)!;
         Fluttertoast.showToast(
           msg: l10n.snackbar_upload_error_prefix(l10n.error_permission_denied),
@@ -100,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final tags = List<Tag>.from(appConfig.selectedTags);
 
       try {
+        developer.log('HomeScreen: Permissions granted, proceeding to upload', name: 'HomeScreen');
         await uploadProvider.uploadFile(
           File(event.filePath),
           event.fileName,
@@ -135,7 +146,8 @@ class _HomeScreenState extends State<HomeScreen> {
             fontSize: 16.0,
           );
         }
-      } catch (e) {
+      } catch (e, st) {
+        developer.log('HomeScreen: Exception during upload: $e', name: 'HomeScreen', error: e, stackTrace: st);
         if (!mounted) return;
         final l10n = AppLocalizations.of(context)!;
         final localized = _localizeError(l10n, e.toString());
@@ -162,11 +174,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Checks storage permissions and shows appropriate messages
   Future<void> _checkStoragePermissions() async {
+    developer.log('HomeScreen: Checking storage permissions on startup', name: 'HomeScreen');
     final hasPermission = await PermissionService.hasStoragePermissions();
+    developer.log('HomeScreen: hasStoragePermissions returned $hasPermission', name: 'HomeScreen');
     if (!hasPermission) {
       // Don't show dialog on startup, just log it
       // The permission will be requested when user tries to upload
-      debugPrint('Storage permissions not granted, will request when needed');
+      developer.log('HomeScreen: Storage permissions not granted, will request when needed', name: 'HomeScreen');
     }
   }
 
