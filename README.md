@@ -2,12 +2,14 @@
 
 Flutter application for Android that uploads documents to Paperless‑NGX directly from the system Share menu. This project updates and adapts the original "Paperless Share" by qcasey to modern Android versions while keeping the same simple "share and upload" workflow.
 
-Origin project: Paperless Share — <https://github.com/qcasey/paperless_share>  
+Origin project: Paperless Share — <https://github.com/qcasey/paperless_share>
 This repository is an updated/re‑implemented version inspired by that project, using Flutter and current Android support.
 
-![Screenshot1](https://github.com/gmag11/Paperless_ngx_uploader/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/01.png)
-![Screenshot2](https://github.com/gmag11/Paperless_ngx_uploader/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/02.png)
-![Screenshot3](https://github.com/gmag11/Paperless_ngx_uploader/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/03.png)
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
+     alt="Get it on F-Droid"
+     height="80">](https://apt.izzysoft.de/packages/net.gmartin.paperlessngx_uploader/)
+
+![Screenshot1](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/01.jpg) ![Screenshot2](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/02.png) ![Screenshot3](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/03.png)
 
 ## Features
 
@@ -167,7 +169,8 @@ Formatting/linting:
 - [X] Add support for token-based login for instances using OpenID login (accept user-provided access token and use it for API calls).
 - [X] Implement multiple file upload.
 - [X] Add support for self-signed certificates.
-- [ ] Publish app to F-Droid and/or Google Play Store.
+- [X] Publish app to F-Droid
+- [ ] Publish app to Google Play Store.
 
 ## Credits and license
 
