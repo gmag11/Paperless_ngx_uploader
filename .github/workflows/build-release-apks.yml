@@ -1,8 +1,9 @@
 name: Build and Upload Release APKs
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+  # release:
+  #   types: [published]
 
 jobs:
   build-and-upload:
