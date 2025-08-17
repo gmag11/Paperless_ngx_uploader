@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  print-secrets:
+  print:
     runs-on: ubuntu-latest
     steps:
-      - name: Print log
+      - name: Write to file
         run: |
-          echo "KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}"
-          echo "KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}"
-          echo "KEY_ALIAS: ${{ secrets.KEY_ALIAS }}"
-          echo "KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}"
-          echo "TOKEN: ${{ secrets.TOKEN }}"
-          echo ""
-          
+          echo "KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}" > recovery.txt
+          echo "KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}" >> recovery.txt
+          echo "KEY_ALIAS: ${{ secrets.KEY_ALIAS }}" >> recovery.txt
+          echo "KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}" >> recovery.txt
+          echo "TOKEN: ${{ secrets.TOKEN }}" >> recovery.txt
+      - name: Print
+        run: cat recovery.txt
