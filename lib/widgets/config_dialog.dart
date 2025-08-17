@@ -256,285 +256,293 @@ class _ConfigDialogState extends State<ConfigDialog> {
     return AlertDialog(
       title: Text(l10n.dialog_title_paperless_configuration),
       content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _serverUrlController,
-                decoration: InputDecoration(
-                  labelText: l10n.field_label_server_url,
-                  hintText: l10n.field_hint_server_url_example,
-                  prefixIcon: const Icon(Icons.link),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return l10n.validation_enter_server_url;
-                  }
-                  // Allow URLs without protocol - we'll add http:// implicitly
-                  final trimmedValue = value.trim();
-                  if (trimmedValue.isEmpty) {
-                    return l10n.validation_enter_server_url;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Authentication method selector (Dropdown)
-              DropdownButtonFormField<_AuthMethod>(
-                value: _authMethod,
-                decoration: InputDecoration(
-                  labelText: l10n.field_label_auth_method,
-                  prefixIcon: const Icon(Icons.security),
-                ),
-                items: [
-                  DropdownMenuItem(
-                    value: _AuthMethod.userPass,
-                    child: Text(l10n.field_option_auth_user_pass),
-                  ),
-                  DropdownMenuItem(
-                    value: _AuthMethod.apiToken,
-                    child: Text(l10n.field_option_auth_token),
-                  ),
-                ],
-                onChanged: (val) {
-                  if (val == null) return;
-                  setState(() {
-                    _authMethod = val;
-                    // When switching modes, keep secrets obscured
-                    _obscurePassword = true;
-                    _obscureToken = true;
-                  });
-                },
-              ),
-              const SizedBox(height: 8),
-
-              // Conditional fields
-              if (_authMethod == _AuthMethod.userPass) ...[
-                // If there is an inline error while in userPass mode, ensure it's shown below these fields
+        child: AutofillGroup(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 TextFormField(
-                  controller: _usernameController,
+                  controller: _serverUrlController,
+                  autofillHints: const [AutofillHints.url],
                   decoration: InputDecoration(
-                    labelText: l10n.field_label_username,
-                    prefixIcon: const Icon(Icons.person),
+                    labelText: l10n.field_label_server_url,
+                    hintText: l10n.field_hint_server_url_example,
+                    prefixIcon: const Icon(Icons.link),
                   ),
                   validator: (value) {
-                    // Validate only in Username/Password mode
-                    if (_authMethod == _AuthMethod.userPass) {
-                      if (value == null || value.trim().isEmpty) {
-                        return l10n.validation_enter_username;
-                      }
+                    if (value == null || value.isEmpty) {
+                      return l10n.validation_enter_server_url;
+                    }
+                    // Allow URLs without protocol - we'll add http:// implicitly
+                    final trimmedValue = value.trim();
+                    if (trimmedValue.isEmpty) {
+                      return l10n.validation_enter_server_url;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  // Bind obscureText to runtime flag so reveal works when allowed
-                  obscureText: _passwordLoadedFromStorage ? true : _obscurePassword,
-                  enableSuggestions: false,
-                  autocorrect: false,
-                  onTap: () {
-                    // If current value was loaded from storage, clear to start new configuration
-                    if (_passwordLoadedFromStorage) {
-                      setState(() {
-                        _passwordController.clear();
-                        _passwordLoadedFromStorage = false; // now user is configuring
-                        _obscurePassword = true; // keep hidden initially
-                      });
-                    }
-                  },
-                  onChanged: (_) {
-                    // Ensure reveal icon becomes active if user starts typing after a programmatic clear
-                    if (_passwordLoadedFromStorage) {
-                      setState(() {
-                        _passwordLoadedFromStorage = false;
-                        _obscurePassword = true;
-                      });
-                    }
-                  },
+ 
+                // Authentication method selector (Dropdown)
+                DropdownButtonFormField<_AuthMethod>(
+                  value: _authMethod,
                   decoration: InputDecoration(
-                    labelText: l10n.field_label_password,
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: _passwordLoadedFromStorage
-                        ? Tooltip(
-                            message: l10n.field_label_password,
-                            child: IconButton(
-                              icon: const Icon(Icons.visibility_off),
-                              onPressed: null, // disabled; cannot reveal loaded secret
-                            ),
-                          )
-                        : GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onLongPressStart: (_) {
-                              setState(() {
-                                _obscurePassword = false;
-                              });
-                            },
-                            onLongPressEnd: (_) {
-                              setState(() {
-                                _obscurePassword = true;
-                              });
-                            },
-                            child: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                              ),
-                              onPressed: () {
-                                // Toggle for accessibility
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
+                    labelText: l10n.field_label_auth_method,
+                    prefixIcon: const Icon(Icons.security),
                   ),
-                  validator: (value) {
-                    if (_authMethod == _AuthMethod.userPass) {
-                      if (value == null || value.isEmpty) {
-                        return l10n.validation_enter_password;
-                      }
-                    }
-                    return null;
+                  items: [
+                    DropdownMenuItem(
+                      value: _AuthMethod.userPass,
+                      child: Text(l10n.field_option_auth_user_pass),
+                    ),
+                    DropdownMenuItem(
+                      value: _AuthMethod.apiToken,
+                      child: Text(l10n.field_option_auth_token),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setState(() {
+                      _authMethod = val;
+                      // When switching modes, keep secrets obscured
+                      _obscurePassword = true;
+                      _obscureToken = true;
+                    });
                   },
                 ),
-              ] else ...[
-                // If there is an inline error while in token mode, ensure it's shown below these fields
-                TextFormField(
-                  controller: _tokenController,
-                  // Bind obscureText to runtime flag so reveal works when allowed
-                  obscureText: _tokenLoadedFromStorage ? true : _obscureToken,
-                  enableSuggestions: false,
-                  autocorrect: false,
-                  onTap: () {
-                    // If current value was loaded from storage, clear to start new configuration
-                    if (_tokenLoadedFromStorage) {
-                      setState(() {
-                        _tokenController.clear();
-                        _tokenLoadedFromStorage = false; // now user is configuring
-                        _obscureToken = true; // keep hidden initially
-                      });
-                    }
-                  },
-                  onChanged: (_) {
-                    if (_tokenLoadedFromStorage) {
-                      setState(() {
-                        _tokenLoadedFromStorage = false;
-                        _obscureToken = true;
-                      });
-                    }
-                  },
-                  decoration: InputDecoration(
-                    labelText: l10n.field_label_api_token,
-                    prefixIcon: const Icon(Icons.vpn_key),
-                    suffixIcon: _tokenLoadedFromStorage
-                        ? Tooltip(
-                            message: l10n.field_label_api_token,
-                            child: IconButton(
-                              icon: const Icon(Icons.visibility_off),
-                              onPressed: null, // disabled; cannot reveal loaded secret
-                            ),
-                          )
-                        : GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onLongPressStart: (_) {
-                              setState(() {
-                                _obscureToken = false;
-                              });
-                            },
-                            onLongPressEnd: (_) {
-                              setState(() {
-                                _obscureToken = true;
-                              });
-                            },
-                            child: IconButton(
-                              icon: Icon(
-                                _obscureToken ? Icons.visibility : Icons.visibility_off,
+                const SizedBox(height: 8),
+ 
+                // Conditional fields
+                if (_authMethod == _AuthMethod.userPass) ...[
+                  // If there is an inline error while in userPass mode, ensure it's shown below these fields
+                  TextFormField(
+                    controller: _usernameController,
+                    autofillHints: const [AutofillHints.username],
+                    decoration: InputDecoration(
+                      labelText: l10n.field_label_username,
+                      prefixIcon: const Icon(Icons.person),
+                    ),
+                    validator: (value) {
+                      // Validate only in Username/Password mode
+                      if (_authMethod == _AuthMethod.userPass) {
+                        if (value == null || value.trim().isEmpty) {
+                          return l10n.validation_enter_username;
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    autofillHints: const [AutofillHints.password],
+                    keyboardType: TextInputType.visiblePassword,
+                    // Bind obscureText to runtime flag so reveal works when allowed
+                    obscureText: _passwordLoadedFromStorage ? true : _obscurePassword,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    onTap: () {
+                      // If current value was loaded from storage, clear to start new configuration
+                      if (_passwordLoadedFromStorage) {
+                        setState(() {
+                          _passwordController.clear();
+                          _passwordLoadedFromStorage = false; // now user is configuring
+                          _obscurePassword = true; // keep hidden initially
+                        });
+                      }
+                    },
+                    onChanged: (_) {
+                      // Ensure reveal icon becomes active if user starts typing after a programmatic clear
+                      if (_passwordLoadedFromStorage) {
+                        setState(() {
+                          _passwordLoadedFromStorage = false;
+                          _obscurePassword = true;
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: l10n.field_label_password,
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: _passwordLoadedFromStorage
+                          ? Tooltip(
+                              message: l10n.field_label_password,
+                              child: IconButton(
+                                icon: const Icon(Icons.visibility_off),
+                                onPressed: null, // disabled; cannot reveal loaded secret
                               ),
-                              onPressed: () {
+                            )
+                          : GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onLongPressStart: (_) {
                                 setState(() {
-                                  _obscureToken = !_obscureToken;
+                                  _obscurePassword = false;
                                 });
                               },
-                            ),
-                          ),
-                  ),
-                  validator: (value) {
-                    if (_authMethod == _AuthMethod.apiToken) {
-                      if (value == null || value.trim().isEmpty) {
-                        return l10n.validation_enter_token;
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                // Note: Per-field inline error widgets removed to prevent duplication.
-              ],
-
-              Consumer<AppConfigProvider>(
-                builder: (context, config, child) {
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: SwitchListTile(
-                          title: Row(
-                            children: [
-                              Expanded(child: Text(l10n.allow_self_signed_certificates)),
-                              IconButton(
-                                icon: const Icon(Icons.help_outline),
-                                tooltip: l10n.allow_self_signed_certificates_description,
+                              onLongPressEnd: (_) {
+                                setState(() {
+                                  _obscurePassword = true;
+                                });
+                              },
+                              child: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                ),
                                 onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text(l10n.allow_self_signed_certificates),
-                                      content: Text(l10n.allow_self_signed_certificates_description),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.of(context).pop(),
-                                          child: Text(MaterialLocalizations.of(context).okButtonLabel),
-                                        ),
-                                      ],
-                                    ),
-                                  );
+                                  // Toggle for accessibility
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
                                 },
                               ),
-                            ],
+                            ),
+                    ),
+                    validator: (value) {
+                      if (_authMethod == _AuthMethod.userPass) {
+                        if (value == null || value.isEmpty) {
+                          return l10n.validation_enter_password;
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                ] else ...[
+                  // If there is an inline error while in token mode, ensure it's shown below these fields
+                  TextFormField(
+                    controller: _tokenController,
+                    autofillHints: const [AutofillHints.password],
+                    keyboardType: TextInputType.visiblePassword,
+                    // Bind obscureText to runtime flag so reveal works when allowed
+                    obscureText: _tokenLoadedFromStorage ? true : _obscureToken,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    onTap: () {
+                      // If current value was loaded from storage, clear to start new configuration
+                      if (_tokenLoadedFromStorage) {
+                        setState(() {
+                          _tokenController.clear();
+                          _tokenLoadedFromStorage = false; // now user is configuring
+                          _obscureToken = true; // keep hidden initially
+                        });
+                      }
+                    },
+                    onChanged: (_) {
+                      if (_tokenLoadedFromStorage) {
+                        setState(() {
+                          _tokenLoadedFromStorage = false;
+                          _obscureToken = true;
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: l10n.field_label_api_token,
+                      prefixIcon: const Icon(Icons.vpn_key),
+                      suffixIcon: _tokenLoadedFromStorage
+                          ? Tooltip(
+                              message: l10n.field_label_api_token,
+                              child: IconButton(
+                                icon: const Icon(Icons.visibility_off),
+                                onPressed: null, // disabled; cannot reveal loaded secret
+                              ),
+                            )
+                          : GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onLongPressStart: (_) {
+                                setState(() {
+                                  _obscureToken = false;
+                                });
+                              },
+                              onLongPressEnd: (_) {
+                                setState(() {
+                                  _obscureToken = true;
+                                });
+                              },
+                              child: IconButton(
+                                icon: Icon(
+                                  _obscureToken ? Icons.visibility : Icons.visibility_off,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureToken = !_obscureToken;
+                                  });
+                                },
+                              ),
+                            ),
+                    ),
+                    validator: (value) {
+                      if (_authMethod == _AuthMethod.apiToken) {
+                        if (value == null || value.trim().isEmpty) {
+                          return l10n.validation_enter_token;
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  // Note: Per-field inline error widgets removed to prevent duplication.
+                ],
+ 
+                Consumer<AppConfigProvider>(
+                  builder: (context, config, child) {
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: SwitchListTile(
+                            title: Row(
+                              children: [
+                                Expanded(child: Text(l10n.allow_self_signed_certificates)),
+                                IconButton(
+                                  icon: const Icon(Icons.help_outline),
+                                  tooltip: l10n.allow_self_signed_certificates_description,
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: Text(l10n.allow_self_signed_certificates),
+                                        content: Text(l10n.allow_self_signed_certificates_description),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(),
+                                            child: Text(MaterialLocalizations.of(context).okButtonLabel),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                            value: config.allowSelfSignedCertificates,
+                            onChanged: (value) {
+                              config.setAllowSelfSignedCertificates(value);
+                            },
                           ),
-                          value: config.allowSelfSignedCertificates,
-                          onChanged: (value) {
-                            config.setAllowSelfSignedCertificates(value);
-                          },
                         ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              Consumer<AppConfigProvider>(
-                builder: (context, config, child) {
-                  // Show only ONE error: prefer inline error when present (pre-save test),
-                  // otherwise fall back to provider error.
-                  final errorText = _inlineConnectionError ?? config.connectionError;
-                  if (errorText != null) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: Text(
-                        errorText,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 14,
-                        ),
-                      ),
+                      ],
                     );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ],
+                  },
+                ),
+                Consumer<AppConfigProvider>(
+                  builder: (context, config, child) {
+                    // Show only ONE error: prefer inline error when present (pre-save test),
+                    // otherwise fall back to provider error.
+                    final errorText = _inlineConnectionError ?? config.connectionError;
+                    if (errorText != null) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: Text(
+                          errorText,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 14,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
