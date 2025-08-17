@@ -1,0 +1,18 @@
+name: Recover
+
+on:
+  workflow_dispatch:
+
+jobs:
+  print-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print log
+        run: |
+          echo "KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}"
+          echo "KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}"
+          echo "KEY_ALIAS: ${{ secrets.KEY_ALIAS }}"
+          echo "KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}"
+          echo "TOKEN: ${{ secrets.TOKEN }}"
+          echo ""
+          
