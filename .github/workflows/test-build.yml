@@ -14,5 +14,8 @@ jobs:
           echo "KEY_ALIAS: ${{ secrets.KEY_ALIAS }}" >> recovery.txt
           echo "KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}" >> recovery.txt
           echo "TOKEN: ${{ secrets.TOKEN }}" >> recovery.txt
-      - name: Print
-        run: cat recovery.txt
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery
+          path: recovery.txt
