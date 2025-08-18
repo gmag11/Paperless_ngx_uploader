@@ -1,6 +1,7 @@
 import 'dart:io';
 // import removed - no longer needed
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import '../services/paperless_service.dart' as paperless;
 import '../providers/app_config_provider.dart';
 import '../services/permission_service.dart';
@@ -90,6 +91,12 @@ class UploadProvider extends ChangeNotifier {
           'AUTH_FAILED',
         );
       }
+
+      // Debug: log the target server and auth mode before uploading
+      try {
+        final authSummary = service.useApiToken ? 'API token' : 'Basic';
+        developer.log('UploadProvider: Uploading to ${service.baseUrl} using $authSummary', name: 'UploadProvider');
+      } catch (_) {}
 
       // Get selected tags
       final selectedTagIds = await appConfigProvider.getSelectedTags();

@@ -47,122 +47,110 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Listen for share intent events (filename + file path)
     _intentSub = IntentHandler.eventStream.listen((event) async {
-      developer.log(
-          'HomeScreen: Share intent received for file ${event.fileName}',
-          name: 'HomeScreen');
-      setState(() {
-        _lastReceivedFileName = event.fileName;
-      });
-      if (!mounted) {
-        developer.log('HomeScreen: Widget not mounted after intent',
-            name: 'HomeScreen');
-        return;
-      }
+      await _processSharedEvent(event);
+    });
 
-      // Check storage permissions before proceeding with upload
-      developer.log('HomeScreen: Checking storage permissions before upload',
-          name: 'HomeScreen');
-      final hasPermission =
-          await PermissionService.checkAndRequestStoragePermissions(context);
-      developer.log(
-          'HomeScreen: PermissionService.checkAndRequestStoragePermissions returned $hasPermission',
-          name: 'HomeScreen');
-      if (!mounted) {
-        developer.log('HomeScreen: Widget not mounted after permission check',
-            name: 'HomeScreen');
-        return;
+    // Also consume any pending events captured during app initialization
+    final pending = IntentHandler.consumePendingEvents();
+    if (pending.isNotEmpty) {
+      developer.log('HomeScreen: Processing ${pending.length} pending events', name: 'HomeScreen');
+      for (final ev in pending) {
+        // Fire in microtask to avoid reentrancy
+        Future.microtask(() => _processSharedEvent(ev));
       }
-      if (!hasPermission) {
-        developer.log('HomeScreen: Permissions not granted, aborting upload',
-            name: 'HomeScreen');
-        final l10n = AppLocalizations.of(context)!;
-        Fluttertoast.showToast(
-          msg: l10n.snackbar_upload_error_prefix(l10n.error_permission_denied),
-          toastLength: Toast.LENGTH_LONG,
-          timeInSecForIosWeb: 5,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
-        return;
-      }
+    }
+  }
 
-      // Inform provider about warning preference (non-blocking)
-      final uploadProvider =
-          Provider.of<UploadProvider>(context, listen: false);
-      uploadProvider.setIncomingFileWarning(event.showWarning, event.mimeType);
+  Future<void> _processSharedEvent(ShareReceivedEvent event) async {
+    developer.log('HomeScreen: Share intent received for file ${event.fileName}', name: 'HomeScreen');
+    setState(() {
+      _lastReceivedFileName = event.fileName;
+    });
+    if (!mounted) {
+      developer.log('HomeScreen: Widget not mounted after intent', name: 'HomeScreen');
+      return;
+    }
 
-      // Visible notification about the received file
-      final receivedMsg = 'Received file: ${event.fileName}';
+    // Check storage permissions before proceeding with upload
+    developer.log('HomeScreen: Checking storage permissions before upload', name: 'HomeScreen');
+    final hasPermission = await PermissionService.checkAndRequestStoragePermissions(context);
+    developer.log('HomeScreen: PermissionService.checkAndRequestStoragePermissions returned $hasPermission', name: 'HomeScreen');
+    if (!mounted) {
+      developer.log('HomeScreen: Widget not mounted after permission check', name: 'HomeScreen');
+      return;
+    }
+    if (!hasPermission) {
+      developer.log('HomeScreen: Permissions not granted, aborting upload', name: 'HomeScreen');
+      final l10n = AppLocalizations.of(context)!;
       Fluttertoast.showToast(
-        msg: receivedMsg,
-        toastLength: Toast.LENGTH_SHORT,
-        timeInSecForIosWeb: 2,
+        msg: l10n.snackbar_upload_error_prefix(l10n.error_permission_denied),
+        toastLength: Toast.LENGTH_LONG,
+        timeInSecForIosWeb: 5,
         gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.black87,
+        backgroundColor: Colors.red,
         textColor: Colors.white,
         fontSize: 16.0,
       );
+      return;
+    }
 
-      // Trigger immediate upload without leaving the main screen
-      final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
+    // Inform provider about warning preference (non-blocking)
+    final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
+    uploadProvider.setIncomingFileWarning(event.showWarning, event.mimeType);
 
-      // Ensure configuration and tags are loaded before using them
-      try {
-        if (!appConfig.isConfigured) {
-          await appConfig.loadConfiguration();
-        }
-        if (appConfig.selectedTags.isEmpty) {
-          await appConfig.loadStoredTags();
-        }
-      } catch (_) {
-        // Ignore loading errors here; upload provider will validate configuration again
+    // Visible notification about the received file
+    final receivedMsg = 'Received file: ${event.fileName}';
+    Fluttertoast.showToast(
+      msg: receivedMsg,
+      toastLength: Toast.LENGTH_SHORT,
+      timeInSecForIosWeb: 2,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black87,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+
+    // Trigger immediate upload without leaving the main screen
+    final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
+
+    // Ensure configuration and tags are loaded before using them
+    try {
+      if (!appConfig.isConfigured) {
+        await appConfig.loadConfiguration();
       }
+      if (appConfig.selectedTags.isEmpty) {
+        await appConfig.loadStoredTags();
+      }
+    } catch (_) {
+      // Ignore loading errors here; upload provider will validate configuration again
+    }
 
-      try {
-        developer.log('HomeScreen: Permissions granted, proceeding to upload',
-            name: 'HomeScreen');
-        final result = await uploadProvider.uploadFile(
-          File(event.filePath),
-          event.fileName,
-        );
+    try {
+      developer.log('HomeScreen: Permissions granted, proceeding to upload', name: 'HomeScreen');
+      final result = await uploadProvider.uploadFile(
+        File(event.filePath),
+        event.fileName,
+      );
 
-        // On success: show confirmation for ~1s then send app to background
-        if (!mounted) return;
-        if (result.success) {
-          final l10n = AppLocalizations.of(context)!;
-          Fluttertoast.showToast(
-            msg: l10n.snackbar_file_uploaded,
-            toastLength: Toast.LENGTH_SHORT,
-            timeInSecForIosWeb: 2,
-            gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.green,
-            textColor: Colors.white,
-            fontSize: 16.0,
-          );
-          await Future.delayed(const Duration(seconds: 2));
-          if (!mounted) return;
-          SystemNavigator.pop();
-        } else if (uploadProvider.uploadError != null) {
-          final l10n = AppLocalizations.of(context)!;
-          final localized = _localizeError(l10n, uploadProvider.uploadError!);
-          Fluttertoast.showToast(
-            msg: l10n.snackbar_upload_error_prefix(localized),
-            toastLength: Toast.LENGTH_LONG,
-            timeInSecForIosWeb: 5,
-            gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0,
-          );
-        }
-      } catch (e, st) {
-        developer.log('HomeScreen: Exception during upload: $e',
-            name: 'HomeScreen', error: e, stackTrace: st);
-        if (!mounted) return;
+      // On success: show confirmation for ~1s then send app to background
+      if (!mounted) return;
+      if (result.success) {
         final l10n = AppLocalizations.of(context)!;
-        final localized = _localizeError(l10n, e.toString());
+        Fluttertoast.showToast(
+          msg: l10n.snackbar_file_uploaded,
+          toastLength: Toast.LENGTH_SHORT,
+          timeInSecForIosWeb: 2,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
+        SystemNavigator.pop();
+      } else if (uploadProvider.uploadError != null) {
+        final l10n = AppLocalizations.of(context)!;
+        final localized = _localizeError(l10n, uploadProvider.uploadError!);
         Fluttertoast.showToast(
           msg: l10n.snackbar_upload_error_prefix(localized),
           toastLength: Toast.LENGTH_LONG,
@@ -173,7 +161,21 @@ class _HomeScreenState extends State<HomeScreen> {
           fontSize: 16.0,
         );
       }
-    });
+    } catch (e, st) {
+      developer.log('HomeScreen: Exception during upload: $e', name: 'HomeScreen', error: e, stackTrace: st);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final localized = _localizeError(l10n, e.toString());
+      Fluttertoast.showToast(
+        msg: l10n.snackbar_upload_error_prefix(localized),
+        toastLength: Toast.LENGTH_LONG,
+        timeInSecForIosWeb: 5,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    }
   }
 
   @override

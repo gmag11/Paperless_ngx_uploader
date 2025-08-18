@@ -114,6 +114,9 @@ class IntentHandler {
     }
 
     final events = <ShareReceivedEvent>[];
+  // Keep pending events in case UI listeners aren't attached yet (app launched by share)
+  // These will be consumed by the UI when it is ready.
+  _pendingEvents.clear();
     
     // Process each file to create events
     for (final file in files) {
@@ -153,6 +156,8 @@ class IntentHandler {
       );
 
       events.add(event);
+  // Store pending event for late listeners (e.g., app started from share intent)
+  _pendingEvents.add(event);
 
       // Emit individual events for backward compatibility
       if (!_eventController.isClosed) {
@@ -165,6 +170,22 @@ class IntentHandler {
       _batchEventController.add(ShareReceivedBatchEvent(files: events));
     }
     developer.log('IntentHandler._handleSharedFiles: end', name: 'IntentHandler');
+  }
+
+  // Pending events captured during initialization before UI listeners attach
+  static final List<ShareReceivedEvent> _pendingEvents = [];
+
+  /// Returns and clears any pending events that were captured before listeners
+  /// were attached. This is used by the UI to consume initial share intents.
+  static List<ShareReceivedEvent> consumePendingEvents() {
+    if (_pendingEvents.isEmpty) {
+      developer.log('IntentHandler.consumePendingEvents: no pending events', name: 'IntentHandler');
+      return <ShareReceivedEvent>[];
+    }
+    developer.log('IntentHandler.consumePendingEvents: returning ${_pendingEvents.length} pending events', name: 'IntentHandler');
+    final copy = List<ShareReceivedEvent>.from(_pendingEvents);
+    _pendingEvents.clear();
+    return copy;
   }
 
   static bool _isSupported(String? mime, String fileName) {
