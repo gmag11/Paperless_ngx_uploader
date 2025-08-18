@@ -145,6 +145,10 @@ class PaperlessService {
   String get _authHeader {
     if (useApiToken) {
       final token = (apiToken ?? '').trim();
+      if (kDebugMode && token.isEmpty) {
+        developer.log('⚠️ API token is empty but API token auth is enabled',
+            name: 'PaperlessService._authHeader');
+      }
       return 'Token $token';
     }
     final credentials = base64Encode(utf8.encode('$username:$password'));
@@ -184,6 +188,20 @@ class PaperlessService {
 
   Future<List<Tag>> fetchTags() async {
     try {
+      // Validate token is not empty for API token auth
+      if (useApiToken && (apiToken == null || apiToken!.trim().isEmpty)) {
+        final error = 'API token is empty but API token authentication is enabled';
+        if (kDebugMode) {
+          developer.log('❌ $error', name: 'PaperlessService.fetchTags');
+        }
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        developer.log('🔍 Fetching tags with auth header: ${_authHeader.startsWith('Token') ? 'Token ***' : _authHeader}',
+            name: 'PaperlessService.fetchTags');
+      }
+
       final List<Tag> all = [];
       String? nextPath = '/api/tags/?page_size=100';
 
@@ -205,10 +223,18 @@ class PaperlessService {
             nextPath = nextPath.substring(baseUrl.length);
           }
         } else {
+          if (kDebugMode) {
+            developer.log('❌ Failed to fetch tags: ${resp.statusCode}',
+                name: 'PaperlessService.fetchTags');
+          }
           throw Exception('Failed to fetch tags: ${resp.statusCode}');
         }
       }
 
+      if (kDebugMode) {
+        developer.log('✅ Successfully fetched ${all.length} tags',
+            name: 'PaperlessService.fetchTags');
+      }
       return all;
     } on DioException catch (e) {
       if (kDebugMode) {

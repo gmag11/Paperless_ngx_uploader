@@ -1,335 +1,205 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:convert';
-import '../models/tag.dart';
+import 'package:flutter/material.dart';
+// import removed - no longer needed
+import '../models/server_config.dart';
+import '../services/paperless_service.dart' as paperless;
+import '../providers/server_manager.dart';
+// import '../services/secure_storage_service.dart';
 import '../models/connection_status.dart';
-import '../services/paperless_service.dart';
-import '../services/secure_storage_service.dart';
-import 'dart:developer' as developer;
+import '../services/paperless_service_factory.dart';
+
+typedef StringCallback = String Function(String key);
 
 class AppConfigProvider extends ChangeNotifier {
-  static const _storage = FlutterSecureStorage();
-  static const _tagStorageKey = 'selected_tags';
+  final ServerManager _serverManager;
+  // final SecureStorageService _storageService = SecureStorageService();
+  final StringCallback? _translate;
+
+  AppConfigProvider(this._serverManager, {StringCallback? translate}) : _translate = translate {
+    _serverManager.addListener(_onServerChanged);
+  }
+
+  @override
+  void dispose() {
+    _serverManager.removeListener(_onServerChanged);
+    super.dispose();
+  }
+
+  void _onServerChanged() {
+    notifyListeners();
+  }
+
+  // Backward compatibility properties
+  String? get serverUrl => _serverManager.selectedServer?.serverUrl;
+  bool get isConfigured => _serverManager.selectedServer != null;
+  String? get serverName => _serverManager.selectedServer?.name;
   
-  String? _serverUrl;
-  String? _username;
-  String? _password;
-  // Auth method/token
-  AuthMethod? _authMethod;
-  String? _apiToken;
-  bool _allowSelfSignedCertificates = false;
+  // Authentication properties
+  AuthMethod get authMethod => _serverManager.selectedServer?.authMethod ?? AuthMethod.usernamePassword;
+  String? get username => _serverManager.selectedServer?.username;
+  String? get password => null; // Always null for security
+  String? get apiToken => null; // Always null for security
+  bool get allowSelfSignedCertificates => _serverManager.selectedServer?.allowSelfSignedCertificates ?? false;
 
+  // Connection status and error
   ConnectionStatus _connectionStatus = ConnectionStatus.notConfigured;
-  String? _connectionError;
-  List<Tag> _selectedTags = [];
-
-  // Cached PaperlessService instance
-  PaperlessService? _serviceCache;
-
-  String? get serverUrl => _serverUrl;
-  String? get username => _username;
-  String? get password => _password;
-  AuthMethod? get authMethod => _authMethod;
-  String? get apiToken => _apiToken;
-  bool get allowSelfSignedCertificates => _allowSelfSignedCertificates;
-
   ConnectionStatus get connectionStatus => _connectionStatus;
+  String? _connectionError;
   String? get connectionError => _connectionError;
 
-  bool get isConfigured {
-    if (_serverUrl == null || _authMethod == null) return false;
-    if (_authMethod == AuthMethod.apiToken) {
-      return _apiToken != null && _apiToken!.isNotEmpty;
-    }
-    return _username != null && _password != null && _username!.isNotEmpty && _password!.isNotEmpty;
-  }
-
-  bool get isConnecting => _connectionStatus == ConnectionStatus.connecting;
-  bool get isConnected => _connectionStatus == ConnectionStatus.connected;
-  List<Tag> get selectedTags => List.unmodifiable(_selectedTags);
-
-  PaperlessService? getPaperlessService() {
-    if (!isConfigured) {
-      return null;
-    }
-
-    final useApi = _authMethod == AuthMethod.apiToken;
-    final cacheMismatch =
-        _serviceCache == null ||
-        _serviceCache!.baseUrl != _serverUrl ||
-        _serviceCache!.username != (_username ?? '') ||
-        _serviceCache!.password != (_password ?? '') ||
-        _serviceCache!.useApiToken != useApi ||
-        _serviceCache!.apiToken != (useApi ? _apiToken : null);
-
-    if (cacheMismatch) {
-      _serviceCache = PaperlessService(
-        baseUrl: _serverUrl!,
-        username: _username ?? '',
-        password: _password ?? '',
-        useApiToken: useApi,
-        apiToken: useApi ? _apiToken : null,
-        allowSelfSignedCertificates: _allowSelfSignedCertificates,
-      );
-    }
-    return _serviceCache;
-  }
-
+  // Delegated methods
   Future<void> loadConfiguration() async {
-    // Use SecureStorageService to load full credential set including method/token
-    final creds = await SecureStorageService.getCredentials();
-    _serverUrl = creds['serverUrl'];
-    final methodName = creds['authMethod'];
-    _authMethod = methodName != null
-        ? AuthMethod.values.firstWhere(
-            (m) => m.name == methodName,
-            orElse: () => AuthMethod.usernamePassword,
-          )
-        : null;
-  
-    if (_authMethod == AuthMethod.apiToken) {
-      _apiToken = creds['apiToken'];
-      _username = '';
-      _password = '';
-    } else if (_authMethod == AuthMethod.usernamePassword) {
-      _username = creds['username'];
-      _password = creds['password'];
-      _apiToken = null;
-    } else {
-      // not configured
-      _username = null;
-      _password = null;
-      _apiToken = null;
-    }
-
-    // Load SSL certificate setting
-    final sslSetting = await _storage.read(key: 'allow_self_signed_certificates');
-    _allowSelfSignedCertificates = sslSetting == 'true';
-
-    // Reset cache on load; will be lazily created
-    _serviceCache = null;
-    
-    _connectionStatus = ConnectionStatus.notConfigured;
-    notifyListeners();
-    
-    await loadStoredTags();
+    await _serverManager.refresh();
   }
 
-  Future<void> loadStoredTags() async {
-    final storedTagsJson = await _storage.read(key: _tagStorageKey);
-    if (storedTagsJson != null) {
-      try {
-        final List<dynamic> tagList = jsonDecode(storedTagsJson) as List<dynamic>;
-        _selectedTags = [];
-        
-        for (final tagData in tagList) {
-          try {
-            if (tagData is Map<String, dynamic>) {
-              final tag = Tag.fromJson(tagData);
-              // Only add tags that have valid required fields
-              if (tag.id != 0 && tag.name.isNotEmpty && tag.slug.isNotEmpty) {
-                _selectedTags.add(tag);
-              } else {
-                if (kDebugMode) {
-                  developer.log('Skipping invalid tag data: missing required fields',
-                                name: 'AppConfigProvider.loadStoredTags',
-                                error: 'Invalid tag data - $tagData');
-                }
-              }
-            } else {
-              if (kDebugMode) {
-                developer.log('Skipping invalid tag data: not a map - $tagData',
-                              name: 'AppConfigProvider.loadStoredTags');
-              }
-            }
-          } catch (e) {
-            if (kDebugMode) {
-              developer.log('Error parsing individual tag: $e\nTag data: $tagData',
-                            name: 'AppConfigProvider.loadStoredTags',
-                            error: e);
-            }
-            // Continue processing other tags
-          }
-        }
-
-        if (_selectedTags.isEmpty && tagList.isNotEmpty) {
-          if (kDebugMode) {
-            developer.log('Warning: No valid tags could be recovered from stored data',
-                          name: 'AppConfigProvider.loadStoredTags');
-          }
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          developer.log('Error decoding stored tags JSON: $e',
-                        name: 'AppConfigProvider.loadStoredTags',
-                        error: e);
-        }
-        _selectedTags = [];
-      }
-    }
-    notifyListeners();
-  }
-
-  Future<void> saveSelectedTags() async {
-    try {
-      final tagListJson = jsonEncode(_selectedTags.map((tag) => tag.toJson()).toList());
-      await _storage.write(key: _tagStorageKey, value: tagListJson);
-    } catch (e) {
-      if (kDebugMode) {
-        developer.log('Error saving tags: $e',
-                      name: 'AppConfigProvider.saveSelectedTags',
-                      error: e);
-      }
-    }
-  }
-
-  Future<void> saveConfiguration(String serverUrl, String usernameOrEmpty, String passwordOrToken) async {
-    // IMPORTANT: Resolve method from current input first. If username is empty => apiToken.
-    // Do not let previous _authMethod override explicit user intent from dialog.
-    final AuthMethod method =
-        (usernameOrEmpty.isEmpty) ? AuthMethod.apiToken : AuthMethod.usernamePassword;
-  
-    if (method == AuthMethod.apiToken) {
-      await SecureStorageService.saveCredentials(
+  // Backward compatibility method with positional arguments
+  Future<void> saveConfiguration(String serverUrl, String username, String secret) async {
+    final server = _serverManager.selectedServer;
+    if (server != null) {
+      final updatedServer = ServerConfig(
+        id: server.id,
+        name: server.name,
         serverUrl: serverUrl,
-        method: AuthMethod.apiToken,
-        apiToken: passwordOrToken,
+        authMethod: username.isEmpty ? AuthMethod.apiToken : AuthMethod.usernamePassword,
+        username: username.isEmpty ? null : username,
+        apiToken: username.isEmpty ? secret : null,
+        allowSelfSignedCertificates: server.allowSelfSignedCertificates,
       );
-    } else {
-      await SecureStorageService.saveCredentials(
-        serverUrl: serverUrl,
-        method: AuthMethod.usernamePassword,
-        username: usernameOrEmpty,
-        password: passwordOrToken,
-      );
-    }
-  
-    // If any value changed, update state and invalidate cache
-    final prevServer = _serverUrl;
-    final prevUser = _username;
-    final prevPass = _password;
-    final prevMethod = _authMethod;
-    final prevToken = _apiToken;
-    final prevSsl = _allowSelfSignedCertificates;
-  
-    _serverUrl = serverUrl;
-    _authMethod = method;
-    if (method == AuthMethod.apiToken) {
-      _apiToken = passwordOrToken;
-      _username = '';
-      _password = '';
-    } else {
-      _username = usernameOrEmpty;
-      _password = passwordOrToken;
-      _apiToken = null;
-    }
-  
-    final changed = prevServer != _serverUrl ||
-        prevUser != _username ||
-        prevPass != _password ||
-        prevMethod != _authMethod ||
-        prevToken != _apiToken ||
-        prevSsl != _allowSelfSignedCertificates;
-
-    if (changed) {
-      _serviceCache = null;
-    }
-  
-    _connectionStatus = ConnectionStatus.connecting;
-    _connectionError = null;
-    notifyListeners();
-  }
-
-  Future<void> testConnection() async {
-    if (!isConfigured) {
-      _connectionStatus = ConnectionStatus.notConfigured;
-      return;
-    }
-
-    _connectionStatus = ConnectionStatus.connecting;
-    _connectionError = null;
-    notifyListeners();
-
-    try {
-      final service = getPaperlessService()!;
-      _connectionStatus = await service.testConnection();
       
-      _connectionError = switch (_connectionStatus) {
-        ConnectionStatus.connected => null,
-        ConnectionStatus.invalidCredentials => 'Invalid username or password',
-        ConnectionStatus.serverUnreachable => 'Server is unreachable',
-        ConnectionStatus.invalidServerUrl => 'Invalid server URL or not a Paperless-NGX server',
-        ConnectionStatus.sslError => 'SSL certificate error',
-        ConnectionStatus.unknownError => 'Unknown connection error occurred',
-        _ => null
-      };
-    } catch (e) {
-      _connectionStatus = ConnectionStatus.unknownError;
-      _connectionError = e.toString();
-      developer.log('testConnection: exception -> $_connectionError',
-          name: 'AppConfigProvider', error: e);
+      await _serverManager.updateServer(updatedServer);
+      
+      if (username.isNotEmpty) {
+        await _serverManager.saveServerCredentials(server.id, username: username, password: secret);
+      } else {
+        await _serverManager.saveServerApiToken(server.id, apiToken: secret);
+      }
     }
-    
-    notifyListeners();
-  }
-
-  Future<void> clearConfiguration() async {
-    await SecureStorageService.clearCredentials();
-    await _storage.delete(key: 'allow_self_signed_certificates');
-    
-    _serverUrl = null;
-    _username = null;
-    _password = null;
-    _authMethod = null;
-    _apiToken = null;
-    _allowSelfSignedCertificates = false;
-  
-    // Invalidate cache
-    _serviceCache = null;
-  
-    _connectionStatus = ConnectionStatus.notConfigured;
-    _connectionError = null;
-    notifyListeners();
   }
 
   Future<void> setAllowSelfSignedCertificates(bool allow) async {
-    _allowSelfSignedCertificates = allow;
-    await _storage.write(
-      key: 'allow_self_signed_certificates',
-      value: allow.toString(),
-    );
-    // Invalidate cache to recreate service with new SSL settings
-    _serviceCache = null;
-    notifyListeners();
-  }
-
-  void setSelectedTags(List<Tag> tags) {
-    _selectedTags = List.from(tags);
-    saveSelectedTags();
-    notifyListeners();
-  }
-
-  List<Tag> getSelectedTags() {
-    return List.unmodifiable(_selectedTags);
-  }
-
-  void clearSelectedTags() {
-    _selectedTags.clear();
-    saveSelectedTags();
-    notifyListeners();
-  }
-
-  void addSelectedTag(Tag tag) {
-    if (!_selectedTags.any((t) => t.id == tag.id)) {
-      _selectedTags.add(tag);
-      saveSelectedTags();
-      notifyListeners();
+    final server = _serverManager.selectedServer;
+    if (server != null) {
+      final updatedServer = ServerConfig(
+        id: server.id,
+        name: server.name,
+        serverUrl: server.serverUrl,
+        authMethod: server.authMethod,
+        username: server.username,
+        apiToken: server.apiToken,
+        allowSelfSignedCertificates: allow,
+      );
+      await _serverManager.updateServer(updatedServer);
     }
   }
 
-  void removeSelectedTag(Tag tag) {
-    _selectedTags.removeWhere((t) => t.id == tag.id);
-    saveSelectedTags();
+  Future<void> clearConfiguration() async {
     notifyListeners();
+  }
+
+  Future<paperless.PaperlessService?> getPaperlessService() async {
+    return _serverManager.selectedServer != null
+        ? await PaperlessServiceFactory(_serverManager).createServiceWithCredentials()
+        : null;
+  }
+
+  // Selected tags management - now uses server.defaultTagIds
+  List<int> get selectedTags {
+    final server = _serverManager.selectedServer;
+    if (server == null) return [];
+    return server.defaultTagIds;
+  }
+  
+  Future<List<int>> getSelectedTags() async {
+    final server = _serverManager.selectedServer;
+    if (server == null) return [];
+    return server.defaultTagIds;
+  }
+
+  Future<void> loadStoredTags() async {
+    // Tags are now stored in server configuration, no need to load separately
+    notifyListeners();
+  }
+
+  Future<void> setSelectedTags(List<int> tagIds) async {
+    final server = _serverManager.selectedServer;
+    if (server != null) {
+      final updatedServer = server.copyWith(defaultTagIds: tagIds);
+      await _serverManager.updateServer(updatedServer);
+    }
+  }
+
+  Future<void> addSelectedTag(int tagId) async {
+    final server = _serverManager.selectedServer;
+    if (server != null) {
+      final currentTags = List<int>.from(server.defaultTagIds);
+      if (!currentTags.contains(tagId)) {
+        currentTags.add(tagId);
+        final updatedServer = server.copyWith(defaultTagIds: currentTags);
+        await _serverManager.updateServer(updatedServer);
+      }
+    }
+  }
+
+  Future<void> removeSelectedTag(int tagId) async {
+    final server = _serverManager.selectedServer;
+    if (server != null) {
+      final currentTags = List<int>.from(server.defaultTagIds);
+      currentTags.remove(tagId);
+      final updatedServer = server.copyWith(defaultTagIds: currentTags);
+      await _serverManager.updateServer(updatedServer);
+    }
+  }
+
+  // Testing connection
+  Future<void> testConnection() async {
+    _connectionStatus = ConnectionStatus.connecting;
+    _connectionError = null;
+    notifyListeners();
+
+    final service = await getPaperlessService();
+    if (service != null) {
+      try {
+        await service.fetchTags();
+        _connectionStatus = ConnectionStatus.connected;
+      } catch (e) {
+        _connectionStatus = ConnectionStatus.unknownError;
+        _connectionError = e.toString();
+      }
+    } else {
+      _connectionStatus = ConnectionStatus.notConfigured;
+      _connectionError = 'No server configured';
+    }
+    
+    notifyListeners();
+  }
+
+  String translate(String key) {
+    return _translate?.call(key) ?? key;
+  }
+
+  // Delegation methods
+  ServerManager get serverManager => _serverManager;
+
+  Future<Map<String, String?>> getCurrentCredentials() async {
+    final server = _serverManager.selectedServer;
+    if (server == null) {
+      return {
+        'serverUrl': '',
+        'username': '',
+        'password': '',
+        'apiToken': '',
+        'authMethod': 'usernamePassword',
+      };
+    }
+
+    final credentials = await _serverManager.getServerCredentials(server.id);
+    final authToken = await _serverManager.getServerApiToken(server.id);
+    
+    return {
+      'serverUrl': server.serverUrl,
+      'username': server.username ?? '',
+      'password': credentials['password'] ?? '',
+      'apiToken': authToken ?? '',
+      'authMethod': server.authMethod.name,
+    };
   }
 }

@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:paperlessngx_uploader/services/secure_storage_service.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'dart:developer' as developer;
+
 import 'package:paperlessngx_uploader/models/connection_status.dart';
 import 'package:paperlessngx_uploader/providers/app_config_provider.dart';
+import 'package:paperlessngx_uploader/providers/server_manager.dart';
+import 'package:paperlessngx_uploader/models/server_config.dart';
 import 'package:paperlessngx_uploader/l10n/gen/app_localizations.dart';
 import 'package:paperlessngx_uploader/services/paperless_service.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
-enum _AuthMethod { userPass, apiToken } // UI enum (distinct from storage AuthMethod)
+enum _AuthMethod { userPass, apiToken }
 
 class ConfigDialog extends StatefulWidget {
   const ConfigDialog({super.key});
@@ -17,91 +20,269 @@ class ConfigDialog extends StatefulWidget {
 }
 
 class _ConfigDialogState extends State<ConfigDialog> {
-  final _formKey = GlobalKey<FormState>();
+  final _serverFormKey = GlobalKey<FormState>();
   final _serverUrlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _tokenController = TextEditingController();
+  final _serverNameController = TextEditingController();
 
-  // Obfuscation flags
   bool _obscurePassword = true;
   bool _obscureToken = true;
 
-  // Track if current secret values were loaded from storage (not being configured now)
   bool _passwordLoadedFromStorage = false;
   bool _tokenLoadedFromStorage = false;
 
-  // Local transient error to display under fields without altering provider persistence
   String? _inlineConnectionError;
-
-  // Local connecting flag for the button spinner during pre-save test
-  bool? _localConnecting = false;
+  bool _localConnecting = false;
 
   _AuthMethod _authMethod = _AuthMethod.userPass;
+
+  bool _showServerForm = false;
+  String? _editingServerId;
 
   @override
   void initState() {
     super.initState();
-    _loadCredentials();
+    developer.log('ConfigDialog initState - _showServerForm: $_showServerForm', name: 'ConfigDialog');
+    _loadCurrentServer();
   }
 
-  Future<void> _loadCredentials() async {
-    final credentials = await SecureStorageService.getCredentials();
+  Future<void> _loadCurrentServer() async {
+    final serverManager = Provider.of<ServerManager>(context, listen: false);
+    final currentServer = serverManager.selectedServer;
+    
+    developer.log('_loadCurrentServer - currentServer: $currentServer', name: 'ConfigDialog');
+    
+    if (currentServer != null) {
+      final credentials = await serverManager.getServerCredentials(currentServer.id);
+      
+      setState(() {
+        _serverNameController.text = currentServer.name;
+        _serverUrlController.text = currentServer.serverUrl;
+        
+        if (currentServer.authMethod == AuthMethod.usernamePassword) {
+          _authMethod = _AuthMethod.userPass;
+          _usernameController.text = currentServer.username ?? '';
+          _passwordController.text = credentials['password'] ?? '';
+          _tokenController.text = '';
+          
+          _passwordLoadedFromStorage = credentials['password']?.isNotEmpty == true;
+          _tokenLoadedFromStorage = false;
+        } else {
+          _authMethod = _AuthMethod.apiToken;
+          _tokenController.text = credentials['apiToken'] ?? '';
+          _usernameController.text = '';
+          _passwordController.text = '';
+          
+          _tokenLoadedFromStorage = credentials['apiToken']?.isNotEmpty == true;
+          _passwordLoadedFromStorage = false;
+        }
+        
+        _obscurePassword = true;
+        _obscureToken = true;
+        _editingServerId = currentServer.id;
+        _showServerForm = false; // Ensure we show server list when loading current server
+      });
+    }
+  }
+
+  Future<void> _loadServerForEdit(ServerConfig server) async {
+    final credentials = await Provider.of<ServerManager>(context, listen: false)
+        .getServerCredentials(server.id);
+    
     setState(() {
-      _serverUrlController.text = credentials['serverUrl'] ?? '';
-      _usernameController.text = credentials['username'] ?? '';
-  
-      // Load secrets but mark them as loaded-from-storage so they cannot be revealed
-      final loadedPassword = credentials['password'] ?? '';
-      final loadedToken = credentials['apiToken'] ?? '';
-      _passwordController.text = loadedPassword;
-      _tokenController.text = loadedToken;
-  
-      _passwordLoadedFromStorage = loadedPassword.isNotEmpty;
-      _tokenLoadedFromStorage = loadedToken.isNotEmpty;
-  
-      // Always start obscured when loading from storage
+      _serverNameController.text = server.name;
+      _serverUrlController.text = server.serverUrl;
+      
+      if (server.authMethod == AuthMethod.usernamePassword) {
+        _authMethod = _AuthMethod.userPass;
+        _usernameController.text = server.username ?? '';
+        _passwordController.text = credentials['password'] ?? '';
+        _tokenController.text = '';
+        
+        _passwordLoadedFromStorage = credentials['password']?.isNotEmpty == true;
+        _tokenLoadedFromStorage = false;
+      } else {
+        _authMethod = _AuthMethod.apiToken;
+        _tokenController.text = credentials['apiToken'] ?? '';
+        _usernameController.text = '';
+        _passwordController.text = '';
+        
+        _tokenLoadedFromStorage = credentials['apiToken']?.isNotEmpty == true;
+        _passwordLoadedFromStorage = false;
+      }
+      
       _obscurePassword = true;
       _obscureToken = true;
-  
-      // Map storage enum string to UI enum strictly to avoid cross-enum confusion.
-      final methodName = credentials['authMethod'];
-      switch (methodName) {
-        case 'apiToken':
-          _authMethod = _AuthMethod.apiToken;
-          break;
-        case 'usernamePassword':
-          _authMethod = _AuthMethod.userPass;
-          break;
-        default:
-          // Fallback inference
-          if ((_tokenController.text.isNotEmpty) &&
-              (_usernameController.text.isEmpty && _passwordController.text.isEmpty)) {
-            _authMethod = _AuthMethod.apiToken;
-          } else {
-            _authMethod = _AuthMethod.userPass;
-          }
-      }
+      _editingServerId = server.id;
+      _showServerForm = true;
     });
-  
-    // Attach listeners to detect when user starts configuring new secrets
-    _passwordController.addListener(() {
-      // If user edits the field in this session, allow reveal
-      if (_passwordLoadedFromStorage && _passwordController.text != (credentials['password'] ?? '')) {
+  }
+
+  void _clearForm() {
+    setState(() {
+      _serverNameController.clear();
+      _serverUrlController.clear();
+      _usernameController.clear();
+      _passwordController.clear();
+      _tokenController.clear();
+      
+      _authMethod = _AuthMethod.userPass;
+      _obscurePassword = true;
+      _obscureToken = true;
+      _passwordLoadedFromStorage = false;
+      _tokenLoadedFromStorage = false;
+      _inlineConnectionError = null;
+      _editingServerId = null;
+      _showServerForm = false;
+    });
+  }
+
+  Future<void> _saveAndTestServer() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (!_serverFormKey.currentState!.validate()) {
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _inlineConnectionError = null;
+        _localConnecting = true;
+      });
+    }
+
+    final config = Provider.of<AppConfigProvider>(context, listen: false);
+    final serverManager = Provider.of<ServerManager>(context, listen: false);
+
+    var serverUrl = _serverUrlController.text.trim();
+    
+    if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
+      serverUrl = await _determineProtocol(serverUrl, config);
+      if (serverUrl.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _localConnecting = false;
+          });
+        }
+        return;
+      }
+    }
+
+    final username = _authMethod == _AuthMethod.userPass ? _usernameController.text.trim() : '';
+    final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
+    final useApi = _authMethod == _AuthMethod.apiToken;
+
+    final tempService = PaperlessService(
+      baseUrl: serverUrl,
+      username: username,
+      password: useApi ? '' : secret,
+      useApiToken: useApi,
+      apiToken: useApi ? secret : null,
+      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+    );
+
+    final status = await tempService.testConnection();
+
+    if (mounted) {
+      setState(() {
+        _localConnecting = false;
+      });
+    }
+
+    if (status == ConnectionStatus.connected) {
+      // Preserve existing defaultTagIds when updating server
+      List<int> existingDefaultTagIds = [];
+      if (_editingServerId != null) {
+        final serverManager = Provider.of<ServerManager>(context, listen: false);
+        final existingServer = serverManager.getServer(_editingServerId!);
+        if (existingServer != null) {
+          existingDefaultTagIds = existingServer.defaultTagIds;
+          developer.log('Preserving existing defaultTagIds: $existingDefaultTagIds', name: 'ConfigDialog');
+        }
+      }
+
+      final config = Provider.of<AppConfigProvider>(context, listen: false);
+      final serverId = _editingServerId ?? ServerConfig.generateId();
+      
+      developer.log('Creating/updating server with ID: $serverId', name: 'ConfigDialog');
+      developer.log('Server name: ${_serverNameController.text.trim()}', name: 'ConfigDialog');
+      developer.log('Server URL: $serverUrl', name: 'ConfigDialog');
+      developer.log('Auth method: ${_authMethod == _AuthMethod.apiToken ? "API Token" : "Username/Password"}', name: 'ConfigDialog');
+
+      final server = ServerConfig(
+        id: serverId,
+        name: _serverNameController.text.trim(),
+        serverUrl: serverUrl,
+        authMethod: _authMethod == _AuthMethod.apiToken
+            ? AuthMethod.apiToken
+            : AuthMethod.usernamePassword,
+        username: _authMethod == _AuthMethod.userPass ? username : null,
+        defaultTagIds: existingDefaultTagIds,
+        allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+      );
+
+      try {
+        if (_editingServerId != null) {
+          developer.log('Updating existing server: ${server.id}', name: 'ConfigDialog');
+          await serverManager.updateServer(server);
+        } else {
+          developer.log('Adding new server: ${server.id}', name: 'ConfigDialog');
+          await serverManager.addServer(server);
+        }
+
+        developer.log('Saving credentials for server: ${server.id}', name: 'ConfigDialog');
+        if (_authMethod == _AuthMethod.userPass) {
+          await serverManager.saveServerCredentials(server.id,
+              username: username, password: secret);
+          developer.log('Username/password credentials saved', name: 'ConfigDialog');
+        } else {
+          await serverManager.saveServerApiToken(server.id, apiToken: secret);
+          developer.log('API token saved', name: 'ConfigDialog');
+        }
+
+        developer.log('Selecting server: ${server.id}', name: 'ConfigDialog');
+        await serverManager.selectServer(server.id);
+
+        developer.log('Server configuration completed successfully', name: 'ConfigDialog');
+
+        Fluttertoast.showToast(
+          msg: l10n.connectionSuccess,
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+
+        if (mounted) {
+          _clearForm();
+        }
+      } catch (e) {
+        developer.log('Error saving server configuration: $e', name: 'ConfigDialog');
+        if (mounted) {
+          setState(() {
+            _inlineConnectionError = l10n.error_unknown;
+          });
+        }
+      }
+    } else {
+      if (mounted) {
+        final isTokenMode = _authMethod == _AuthMethod.apiToken;
+        final err = switch (status) {
+          ConnectionStatus.invalidCredentials => isTokenMode
+              ? l10n.error_invalid_token
+              : l10n.error_invalid_credentials,
+          ConnectionStatus.serverUnreachable => l10n.error_server_unreachable,
+          ConnectionStatus.invalidServerUrl => l10n.error_invalid_server,
+          ConnectionStatus.sslError => l10n.error_ssl,
+          ConnectionStatus.unknownError => l10n.error_unknown,
+          _ => l10n.error_unknown,
+        };
         setState(() {
-          _passwordLoadedFromStorage = false;
-          _obscurePassword = true; // keep obscured even after transition
+          _inlineConnectionError = err;
         });
       }
-    });
-    _tokenController.addListener(() {
-      if (_tokenLoadedFromStorage && _tokenController.text != (credentials['apiToken'] ?? '')) {
-        setState(() {
-          _tokenLoadedFromStorage = false;
-          _obscureToken = true;
-        });
-      }
-    });
+    }
   }
 
   Future<String> _determineProtocol(String serverWithoutProtocol, AppConfigProvider config) async {
@@ -109,7 +290,6 @@ class _ConfigDialogState extends State<ConfigDialog> {
     final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
     final useApi = _authMethod == _AuthMethod.apiToken;
 
-    // Try HTTPS first
     final httpsServer = 'https://$serverWithoutProtocol';
     final httpsService = PaperlessService(
       baseUrl: httpsServer,
@@ -126,7 +306,6 @@ class _ConfigDialogState extends State<ConfigDialog> {
       return httpsServer;
     }
 
-    // Try HTTP as fallback
     final httpServer = 'http://$serverWithoutProtocol';
     final httpService = PaperlessService(
       baseUrl: httpServer,
@@ -143,102 +322,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       return httpServer;
     }
 
-    // If both fail, return HTTP as default and let the main error handling deal with it
     return httpServer;
-  }
-
-  Future<void> _saveAndTestConnection() async {
-    final l10n = AppLocalizations.of(context)!;
-    // Clear inline error on new attempt
-    if (mounted) {
-      setState(() {
-        _inlineConnectionError = null;
-      });
-    }
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    // Also ignore any existing provider error to avoid duplicate display this attempt;
-    // the Consumer prefers _inlineConnectionError over provider error.
-
-    final config = Provider.of<AppConfigProvider>(context, listen: false);
-
-    var server = _serverUrlController.text.trim();
-    
-    // Determine the correct protocol when none is provided
-    if (!server.startsWith('http://') && !server.startsWith('https://')) {
-      server = await _determineProtocol(server, config);
-      if (server.isEmpty) {
-        // Error already set by _determineProtocol
-        return;
-      }
-      _serverUrlController.text = server;
-    }
-    
-    final username = _authMethod == _AuthMethod.userPass ? _usernameController.text.trim() : '';
-    final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
-
-    // Persist NOTHING until test passes. Test against a temporary PaperlessService instance.
-    final useApi = _authMethod == _AuthMethod.apiToken;
-    final tempService = PaperlessService(
-      baseUrl: server,
-      username: username,
-      password: useApi ? '' : secret,
-      useApiToken: useApi,
-      apiToken: useApi ? secret : null,
-      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
-    );
-
-    // Perform test
-    final status = await tempService.testConnection();
-    // Reset any previous provider error so we don't show stale messages under the fields
-    if (mounted) {
-      // No public API to clear error immediately; rely on local inline error for this attempt
-      setState(() {
-        _inlineConnectionError = null;
-      });
-    }
-
-    // If successful, persist and close; otherwise show inline error (red text under fields).
-    if (mounted && status == ConnectionStatus.connected) {
-      if (_authMethod == _AuthMethod.userPass) {
-        await config.saveConfiguration(server, username, secret);
-      } else {
-        await config.saveConfiguration(server, '', secret);
-      }
-      // Avoid a second verification request; we already know it's connected.
-      if (!mounted) return;
-
-      // Show green toast with white text (no auto-close of dialog beyond existing behavior)
-      Fluttertoast.showToast(
-        msg: l10n.connectionSuccess,
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-      );
-
-      Navigator.of(context).pop(true);
-    } else {
-      // Map status to inline error to render in red text area (like original UI)
-      final isTokenMode = _authMethod == _AuthMethod.apiToken;
-      // Already have l10n from method start
-      final err = switch (status) {
-        ConnectionStatus.invalidCredentials => isTokenMode
-            ? l10n.error_invalid_token
-            : l10n.error_invalid_credentials,
-        ConnectionStatus.serverUnreachable => l10n.error_server_unreachable,
-        ConnectionStatus.invalidServerUrl => l10n.error_invalid_server,
-        ConnectionStatus.sslError => l10n.error_ssl,
-        ConnectionStatus.unknownError => l10n.error_unknown,
-        _ => l10n.error_unknown,
-      };
-      if (mounted) {
-        setState(() {
-          _inlineConnectionError = err;
-        });
-      }
-    }
   }
 
   @override
@@ -247,349 +331,342 @@ class _ConfigDialogState extends State<ConfigDialog> {
     _usernameController.dispose();
     _passwordController.dispose();
     _tokenController.dispose();
+    _serverNameController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(
-      title: Text(l10n.dialog_title_paperless_configuration),
-      content: SingleChildScrollView(
-        child: AutofillGroup(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: _serverUrlController,
-                  autofillHints: const [AutofillHints.url],
-                  decoration: InputDecoration(
-                    labelText: l10n.field_label_server_url,
-                    hintText: l10n.field_hint_server_url_example,
-                    prefixIcon: const Icon(Icons.link),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return l10n.validation_enter_server_url;
-                    }
-                    // Allow URLs without protocol - we'll add http:// implicitly
-                    final trimmedValue = value.trim();
-                    if (trimmedValue.isEmpty) {
-                      return l10n.validation_enter_server_url;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
- 
-                // Authentication method selector (Dropdown)
-                DropdownButtonFormField<_AuthMethod>(
-                  value: _authMethod,
-                  decoration: InputDecoration(
-                    labelText: l10n.field_label_auth_method,
-                    prefixIcon: const Icon(Icons.security),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: _AuthMethod.userPass,
-                      child: Text(l10n.field_option_auth_user_pass),
-                    ),
-                    DropdownMenuItem(
-                      value: _AuthMethod.apiToken,
-                      child: Text(l10n.field_option_auth_token),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val == null) return;
-                    setState(() {
-                      _authMethod = val;
-                      // When switching modes, keep secrets obscured
-                      _obscurePassword = true;
-                      _obscureToken = true;
-                    });
-                  },
-                ),
-                const SizedBox(height: 8),
- 
-                // Conditional fields
-                if (_authMethod == _AuthMethod.userPass) ...[
-                  // If there is an inline error while in userPass mode, ensure it's shown below these fields
-                  TextFormField(
-                    controller: _usernameController,
-                    autofillHints: const [AutofillHints.username],
-                    decoration: InputDecoration(
-                      labelText: l10n.field_label_username,
-                      prefixIcon: const Icon(Icons.person),
-                    ),
-                    validator: (value) {
-                      // Validate only in Username/Password mode
-                      if (_authMethod == _AuthMethod.userPass) {
-                        if (value == null || value.trim().isEmpty) {
-                          return l10n.validation_enter_username;
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    autofillHints: const [AutofillHints.password],
-                    keyboardType: TextInputType.visiblePassword,
-                    // Bind obscureText to runtime flag so reveal works when allowed
-                    obscureText: _passwordLoadedFromStorage ? true : _obscurePassword,
-                    enableSuggestions: false,
-                    autocorrect: false,
-                    onTap: () {
-                      // If current value was loaded from storage, clear to start new configuration
-                      if (_passwordLoadedFromStorage) {
-                        setState(() {
-                          _passwordController.clear();
-                          _passwordLoadedFromStorage = false; // now user is configuring
-                          _obscurePassword = true; // keep hidden initially
-                        });
-                      }
-                    },
-                    onChanged: (_) {
-                      // Ensure reveal icon becomes active if user starts typing after a programmatic clear
-                      if (_passwordLoadedFromStorage) {
-                        setState(() {
-                          _passwordLoadedFromStorage = false;
-                          _obscurePassword = true;
-                        });
-                      }
-                    },
-                    decoration: InputDecoration(
-                      labelText: l10n.field_label_password,
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: _passwordLoadedFromStorage
-                          ? Tooltip(
-                              message: l10n.field_label_password,
-                              child: IconButton(
-                                icon: const Icon(Icons.visibility_off),
-                                onPressed: null, // disabled; cannot reveal loaded secret
-                              ),
-                            )
-                          : GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onLongPressStart: (_) {
-                                setState(() {
-                                  _obscurePassword = false;
-                                });
-                              },
-                              onLongPressEnd: (_) {
-                                setState(() {
-                                  _obscurePassword = true;
-                                });
-                              },
-                              child: IconButton(
-                                icon: Icon(
-                                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  // Toggle for accessibility
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                            ),
-                    ),
-                    validator: (value) {
-                      if (_authMethod == _AuthMethod.userPass) {
-                        if (value == null || value.isEmpty) {
-                          return l10n.validation_enter_password;
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                ] else ...[
-                  // If there is an inline error while in token mode, ensure it's shown below these fields
-                  TextFormField(
-                    controller: _tokenController,
-                    autofillHints: const [AutofillHints.password],
-                    keyboardType: TextInputType.visiblePassword,
-                    // Bind obscureText to runtime flag so reveal works when allowed
-                    obscureText: _tokenLoadedFromStorage ? true : _obscureToken,
-                    enableSuggestions: false,
-                    autocorrect: false,
-                    onTap: () {
-                      // If current value was loaded from storage, clear to start new configuration
-                      if (_tokenLoadedFromStorage) {
-                        setState(() {
-                          _tokenController.clear();
-                          _tokenLoadedFromStorage = false; // now user is configuring
-                          _obscureToken = true; // keep hidden initially
-                        });
-                      }
-                    },
-                    onChanged: (_) {
-                      if (_tokenLoadedFromStorage) {
-                        setState(() {
-                          _tokenLoadedFromStorage = false;
-                          _obscureToken = true;
-                        });
-                      }
-                    },
-                    decoration: InputDecoration(
-                      labelText: l10n.field_label_api_token,
-                      prefixIcon: const Icon(Icons.vpn_key),
-                      suffixIcon: _tokenLoadedFromStorage
-                          ? Tooltip(
-                              message: l10n.field_label_api_token,
-                              child: IconButton(
-                                icon: const Icon(Icons.visibility_off),
-                                onPressed: null, // disabled; cannot reveal loaded secret
-                              ),
-                            )
-                          : GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onLongPressStart: (_) {
-                                setState(() {
-                                  _obscureToken = false;
-                                });
-                              },
-                              onLongPressEnd: (_) {
-                                setState(() {
-                                  _obscureToken = true;
-                                });
-                              },
-                              child: IconButton(
-                                icon: Icon(
-                                  _obscureToken ? Icons.visibility : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscureToken = !_obscureToken;
-                                  });
-                                },
-                              ),
-                            ),
-                    ),
-                    validator: (value) {
-                      if (_authMethod == _AuthMethod.apiToken) {
-                        if (value == null || value.trim().isEmpty) {
-                          return l10n.validation_enter_token;
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  // Note: Per-field inline error widgets removed to prevent duplication.
-                ],
- 
-                Consumer<AppConfigProvider>(
-                  builder: (context, config, child) {
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: SwitchListTile(
-                            title: Row(
-                              children: [
-                                Expanded(child: Text(l10n.allow_self_signed_certificates)),
-                                IconButton(
-                                  icon: const Icon(Icons.help_outline),
-                                  tooltip: l10n.allow_self_signed_certificates_description,
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: Text(l10n.allow_self_signed_certificates),
-                                        content: Text(l10n.allow_self_signed_certificates_description),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(),
-                                            child: Text(MaterialLocalizations.of(context).okButtonLabel),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                            value: config.allowSelfSignedCertificates,
-                            onChanged: (value) {
-                              config.setAllowSelfSignedCertificates(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                Consumer<AppConfigProvider>(
-                  builder: (context, config, child) {
-                    // Show only ONE error: prefer inline error when present (pre-save test),
-                    // otherwise fall back to provider error.
-                    final errorText = _inlineConnectionError ?? config.connectionError;
-                    if (errorText != null) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 16.0),
-                        child: Text(
-                          errorText,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontSize: 14,
-                          ),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ],
-            ),
+    developer.log('ConfigDialog build - _showServerForm: $_showServerForm', name: 'ConfigDialog');
+    return Dialog(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(l10n.dialog_title_paperless_configuration),
+            automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          body: Consumer<ServerManager>(
+            builder: (context, serverManager, child) {
+              developer.log('ConfigDialog Consumer - _showServerForm: $_showServerForm, servers: ${serverManager.servers.length}', name: 'ConfigDialog');
+              if (_showServerForm) {
+                developer.log('Showing server form', name: 'ConfigDialog');
+                return _buildServerForm();
+              } else {
+                developer.log('Showing server list', name: 'ConfigDialog');
+                return _buildServerList(serverManager);
+              }
+            },
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(l10n.action_cancel),
-        ),
-        Consumer<AppConfigProvider>(
-          builder: (context, config, child) {
-            // Use local transient connecting state for the pre-save test to prevent the spinner from sticking.
-            final bool isConnecting = _localConnecting ?? false;
+    );
+  }
 
-            return ElevatedButton(
-              onPressed: isConnecting
-                  ? null
-                  : () async {
-                      setState(() {
-                        // mark local connecting
-                        _localConnecting = true;
-                        // Always re-obscure before attempting
-                        _obscurePassword = true;
-                        _obscureToken = true;
-                        // clear inline error for a new attempt
-                        _inlineConnectionError = null;
-                      });
-                      try {
-                        await _saveAndTestConnection();
-                      } finally {
-                        if (mounted) {
-                          setState(() {
-                            _localConnecting = false;
-                          });
-                        }
-                      }
-                    },
-              child: isConnecting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.action_save_and_test),
-            );
-          },
+  Widget _buildServerList(ServerManager serverManager) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            itemCount: serverManager.servers.length,
+            itemBuilder: (context, index) {
+              final server = serverManager.servers[index];
+              final isSelected = server.id == serverManager.selectedServer?.id;
+              
+              return ListTile(
+                leading: Icon(
+                  isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                ),
+                title: Text(server.name),
+                subtitle: Text(server.serverUrl),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: l10n.action_edit,
+                      onPressed: () => _loadServerForEdit(server),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      tooltip: l10n.action_delete,
+                      onPressed: () => _confirmDeleteServer(server),
+                    ),
+                  ],
+                ),
+                onTap: () async {
+                  await serverManager.selectServer(server.id);
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
+                selected: isSelected,
+                tileColor: isSelected
+                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                    : null,
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.action_add_server),
+                  onPressed: () {
+                    developer.log('Add Server button clicked', name: 'ConfigDialog');
+                    developer.log('Current _showServerForm: $_showServerForm', name: 'ConfigDialog');
+                    setState(() {
+                      _editingServerId = null;
+                      _clearForm();
+                      _showServerForm = true; // Set this AFTER _clearForm()
+                    });
+                    developer.log('After setState - _showServerForm: $_showServerForm', name: 'ConfigDialog');
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildServerForm() {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Form(
+        key: _serverFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _serverNameController,
+              decoration: InputDecoration(
+                labelText: l10n.field_label_server_name,
+                prefixIcon: const Icon(Icons.title),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return l10n.validation_enter_server_name;
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _serverUrlController,
+              autofillHints: const [AutofillHints.url],
+              decoration: InputDecoration(
+                labelText: l10n.field_label_server_url,
+                hintText: l10n.field_hint_server_url_example,
+                prefixIcon: const Icon(Icons.link),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return l10n.validation_enter_server_url;
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<_AuthMethod>(
+              value: _authMethod,
+              decoration: InputDecoration(
+                labelText: l10n.field_label_auth_method,
+                prefixIcon: const Icon(Icons.security),
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: _AuthMethod.userPass,
+                  child: Text(l10n.field_option_auth_user_pass),
+                ),
+                DropdownMenuItem(
+                  value: _AuthMethod.apiToken,
+                  child: Text(l10n.field_option_auth_token),
+                ),
+              ],
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() {
+                  _authMethod = val;
+                  _obscurePassword = true;
+                  _obscureToken = true;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            if (_authMethod == _AuthMethod.userPass) ...[
+              TextFormField(
+                controller: _usernameController,
+                autofillHints: const [AutofillHints.username],
+                decoration: InputDecoration(
+                  labelText: l10n.field_label_username,
+                  prefixIcon: const Icon(Icons.person),
+                ),
+                validator: (value) {
+                  if (_authMethod == _AuthMethod.userPass) {
+                    if (value == null || value.trim().isEmpty) {
+                      return l10n.validation_enter_username;
+                    }
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                autofillHints: const [AutofillHints.password],
+                keyboardType: TextInputType.visiblePassword,
+                obscureText: _passwordLoadedFromStorage ? true : _obscurePassword,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  labelText: l10n.field_label_password,
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (_authMethod == _AuthMethod.userPass) {
+                    if (value == null || value.trim().isEmpty) {
+                      return l10n.validation_enter_password;
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ] else ...[
+              TextFormField(
+                controller: _tokenController,
+                obscureText: _tokenLoadedFromStorage ? true : _obscureToken,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  labelText: l10n.field_label_api_token,
+                  prefixIcon: const Icon(Icons.key),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureToken ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _obscureToken = !_obscureToken;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (_authMethod == _AuthMethod.apiToken) {
+                    if (value == null || value.trim().isEmpty) {
+                      return l10n.validation_enter_token;
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ],
+            const SizedBox(height: 16),
+            Consumer<AppConfigProvider>(
+              builder: (context, config, child) {
+                return SwitchListTile(
+                  title: Text(l10n.allow_self_signed_certificates),
+                  value: config.allowSelfSignedCertificates,
+                  onChanged: (value) {
+                    config.setAllowSelfSignedCertificates(value);
+                  },
+                );
+              },
+            ),
+            if (_inlineConnectionError != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _inlineConnectionError!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _showServerForm = false;
+                      _clearForm();
+                    });
+                  },
+                  child: Text(l10n.action_cancel),
+                ),
+                ElevatedButton(
+                  onPressed: _localConnecting
+                      ? null
+                      : _saveAndTestServer,
+                  child: _localConnecting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.action_save_and_test),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteServer(ServerConfig server) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.action_delete_server),
+        content: Text(l10n.message_delete_server_confirmation(server.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.action_cancel),
+          ),
+          TextButton(
+            onPressed: () async {
+              await Provider.of<ServerManager>(context, listen: false)
+                  .removeServer(server.id);
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            child: Text(
+              l10n.action_delete,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

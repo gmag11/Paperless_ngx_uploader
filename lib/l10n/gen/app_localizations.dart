@@ -530,6 +530,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Allow connections to servers with self-signed or invalid SSL certificates (not recommended for production)'**
   String get allow_self_signed_certificates_description;
+
+  /// Label for the server name input field when adding/editing a server
+  ///
+  /// In en, this message translates to:
+  /// **'Server Name'**
+  String get field_label_server_name;
+
+  /// Validation message shown when the server name is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter server name'**
+  String get validation_enter_server_name;
+
+  /// Button label to add a new server
+  ///
+  /// In en, this message translates to:
+  /// **'Add Server'**
+  String get action_add_server;
+
+  /// Button label to edit a server
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get action_edit;
+
+  /// Button label to delete a server
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get action_delete;
+
+  /// Title for the dialog confirming server deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Server'**
+  String get action_delete_server;
+
+  /// Message shown when confirming server deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{serverName}\"? This action cannot be undone.'**
+  String message_delete_server_confirmation(String serverName);
+
+  /// Section header for servers configuration block.
+  ///
+  /// In en, this message translates to:
+  /// **'Servers'**
+  String get section_title_servers;
+
+  /// Button label to open server management dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Servers'**
+  String get button_manage_servers;
+
+  /// Text showing which server is currently selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {serverName}'**
+  String server_selected(String serverName);
+
+  /// Text shown when no servers have been added yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No servers configured'**
+  String get server_no_servers_configured;
+
+  /// Message shown when user needs to configure a server before using the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Please configure at least one server to start uploading documents'**
+  String get server_configure_first;
 }
 
 class _AppLocalizationsDelegate
