@@ -44,12 +44,15 @@ class _ConfigDialogState extends State<ConfigDialog> {
   @override
   void initState() {
     super.initState();
+    developer.log('ConfigDialog initState - _showServerForm: $_showServerForm', name: 'ConfigDialog');
     _loadCurrentServer();
   }
 
   Future<void> _loadCurrentServer() async {
     final serverManager = Provider.of<ServerManager>(context, listen: false);
     final currentServer = serverManager.selectedServer;
+    
+    developer.log('_loadCurrentServer - currentServer: $currentServer', name: 'ConfigDialog');
     
     if (currentServer != null) {
       final credentials = await serverManager.getServerCredentials(currentServer.id);
@@ -79,6 +82,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
         _obscurePassword = true;
         _obscureToken = true;
         _editingServerId = currentServer.id;
+        _showServerForm = false; // Ensure we show server list when loading current server
       });
     }
   }
@@ -198,8 +202,16 @@ class _ConfigDialogState extends State<ConfigDialog> {
         }
       }
 
+      final config = Provider.of<AppConfigProvider>(context, listen: false);
+      final serverId = _editingServerId ?? ServerConfig.generateId();
+      
+      developer.log('Creating/updating server with ID: $serverId', name: 'ConfigDialog');
+      developer.log('Server name: ${_serverNameController.text.trim()}', name: 'ConfigDialog');
+      developer.log('Server URL: $serverUrl', name: 'ConfigDialog');
+      developer.log('Auth method: ${_authMethod == _AuthMethod.apiToken ? "API Token" : "Username/Password"}', name: 'ConfigDialog');
+
       final server = ServerConfig(
-        id: _editingServerId ?? ServerConfig.generateId(),
+        id: serverId,
         name: _serverNameController.text.trim(),
         serverUrl: serverUrl,
         authMethod: _authMethod == _AuthMethod.apiToken
@@ -207,23 +219,32 @@ class _ConfigDialogState extends State<ConfigDialog> {
             : AuthMethod.usernamePassword,
         username: _authMethod == _AuthMethod.userPass ? username : null,
         defaultTagIds: existingDefaultTagIds,
+        allowSelfSignedCertificates: config.allowSelfSignedCertificates,
       );
 
       try {
         if (_editingServerId != null) {
+          developer.log('Updating existing server: ${server.id}', name: 'ConfigDialog');
           await serverManager.updateServer(server);
         } else {
+          developer.log('Adding new server: ${server.id}', name: 'ConfigDialog');
           await serverManager.addServer(server);
         }
 
+        developer.log('Saving credentials for server: ${server.id}', name: 'ConfigDialog');
         if (_authMethod == _AuthMethod.userPass) {
-          await serverManager.saveServerCredentials(server.id, 
+          await serverManager.saveServerCredentials(server.id,
               username: username, password: secret);
+          developer.log('Username/password credentials saved', name: 'ConfigDialog');
         } else {
           await serverManager.saveServerApiToken(server.id, apiToken: secret);
+          developer.log('API token saved', name: 'ConfigDialog');
         }
 
+        developer.log('Selecting server: ${server.id}', name: 'ConfigDialog');
         await serverManager.selectServer(server.id);
+
+        developer.log('Server configuration completed successfully', name: 'ConfigDialog');
 
         Fluttertoast.showToast(
           msg: l10n.connectionSuccess,
@@ -237,6 +258,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
           _clearForm();
         }
       } catch (e) {
+        developer.log('Error saving server configuration: $e', name: 'ConfigDialog');
         if (mounted) {
           setState(() {
             _inlineConnectionError = l10n.error_unknown;
@@ -316,6 +338,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    developer.log('ConfigDialog build - _showServerForm: $_showServerForm', name: 'ConfigDialog');
     return Dialog(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
@@ -332,9 +355,12 @@ class _ConfigDialogState extends State<ConfigDialog> {
           ),
           body: Consumer<ServerManager>(
             builder: (context, serverManager, child) {
+              developer.log('ConfigDialog Consumer - _showServerForm: $_showServerForm, servers: ${serverManager.servers.length}', name: 'ConfigDialog');
               if (_showServerForm) {
+                developer.log('Showing server form', name: 'ConfigDialog');
                 return _buildServerForm();
               } else {
+                developer.log('Showing server list', name: 'ConfigDialog');
                 return _buildServerList(serverManager);
               }
             },
@@ -401,11 +427,14 @@ class _ConfigDialogState extends State<ConfigDialog> {
                   icon: const Icon(Icons.add),
                   label: Text(l10n.action_add_server),
                   onPressed: () {
+                    developer.log('Add Server button clicked', name: 'ConfigDialog');
+                    developer.log('Current _showServerForm: $_showServerForm', name: 'ConfigDialog');
                     setState(() {
-                      _showServerForm = true;
                       _editingServerId = null;
                       _clearForm();
+                      _showServerForm = true; // Set this AFTER _clearForm()
                     });
+                    developer.log('After setState - _showServerForm: $_showServerForm', name: 'ConfigDialog');
                   },
                 ),
               ),

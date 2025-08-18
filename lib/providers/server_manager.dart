@@ -61,27 +61,37 @@ class ServerManager extends ChangeNotifier {
   }
 
   Future<void> addServer(ServerConfig server) async {
+    developer.log('Adding server: ${server.id} - ${server.name} (${server.serverUrl})', name: 'ServerManager');
+    
     if (_servers.any((s) => s.id == server.id)) {
+      developer.log('Server already exists, updating instead: ${server.id}', name: 'ServerManager');
       await updateServer(server);
       return;
     }
 
     _servers.add(server);
+    developer.log('Server added to list. Total servers: ${_servers.length}', name: 'ServerManager');
     await _saveServers();
     notifyListeners();
   }
 
   Future<void> updateServer(ServerConfig server) async {
+    developer.log('Updating server: ${server.id} - ${server.name} (${server.serverUrl})', name: 'ServerManager');
+    
     final index = _servers.indexWhere((s) => s.id == server.id);
     if (index != -1) {
       _servers[index] = server;
+      developer.log('Server updated in list at index: $index', name: 'ServerManager');
       await _saveServers();
       
       if (_selectedServer?.id == server.id) {
         _selectedServer = server;
+        developer.log('Selected server updated: ${server.id}', name: 'ServerManager');
       }
       
       notifyListeners();
+    } else {
+      developer.log('Server not found for update: ${server.id}', name: 'ServerManager');
     }
   }
 
@@ -105,6 +115,7 @@ class ServerManager extends ChangeNotifier {
       final server = _servers.firstWhere((s) => s.id == serverId);
       _selectedServer = server;
       await _storageService.saveSelectedServer(serverId);
+      developer.log('Server selected: ${server.id} - ${server.name}', name: 'ServerManager');
       notifyListeners();
     } catch (e) {
       developer.log('Server not found: $serverId', name: 'ServerManager');

@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 class SecureStorageService {
   static const _storage = FlutterSecureStorage();
@@ -57,27 +58,38 @@ class SecureStorageService {
   }
 
   Future<void> saveServers(List<Map<String, dynamic>> servers) async {
+    developer.log('Saving ${servers.length} servers to secure storage', name: 'SecureStorageService');
     await _storage.write(key: _serversKey, value: jsonEncode(servers));
+    developer.log('Servers saved successfully', name: 'SecureStorageService');
   }
 
   Future<List<Map<String, dynamic>>> getServers() async {
     final serversJson = await _storage.read(key: _serversKey);
-    if (serversJson == null) return [];
+    if (serversJson == null) {
+      developer.log('No servers found in secure storage', name: 'SecureStorageService');
+      return [];
+    }
     
     try {
       final List<dynamic> serversList = jsonDecode(serversJson) as List<dynamic>;
-      return serversList.map((server) => Map<String, dynamic>.from(server as Map<String, dynamic>)).toList();
+      final servers = serversList.map((server) => Map<String, dynamic>.from(server as Map<String, dynamic>)).toList();
+      developer.log('Loaded ${servers.length} servers from secure storage', name: 'SecureStorageService');
+      return servers;
     } catch (e) {
+      developer.log('Error loading servers: $e', name: 'SecureStorageService');
       return [];
     }
   }
 
   Future<void> saveSelectedServer(String serverId) async {
+    developer.log('Saving selected server ID: $serverId', name: 'SecureStorageService');
     await _storage.write(key: _selectedServerKey, value: serverId);
   }
 
   Future<String?> getSelectedServer() async {
-    return await _storage.read(key: _selectedServerKey);
+    final selectedId = await _storage.read(key: _selectedServerKey);
+    developer.log('Retrieved selected server ID: $selectedId', name: 'SecureStorageService');
+    return selectedId;
   }
 
   Future<void> clearAllData() async {
