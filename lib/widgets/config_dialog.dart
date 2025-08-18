@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'dart:developer' as developer;
 
 import 'package:paperlessngx_uploader/models/connection_status.dart';
 import 'package:paperlessngx_uploader/providers/app_config_provider.dart';
@@ -186,14 +187,26 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
 
     if (status == ConnectionStatus.connected) {
+      // Preserve existing defaultTagIds when updating server
+      List<int> existingDefaultTagIds = [];
+      if (_editingServerId != null) {
+        final serverManager = Provider.of<ServerManager>(context, listen: false);
+        final existingServer = serverManager.getServer(_editingServerId!);
+        if (existingServer != null) {
+          existingDefaultTagIds = existingServer.defaultTagIds;
+          developer.log('Preserving existing defaultTagIds: $existingDefaultTagIds', name: 'ConfigDialog');
+        }
+      }
+
       final server = ServerConfig(
         id: _editingServerId ?? ServerConfig.generateId(),
         name: _serverNameController.text.trim(),
         serverUrl: serverUrl,
-        authMethod: _authMethod == _AuthMethod.apiToken 
-            ? AuthMethod.apiToken 
+        authMethod: _authMethod == _AuthMethod.apiToken
+            ? AuthMethod.apiToken
             : AuthMethod.usernamePassword,
         username: _authMethod == _AuthMethod.userPass ? username : null,
+        defaultTagIds: existingDefaultTagIds,
       );
 
       try {
