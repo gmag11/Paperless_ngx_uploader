@@ -45,7 +45,7 @@ android {
         // Ensure minSdk >= 29 per project spec
         minSdk = maxOf(29, flutter.minSdkVersion)
         targetSdk = 35
-        versionCode = 17
+        versionCode = 18
         versionName = flutter.versionName
     }
 
