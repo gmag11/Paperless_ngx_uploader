@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/server_config.dart';
 import '../services/paperless_service.dart' as paperless;
 import '../providers/server_manager.dart';
-import '../services/secure_storage_service.dart';
+// import '../services/secure_storage_service.dart';
 import '../models/connection_status.dart';
 import '../services/paperless_service_factory.dart';
 
@@ -11,7 +11,7 @@ typedef StringCallback = String Function(String key);
 
 class AppConfigProvider extends ChangeNotifier {
   final ServerManager _serverManager;
-  final SecureStorageService _storageService = SecureStorageService();
+  // final SecureStorageService _storageService = SecureStorageService();
   final StringCallback? _translate;
 
   AppConfigProvider(this._serverManager, {StringCallback? translate}) : _translate = translate {
@@ -101,39 +101,40 @@ class AppConfigProvider extends ChangeNotifier {
         : null;
   }
 
-  // Selected tags management
+  // Selected tags management - now uses server.defaultTagIds
   List<int> get selectedTags {
     final server = _serverManager.selectedServer;
     if (server == null) return [];
-    // This is a synchronous getter - we'll need to handle async loading elsewhere
-    return [];
+    return server.defaultTagIds;
   }
   
   Future<List<int>> getSelectedTags() async {
     final server = _serverManager.selectedServer;
     if (server == null) return [];
-    return await _storageService.getServerSelectedTags(server.id);
+    return server.defaultTagIds;
   }
 
   Future<void> loadStoredTags() async {
-    // Tags are loaded on demand via getSelectedTags
+    // Tags are now stored in server configuration, no need to load separately
     notifyListeners();
   }
 
   Future<void> setSelectedTags(List<int> tagIds) async {
     final server = _serverManager.selectedServer;
     if (server != null) {
-      await _storageService.saveServerSelectedTags(server.id, tagIds);
+      final updatedServer = server.copyWith(defaultTagIds: tagIds);
+      await _serverManager.updateServer(updatedServer);
     }
   }
 
   Future<void> addSelectedTag(int tagId) async {
     final server = _serverManager.selectedServer;
     if (server != null) {
-      final currentTags = await _storageService.getServerSelectedTags(server.id);
+      final currentTags = List<int>.from(server.defaultTagIds);
       if (!currentTags.contains(tagId)) {
         currentTags.add(tagId);
-        await _storageService.saveServerSelectedTags(server.id, currentTags);
+        final updatedServer = server.copyWith(defaultTagIds: currentTags);
+        await _serverManager.updateServer(updatedServer);
       }
     }
   }
@@ -141,9 +142,10 @@ class AppConfigProvider extends ChangeNotifier {
   Future<void> removeSelectedTag(int tagId) async {
     final server = _serverManager.selectedServer;
     if (server != null) {
-      final currentTags = await _storageService.getServerSelectedTags(server.id);
+      final currentTags = List<int>.from(server.defaultTagIds);
       currentTags.remove(tagId);
-      await _storageService.saveServerSelectedTags(server.id, currentTags);
+      final updatedServer = server.copyWith(defaultTagIds: currentTags);
+      await _serverManager.updateServer(updatedServer);
     }
   }
 

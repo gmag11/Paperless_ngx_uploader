@@ -40,6 +40,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Check storage permissions on startup
       _checkStoragePermissions();
+      
+      // Listen for server changes to refresh tags display
+      Provider.of<ServerManager>(context, listen: false).addListener(_onServerChanged);
     });
 
     // Listen for share intent events (filename + file path)
@@ -176,7 +179,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _intentSub?.cancel();
+    try {
+      Provider.of<ServerManager>(context, listen: false).removeListener(_onServerChanged);
+    } catch (_) {}
     super.dispose();
+  }
+
+  void _onServerChanged() {
+    developer.log('HomeScreen: Server changed, triggering rebuild', name: 'HomeScreen');
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   // Version checking functionality removed - no longer needed
@@ -459,119 +472,156 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Consumer<AppConfigProvider>(
-                      builder: (context, config, child) {
-                        return FutureBuilder<List<int>>(
-                          future: config.getSelectedTags(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            }
-
-                            final selectedTagIds = snapshot.data!;
-
-                            if (selectedTagIds.isEmpty) {
-                              return Container(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                child: Column(
-                                  children: [
-                                    const Icon(Icons.tag_outlined,
-                                        size: 48, color: Colors.grey),
-                                    const SizedBox(height: 8),
-                                    Builder(
-                                      builder: (context) {
-                                        final l10n =
-                                            AppLocalizations.of(context)!;
-                                        return Column(
-                                          children: [
-                                            Text(
-                                              l10n.empty_tags_title,
-                                              style: const TextStyle(
-                                                  color: Colors.grey,
-                                                  fontSize: 16),
-                                            ),
-                                            Text(
-                                              l10n.empty_tags_subtitle,
-                                              style: const TextStyle(
-                                                  color: Colors.grey,
-                                                  fontSize: 12),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ],
+                    Consumer<ServerManager>(
+                      builder: (context, serverManager, child) {
+                        final currentServer = serverManager.selectedServer;
+                        if (currentServer == null) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.tag_outlined,
+                                    size: 48, color: Colors.grey),
+                                const SizedBox(height: 8),
+                                Builder(
+                                  builder: (context) {
+                                    final l10n =
+                                        AppLocalizations.of(context)!;
+                                    return Column(
+                                      children: [
+                                        Text(
+                                          l10n.empty_tags_title,
+                                          style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 16),
+                                        ),
+                                        Text(
+                                          l10n.empty_tags_subtitle,
+                                          style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        final selectedTagIds = currentServer.defaultTagIds;
+                        developer.log('HomeScreen: Using defaultTagIds from server ${currentServer.id}: $selectedTagIds', name: 'HomeScreen');
+                         
+                        if (selectedTagIds.isEmpty) {
+                          developer.log('HomeScreen: No tags selected for server ${currentServer.id}', name: 'HomeScreen');
+                          return Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.tag_outlined,
+                                    size: 48, color: Colors.grey),
+                                const SizedBox(height: 8),
+                                Builder(
+                                  builder: (context) {
+                                    final l10n =
+                                        AppLocalizations.of(context)!;
+                                    return Column(
+                                      children: [
+                                        Text(
+                                          l10n.empty_tags_title,
+                                          style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 16),
+                                        ),
+                                        Text(
+                                          l10n.empty_tags_subtitle,
+                                          style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return FutureBuilder<List<Tag>>(
+                          key: ValueKey('all_tags_${currentServer.id}'),
+                          future: _getTagsForCurrentServer(serverManager, currentServer),
+                          builder: (context, tagsSnapshot) {
+                            developer.log('HomeScreen: _getTagsForCurrentServer snapshot: ${tagsSnapshot.connectionState}, hasData: ${tagsSnapshot.hasData}, data length: ${tagsSnapshot.data?.length}', name: 'HomeScreen');
+                            
+                            if (tagsSnapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            
+                            if (tagsSnapshot.hasError) {
+                              developer.log('HomeScreen: Error loading tags: ${tagsSnapshot.error}', name: 'HomeScreen');
+                              return Container(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: const Text('Error loading tags', style: TextStyle(color: Colors.red)),
                               );
                             }
 
-                            return FutureBuilder<List<Tag>>(
-                              future: config.getPaperlessService().then(
-                                  (service) =>
-                                      service?.fetchTags() ?? Future.value([])),
-                              builder: (context, tagsSnapshot) {
-                                if (!tagsSnapshot.hasData) {
-                                  return const Center(
-                                      child: CircularProgressIndicator());
-                                }
+                            final allTags = tagsSnapshot.data ?? [];
+                            final selectedTags = allTags
+                                .where((tag) =>
+                                    selectedTagIds.contains(tag.id))
+                                .toList();
+                                  
+                            developer.log('HomeScreen: Displaying ${selectedTags.length} tags for server ${currentServer.id}: ${selectedTags.map((t) => t.name).join(', ')}', name: 'HomeScreen');
 
-                                final allTags = tagsSnapshot.data!;
-                                final selectedTags = allTags
-                                    .where((tag) =>
-                                        selectedTagIds.contains(tag.id))
-                                    .toList();
-
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Builder(
-                                      builder: (context) {
-                                        final l10n =
-                                            AppLocalizations.of(context)!;
-                                        return Text(
-                                          l10n.tags_configured_count(
-                                            selectedTags.length.toString(),
-                                            selectedTags.length == 1 ? '' : 's',
-                                          ),
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: selectedTags.map((tag) {
-                                        final colorHex = tag.color ?? '#808080';
-                                        final color = Color(
-                                          int.parse(colorHex.replaceFirst(
-                                              '#', '0xff')),
-                                        );
-                                        return Chip(
-                                          label: Text(
-                                            tag.name,
-                                            style: TextStyle(
-                                              color: _getContrastColor(color),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          backgroundColor: color,
-                                          elevation: 1,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ],
-                                );
-                              },
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Builder(
+                                  builder: (context) {
+                                    final l10n =
+                                        AppLocalizations.of(context)!;
+                                    return Text(
+                                      l10n.tags_configured_count(
+                                        selectedTags.length.toString(),
+                                        selectedTags.length == 1 ? '' : 's',
+                                      ),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: selectedTags.map((tag) {
+                                    final colorHex = tag.color ?? '#808080';
+                                    final color = Color(
+                                      int.parse(colorHex.replaceFirst(
+                                          '#', '0xff')),
+                                    );
+                                    return Chip(
+                                      label: Text(
+                                        tag.name,
+                                        style: TextStyle(
+                                          color: _getContrastColor(color),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      backgroundColor: color,
+                                      elevation: 1,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
                             );
                           },
                         );
@@ -663,23 +713,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final paperlessService = PaperlessService(
-        baseUrl: currentServer.serverUrl,
-        username: currentServer.username ?? '',
-        password: currentServer.authMethod == AuthMethod.usernamePassword
-          ? await _getCurrentServerPassword()
-          : '',
-        useApiToken: currentServer.authMethod == AuthMethod.apiToken,
-        apiToken: currentServer.apiToken,
-        allowSelfSignedCertificates: currentServer.allowSelfSignedCertificates,
-      );
+      final secureStorage = SecureStorageService();
+      final password = await secureStorage.getServerCredentials(currentServer.id) ?? '';
+      final apiToken = await secureStorage.getServerApiToken(currentServer.id) ?? '';
       
       // Get current selected tags for this server
       final selectedTagIds = currentServer.defaultTagIds;
-      final allTags = await paperlessService.fetchTags();
+      final allTags = await _getTagsForCurrentServer(serverManager, currentServer);
       final currentSelectedTags = allTags
           .where((tag) => selectedTagIds.contains(tag.id))
           .toList();
+
+      developer.log('HomeScreen: Showing tag selection dialog for server ${currentServer.id} with ${selectedTagIds.length} selected tags', name: 'HomeScreen');
 
       if (!mounted) return;
 
@@ -689,12 +734,20 @@ class _HomeScreenState extends State<HomeScreen> {
           context: context,
           builder: (dialogContext) => TagSelectionDialog(
             selectedTags: currentSelectedTags,
-            paperlessService: paperlessService,
+            paperlessService: PaperlessService(
+              baseUrl: currentServer.serverUrl,
+              username: currentServer.username ?? '',
+              password: currentServer.authMethod == AuthMethod.usernamePassword ? password : '',
+              useApiToken: currentServer.authMethod == AuthMethod.apiToken,
+              apiToken: currentServer.authMethod == AuthMethod.apiToken ? apiToken : '',
+              allowSelfSignedCertificates: currentServer.allowSelfSignedCertificates,
+            ),
             initialSelectedTagIds: selectedTagIds,
             onTagsSelected: (tagIds) async {
               // Update the server's defaultTagIds
               final updatedServer = currentServer.copyWith(defaultTagIds: tagIds);
               await serverManager.updateServer(updatedServer);
+              developer.log('HomeScreen: Updated server ${currentServer.id} with ${tagIds.length} default tags', name: 'HomeScreen');
             },
           ),
         );
@@ -704,8 +757,13 @@ class _HomeScreenState extends State<HomeScreen> {
         final newSelectedTagIds = result.map((tag) => tag.id).toList();
         final updatedServer = currentServer.copyWith(defaultTagIds: newSelectedTagIds);
         await serverManager.updateServer(updatedServer);
+        developer.log('HomeScreen: Updated server ${currentServer.id} with ${newSelectedTagIds.length} default tags after dialog', name: 'HomeScreen');
+        
+        // Force refresh the UI after tags are updated
+        setState(() {});
       }
     } catch (e) {
+      developer.log('HomeScreen: Error showing tag selection dialog: $e', name: 'HomeScreen', error: e);
       if (context.mounted) {
         final l10n = AppLocalizations.of(context)!;
         Fluttertoast.showToast(
@@ -731,6 +789,28 @@ class _HomeScreenState extends State<HomeScreen> {
     return luminance > 0.5 ? Colors.black : Colors.white;
   }
 
+  Future<List<Tag>> _getTagsForCurrentServer(ServerManager serverManager, ServerConfig currentServer) async {
+    try {
+      final secureStorage = SecureStorageService();
+      final password = await secureStorage.getServerCredentials(currentServer.id) ?? '';
+      final apiToken = await secureStorage.getServerApiToken(currentServer.id) ?? '';
+      
+      final paperlessService = PaperlessService(
+        baseUrl: currentServer.serverUrl,
+        username: currentServer.username ?? '',
+        password: currentServer.authMethod == AuthMethod.usernamePassword ? password : '',
+        useApiToken: currentServer.authMethod == AuthMethod.apiToken,
+        apiToken: apiToken,
+        allowSelfSignedCertificates: currentServer.allowSelfSignedCertificates,
+      );
+      
+      return await paperlessService.fetchTags();
+    } catch (e) {
+      developer.log('Error creating PaperlessService for server ${currentServer.id}: $e', name: 'HomeScreen');
+      return [];
+    }
+  }
+
   String _localizeError(AppLocalizations l10n, String codeOrMessage) {
     switch (codeOrMessage) {
       case 'error_auth_failed':
@@ -753,12 +833,4 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<String> _getCurrentServerPassword() async {
-    final serverManager = Provider.of<ServerManager>(context, listen: false);
-    final currentServer = serverManager.selectedServer;
-    if (currentServer == null) return '';
-    
-    final secureStorage = SecureStorageService();
-    return await secureStorage.getServerCredentials(currentServer.id) ?? '';
-  }
 }

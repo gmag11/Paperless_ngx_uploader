@@ -30,11 +30,13 @@ class SecureStorageService {
     return await _storage.read(key: _serverApiTokenKey(serverId));
   }
 
+  @Deprecated('Use ServerConfig.defaultTagIds instead of separate tag storage')
   Future<void> saveServerSelectedTags(String serverId, List<int> tagIds) async {
     final key = _serverSelectedTagsKey(serverId);
     await _storage.write(key: key, value: jsonEncode(tagIds));
   }
 
+  @Deprecated('Use ServerConfig.defaultTagIds instead of separate tag storage')
   Future<List<int>> getServerSelectedTags(String serverId) async {
     final key = _serverSelectedTagsKey(serverId);
     final tagsJson = await _storage.read(key: key);
@@ -46,6 +48,12 @@ class SecureStorageService {
     } catch (e) {
       return [];
     }
+  }
+
+  /// Clean up legacy tag storage for a server
+  Future<void> cleanupLegacyTagStorage(String serverId) async {
+    final key = _serverSelectedTagsKey(serverId);
+    await _storage.delete(key: key);
   }
 
   Future<void> saveServers(List<Map<String, dynamic>> servers) async {

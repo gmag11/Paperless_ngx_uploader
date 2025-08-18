@@ -151,12 +151,16 @@ class ServerManager extends ChangeNotifier {
     }
   }
 
-  // Default tags management
+  // Default tags management - now using server configuration
+  @Deprecated('Use ServerConfig.defaultTagIds instead of separate tag storage')
   Future<void> saveServerDefaultTags(String serverId, List<int> tagIds) async {
+    // This method is deprecated - use updateServer() to update defaultTagIds instead
     await _storageService.saveServerSelectedTags(serverId, tagIds);
   }
 
+  @Deprecated('Use ServerConfig.defaultTagIds instead of separate tag storage')
   Future<List<int>> getServerDefaultTags(String serverId) async {
+    // This method is deprecated - use server.defaultTagIds instead
     return await _storageService.getServerSelectedTags(serverId);
   }
 }
