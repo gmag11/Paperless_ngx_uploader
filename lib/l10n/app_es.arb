@@ -4,7 +4,7 @@
   "@action_select_none": {
     "description": "Etiqueta del botón para limpiar todas las etiquetas seleccionadas en el diálogo de selección de etiquetas"
   },
-  "@@last_modified": "2025-08-05T19:21:10Z",
+  "@@last_modified": "2025-08-18T07:59:00Z",
 
   "connectionSuccess": "Conexión correcta",
   "@connectionSuccess": {
@@ -394,5 +394,77 @@
   "allow_self_signed_certificates_description": "Permitir conexiones a servidores con certificados SSL autofirmados o inválidos (no recomendado para producción)",
   "@allow_self_signed_certificates_description": {
     "description": "Descripción para el interruptor de certificados autofirmados"
+  },
+
+  "field_label_server_name": "Nombre del servidor",
+  "@field_label_server_name": {
+    "description": "Etiqueta del campo de nombre del servidor al agregar/editar un servidor"
+  },
+
+  "validation_enter_server_name": "Por favor, introduce el nombre del servidor",
+  "@validation_enter_server_name": {
+    "description": "Mensaje de validación cuando el nombre del servidor está vacío"
+  },
+
+  "action_add_server": "Añadir servidor",
+  "@action_add_server": {
+    "description": "Etiqueta del botón para añadir un nuevo servidor"
+  },
+
+  "action_edit": "Editar",
+  "@action_edit": {
+    "description": "Etiqueta del botón para editar un servidor"
+  },
+
+  "action_delete": "Eliminar",
+  "@action_delete": {
+    "description": "Etiqueta del botón para eliminar un servidor"
+  },
+
+  "action_delete_server": "Eliminar servidor",
+  "@action_delete_server": {
+    "description": "Título del diálogo de confirmación para eliminar el servidor"
+  },
+
+  "message_delete_server_confirmation": "¿Estás seguro de que quieres eliminar \"{serverName}\"? Esta acción no se puede deshacer.",
+  "@message_delete_server_confirmation": {
+    "description": "Mensaje mostrado al confirmar la eliminación del servidor",
+    "placeholders": {
+      "serverName": {
+        "type": "String",
+        "example": "Mi servidor Paperless"
+      }
+    }
+  },
+
+  "section_title_servers": "Servidores",
+  "@section_title_servers": {
+    "description": "Encabezado de sección para el bloque de configuración de servidores."
+  },
+
+  "button_manage_servers": "Gestionar servidores",
+  "@button_manage_servers": {
+    "description": "Etiqueta del botón para abrir el diálogo de gestión de servidores."
+  },
+
+  "server_selected": "Seleccionado: {serverName}",
+  "@server_selected": {
+    "description": "Texto que muestra qué servidor está seleccionado actualmente.",
+    "placeholders": {
+      "serverName": {
+        "type": "String",
+        "example": "Mi servidor Paperless"
+      }
+    }
+  },
+
+  "server_no_servers_configured": "No hay servidores configurados",
+  "@server_no_servers_configured": {
+    "description": "Texto mostrado cuando aún no se ha añadido ningún servidor."
+  },
+
+  "server_configure_first": "Por favor, configura al menos un servidor para comenzar a subir documentos",
+  "@server_configure_first": {
+    "description": "Mensaje mostrado cuando el usuario necesita configurar un servidor antes de usar la aplicación."
   }
 }

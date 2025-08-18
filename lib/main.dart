@@ -3,9 +3,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'providers/app_config_provider.dart';
+import 'providers/server_manager.dart';
 import 'providers/upload_provider.dart';
 import 'services/intent_handler.dart';
+import 'services/legacy_migration_service.dart';
 import 'l10n/gen/app_localizations.dart';
+import 'dart:developer' as developer;
 
 void main() async {
   // Ensure bindings so we can initialize platform channels safely
@@ -14,10 +17,55 @@ void main() async {
   // Initialize Android share intent handling
   IntentHandler.initialize();
 
+  // Initialize and perform legacy migration if needed
+  await _performLegacyMigration();
+}
+
+/// Performs legacy configuration migration before app initialization
+Future<void> _performLegacyMigration() async {
+  try {
+    final hasLegacy = await LegacyMigrationService.hasLegacyConfiguration();
+    if (hasLegacy) {
+      developer.log('Legacy configuration detected, starting migration...', name: 'main');
+      
+      final summary = await LegacyMigrationService.getMigrationSummary();
+      developer.log('Migration summary: $summary', name: 'main');
+      
+      final migratedConfig = await LegacyMigrationService.migrateLegacyConfiguration();
+      if (migratedConfig != null) {
+        // Create a temporary server manager to handle the migration
+        final serverManager = ServerManager();
+        await serverManager.refresh();
+        
+        // Add the migrated server
+        await serverManager.addServer(migratedConfig);
+        await serverManager.selectServer(migratedConfig.id);
+        
+        // Clean up legacy configuration
+        await LegacyMigrationService.cleanupLegacyConfiguration();
+        
+        developer.log('Migration completed successfully', name: 'main');
+      }
+    } else {
+      developer.log('No legacy configuration found, skipping migration', name: 'main');
+    }
+  } catch (e) {
+    developer.log('Migration failed: $e', name: 'main', error: e);
+    // Continue app startup even if migration fails
+  }
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AppConfigProvider()),
+        ChangeNotifierProvider(create: (_) => ServerManager()),
+        ChangeNotifierProxyProvider<ServerManager, AppConfigProvider>(
+          create: (context) =>
+              AppConfigProvider(
+                Provider.of<ServerManager>(context, listen: false),
+              ),
+          update: (context, serverManager, previous) =>
+              previous ?? AppConfigProvider(serverManager),
+        ),
         ChangeNotifierProxyProvider<AppConfigProvider, UploadProvider>(
           create: (context) =>
               UploadProvider(

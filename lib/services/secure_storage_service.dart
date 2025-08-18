@@ -1,127 +1,84 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
-enum AuthMethod {
-  usernamePassword,
-  apiToken,
-}
+import 'dart:convert';
 
 class SecureStorageService {
   static const _storage = FlutterSecureStorage();
+  
+  // Server-specific keys
+  static String _serverPasswordKey(String serverId) => 'server_${serverId}_password';
+  static String _serverApiTokenKey(String serverId) => 'server_${serverId}_api_token';
+  static String _serverSelectedTagsKey(String serverId) => 'server_${serverId}_selected_tags';
+  
+  // Server list management keys
+  static const _serversKey = 'servers';
+  static const _selectedServerKey = 'selected_server_id';
 
-  // Common
-  static const _serverUrlKey = 'server_url';
-  static const _authMethodKey = 'auth_method';
+  // Server-specific methods
+  Future<void> saveServerCredentials(String serverId, String username, String password) async {
+    await _storage.write(key: _serverPasswordKey(serverId), value: password);
+  }
 
-  // Username/Password keys
-  static const _usernameKey = 'username';
-  static const _passwordKey = 'password';
+  Future<void> saveServerApiToken(String serverId, String apiToken) async {
+    await _storage.write(key: _serverApiTokenKey(serverId), value: apiToken);
+  }
 
-  // API Token key
-  static const _apiTokenKey = 'api_token';
+  Future<String?> getServerCredentials(String serverId) async {
+    return await _storage.read(key: _serverPasswordKey(serverId));
+  }
 
-  // Save credentials based on selected authentication method
-  static Future<void> saveCredentials({
-    required String serverUrl,
-    required AuthMethod method,
-    String? username,
-    String? password,
-    String? apiToken,
-  }) async {
+  Future<String?> getServerApiToken(String serverId) async {
+    return await _storage.read(key: _serverApiTokenKey(serverId));
+  }
 
-    // Persist server and auth method
-    await _storage.write(key: _serverUrlKey, value: serverUrl);
-    await _storage.write(key: _authMethodKey, value: method.name);
+  Future<void> saveServerSelectedTags(String serverId, List<int> tagIds) async {
+    final key = _serverSelectedTagsKey(serverId);
+    await _storage.write(key: key, value: jsonEncode(tagIds));
+  }
 
-    // Clear all credential variants first to avoid stale data when switching
-    await _storage.delete(key: _usernameKey);
-    await _storage.delete(key: _passwordKey);
-    await _storage.delete(key: _apiTokenKey);
-
-    // Store only what is needed for the chosen method
-    switch (method) {
-      case AuthMethod.usernamePassword:
-        if (username != null) {
-          await _storage.write(key: _usernameKey, value: username);
-        }
-        if (password != null) {
-          await _storage.write(key: _passwordKey, value: password);
-        }
-        break;
-      case AuthMethod.apiToken:
-        if (apiToken != null) {
-          await _storage.write(key: _apiTokenKey, value: apiToken);
-        }
-        break;
+  Future<List<int>> getServerSelectedTags(String serverId) async {
+    final key = _serverSelectedTagsKey(serverId);
+    final tagsJson = await _storage.read(key: key);
+    if (tagsJson == null) return [];
+    
+    try {
+      final List<dynamic> tagsList = jsonDecode(tagsJson) as List<dynamic>;
+      return tagsList.map((id) => id as int).toList();
+    } catch (e) {
+      return [];
     }
   }
 
-  // Retrieve credentials with awareness of auth method
-  static Future<Map<String, String?>> getCredentials() async {
-    final serverUrl = await _storage.read(key: _serverUrlKey);
-    final authMethodStr = await _storage.read(key: _authMethodKey);
-
-    AuthMethod? method;
-    if (authMethodStr != null) {
-      try {
-        method = AuthMethod.values.firstWhere((m) => m.name == authMethodStr);
-      } catch (e) {
-        method = null;
-      }
-    }
-
-    String? username;
-    String? password;
-    String? apiToken;
-
-    if (method == AuthMethod.apiToken) {
-      apiToken = await _storage.read(key: _apiTokenKey);
-    } else if (method == AuthMethod.usernamePassword) {
-      username = await _storage.read(key: _usernameKey);
-      password = await _storage.read(key: _passwordKey);
-    } else {
-      // Fallback: attempt to infer from existing keys for backward compatibility
-      username = await _storage.read(key: _usernameKey);
-      password = await _storage.read(key: _passwordKey);
-      apiToken = await _storage.read(key: _apiTokenKey);
-      if (apiToken != null && (username == null || password == null)) {
-        method = AuthMethod.apiToken;
-      } else if (username != null || password != null) {
-        method = AuthMethod.usernamePassword;
-      }
-    }
-
-    final result = {
-      'serverUrl': serverUrl,
-      'authMethod': method?.name,
-      'username': username,
-      'password': password,
-      'apiToken': apiToken,
-    };
-    return result;
+  Future<void> saveServers(List<Map<String, dynamic>> servers) async {
+    await _storage.write(key: _serversKey, value: jsonEncode(servers));
   }
 
-  // Clear all credential data regardless of method
-  static Future<void> clearCredentials() async {
-    await _storage.delete(key: _serverUrlKey);
-    await _storage.delete(key: _authMethodKey);
-    await _storage.delete(key: _usernameKey);
-    await _storage.delete(key: _passwordKey);
-    await _storage.delete(key: _apiTokenKey);
+  Future<List<Map<String, dynamic>>> getServers() async {
+    final serversJson = await _storage.read(key: _serversKey);
+    if (serversJson == null) return [];
+    
+    try {
+      final List<dynamic> serversList = jsonDecode(serversJson) as List<dynamic>;
+      return serversList.map((server) => Map<String, dynamic>.from(server as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
-  // Check that required pieces for the stored method exist
-  static Future<bool> hasCredentials() async {
-    final data = await getCredentials();
-    final methodName = data['authMethod'];
+  Future<void> saveSelectedServer(String serverId) async {
+    await _storage.write(key: _selectedServerKey, value: serverId);
+  }
 
-    final has =
-        data['serverUrl'] != null &&
-        methodName != null &&
-        ((methodName == AuthMethod.usernamePassword.name &&
-              data['username'] != null && data['password'] != null) ||
-         (methodName == AuthMethod.apiToken.name &&
-              data['apiToken'] != null));
+  Future<String?> getSelectedServer() async {
+    return await _storage.read(key: _selectedServerKey);
+  }
 
-    return has;
+  Future<void> clearAllData() async {
+    await _storage.deleteAll();
+  }
+
+  Future<void> removeServer(String serverId) async {
+    await _storage.delete(key: _serverPasswordKey(serverId));
+    await _storage.delete(key: _serverApiTokenKey(serverId));
+    await _storage.delete(key: _serverSelectedTagsKey(serverId));
   }
 }

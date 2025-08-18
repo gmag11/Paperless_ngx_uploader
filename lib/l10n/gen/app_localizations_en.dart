@@ -250,4 +250,45 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get allow_self_signed_certificates_description =>
       'Allow connections to servers with self-signed or invalid SSL certificates (not recommended for production)';
+
+  @override
+  String get field_label_server_name => 'Server Name';
+
+  @override
+  String get validation_enter_server_name => 'Please enter server name';
+
+  @override
+  String get action_add_server => 'Add Server';
+
+  @override
+  String get action_edit => 'Edit';
+
+  @override
+  String get action_delete => 'Delete';
+
+  @override
+  String get action_delete_server => 'Delete Server';
+
+  @override
+  String message_delete_server_confirmation(String serverName) {
+    return 'Are you sure you want to delete \"$serverName\"? This action cannot be undone.';
+  }
+
+  @override
+  String get section_title_servers => 'Servers';
+
+  @override
+  String get button_manage_servers => 'Manage Servers';
+
+  @override
+  String server_selected(String serverName) {
+    return 'Selected: $serverName';
+  }
+
+  @override
+  String get server_no_servers_configured => 'No servers configured';
+
+  @override
+  String get server_configure_first =>
+      'Please configure at least one server to start uploading documents';
 }

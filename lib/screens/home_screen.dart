@@ -6,11 +6,15 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../providers/app_config_provider.dart';
+import '../providers/server_manager.dart';
 import '../widgets/tag_selection_dialog.dart';
 import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
+import '../models/server_config.dart';
 import '../services/intent_handler.dart';
 import '../services/permission_service.dart';
+import '../services/paperless_service.dart';
+import '../services/secure_storage_service.dart';
 import '../providers/upload_provider.dart';
 import '../l10n/gen/app_localizations.dart';
 
@@ -33,32 +37,41 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final config = Provider.of<AppConfigProvider>(context, listen: false);
       config.loadConfiguration();
-      
+
       // Check storage permissions on startup
       _checkStoragePermissions();
     });
 
     // Listen for share intent events (filename + file path)
     _intentSub = IntentHandler.eventStream.listen((event) async {
-      developer.log('HomeScreen: Share intent received for file ${event.fileName}', name: 'HomeScreen');
+      developer.log(
+          'HomeScreen: Share intent received for file ${event.fileName}',
+          name: 'HomeScreen');
       setState(() {
         _lastReceivedFileName = event.fileName;
       });
       if (!mounted) {
-        developer.log('HomeScreen: Widget not mounted after intent', name: 'HomeScreen');
+        developer.log('HomeScreen: Widget not mounted after intent',
+            name: 'HomeScreen');
         return;
       }
 
       // Check storage permissions before proceeding with upload
-      developer.log('HomeScreen: Checking storage permissions before upload', name: 'HomeScreen');
-      final hasPermission = await PermissionService.checkAndRequestStoragePermissions(context);
-      developer.log('HomeScreen: PermissionService.checkAndRequestStoragePermissions returned $hasPermission', name: 'HomeScreen');
+      developer.log('HomeScreen: Checking storage permissions before upload',
+          name: 'HomeScreen');
+      final hasPermission =
+          await PermissionService.checkAndRequestStoragePermissions(context);
+      developer.log(
+          'HomeScreen: PermissionService.checkAndRequestStoragePermissions returned $hasPermission',
+          name: 'HomeScreen');
       if (!mounted) {
-        developer.log('HomeScreen: Widget not mounted after permission check', name: 'HomeScreen');
+        developer.log('HomeScreen: Widget not mounted after permission check',
+            name: 'HomeScreen');
         return;
       }
       if (!hasPermission) {
-        developer.log('HomeScreen: Permissions not granted, aborting upload', name: 'HomeScreen');
+        developer.log('HomeScreen: Permissions not granted, aborting upload',
+            name: 'HomeScreen');
         final l10n = AppLocalizations.of(context)!;
         Fluttertoast.showToast(
           msg: l10n.snackbar_upload_error_prefix(l10n.error_permission_denied),
@@ -73,11 +86,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       // Inform provider about warning preference (non-blocking)
-      final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
-      uploadProvider.setIncomingFileWarning(
-        showWarning: event.showWarning,
-        mimeType: event.mimeType,
-      );
+      final uploadProvider =
+          Provider.of<UploadProvider>(context, listen: false);
+      uploadProvider.setIncomingFileWarning(event.showWarning, event.mimeType);
 
       // Visible notification about the received file
       final receivedMsg = 'Received file: ${event.fileName}';
@@ -106,20 +117,17 @@ class _HomeScreenState extends State<HomeScreen> {
         // Ignore loading errors here; upload provider will validate configuration again
       }
 
-      // Read tags at the moment of upload
-      final tags = List<Tag>.from(appConfig.selectedTags);
-
       try {
-        developer.log('HomeScreen: Permissions granted, proceeding to upload', name: 'HomeScreen');
-        await uploadProvider.uploadFile(
+        developer.log('HomeScreen: Permissions granted, proceeding to upload',
+            name: 'HomeScreen');
+        final result = await uploadProvider.uploadFile(
           File(event.filePath),
           event.fileName,
-          tags,
         );
 
         // On success: show confirmation for ~1s then send app to background
         if (!mounted) return;
-        if (uploadProvider.uploadSuccess) {
+        if (result.success) {
           final l10n = AppLocalizations.of(context)!;
           Fluttertoast.showToast(
             msg: l10n.snackbar_file_uploaded,
@@ -147,7 +155,8 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       } catch (e, st) {
-        developer.log('HomeScreen: Exception during upload: $e', name: 'HomeScreen', error: e, stackTrace: st);
+        developer.log('HomeScreen: Exception during upload: $e',
+            name: 'HomeScreen', error: e, stackTrace: st);
         if (!mounted) return;
         final l10n = AppLocalizations.of(context)!;
         final localized = _localizeError(l10n, e.toString());
@@ -174,13 +183,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Checks storage permissions and shows appropriate messages
   Future<void> _checkStoragePermissions() async {
-    developer.log('HomeScreen: Checking storage permissions on startup', name: 'HomeScreen');
+    developer.log('HomeScreen: Checking storage permissions on startup',
+        name: 'HomeScreen');
     final hasPermission = await PermissionService.hasStoragePermissions();
-    developer.log('HomeScreen: hasStoragePermissions returned $hasPermission', name: 'HomeScreen');
+    developer.log('HomeScreen: hasStoragePermissions returned $hasPermission',
+        name: 'HomeScreen');
     if (!hasPermission) {
       // Don't show dialog on startup, just log it
       // The permission will be requested when user tries to upload
-      developer.log('HomeScreen: Storage permissions not granted, will request when needed', name: 'HomeScreen');
+      developer.log(
+          'HomeScreen: Storage permissions not granted, will request when needed',
+          name: 'HomeScreen');
     }
   }
 
@@ -242,7 +255,8 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.settings),
               label: Text(l10n.welcome_action_configure_server),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -256,92 +270,148 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Non-blocking type warning banner
-          Consumer<UploadProvider>(
-            builder: (context, up, _) {
-              final l10n = AppLocalizations.of(context)!;
-              if (up.showTypeWarning) {
-                final mt = up.lastMimeType ?? '';
-                return Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.2),
-                    border: Border.all(color: Colors.amber),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    l10n.banner_type_warning(mt),
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Non-blocking type warning banner
+            Consumer<UploadProvider>(
+              builder: (context, up, _) {
+                final l10n = AppLocalizations.of(context)!;
+                if (up.showTypeWarning) {
+                  final mt = up.lastMimeType ?? '';
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.2),
+                      border: Border.all(color: Colors.amber),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      l10n.banner_type_warning(mt),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            if (_lastReceivedFileName != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.15),
+                  border: Border.all(color: Colors.green),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Builder(
+                  builder: (context) {
+                    final l10n = AppLocalizations.of(context)!;
+                    return Text(
+                      l10n.snackbar_received_file_prefix(
+                          _lastReceivedFileName ?? ''),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    );
+                  },
+                ),
+              ),
+            // Progress indicator card
+            Consumer<UploadProvider>(
+              builder: (context, up, _) {
+                if (!up.isUploading && up.progress == 0.0) {
+                  return const SizedBox.shrink();
+                }
+                final pct =
+                    (up.progress * 100).clamp(0, 100).toStringAsFixed(0);
+                return Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Builder(
+                          builder: (context) {
+                            final l10n = AppLocalizations.of(context)!;
+                            return Text(
+                              l10n.panel_title_uploading_document,
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(
+                          value: up.progress > 0.0 && up.progress <= 1.0
+                              ? up.progress
+                              : null,
+                          minHeight: 8,
+                        ),
+                        const SizedBox(height: 8),
+                        Builder(
+                          builder: (context) {
+                            final l10n = AppLocalizations.of(context)!;
+                            return Text(
+                              up.bytesTotal > 0
+                                  ? l10n.panel_progress_percentage_with_bytes(
+                                      pct,
+                                      up.bytesSent.toString(),
+                                      up.bytesTotal.toString(),
+                                    )
+                                  : l10n.panel_progress_percentage_only(pct),
+                              style: const TextStyle(color: Colors.grey),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-          if (_lastReceivedFileName != null)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.15),
-                border: Border.all(color: Colors.green),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Builder(
-                builder: (context) {
-                  final l10n = AppLocalizations.of(context)!;
-                  return Text(
-                    l10n.snackbar_received_file_prefix(_lastReceivedFileName ?? ''),
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  );
-                },
-              ),
+              },
             ),
-          // Progress indicator card
-          Consumer<UploadProvider>(
-            builder: (context, up, _) {
-              if (!up.isUploading && up.progress == 0.0) {
-                return const SizedBox.shrink();
-              }
-              final pct = (up.progress * 100).clamp(0, 100).toStringAsFixed(0);
-              return Card(
-                elevation: 2,
+            InkWell(
+              child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Builder(
-                        builder: (context) {
-                          final l10n = AppLocalizations.of(context)!;
-                          return Text(
-                            l10n.panel_title_uploading_document,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      LinearProgressIndicator(
-                        value: up.progress > 0.0 && up.progress <= 1.0 ? up.progress : null,
-                        minHeight: 8,
+                      Row(
+                        children: [
+                          Builder(
+                            builder: (context) {
+                              final l10n = AppLocalizations.of(context)!;
+                              return Text(
+                                l10n.section_title_server_configuration,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                          const Spacer(),
+                          Builder(
+                            builder: (context) {
+                              final l10n = AppLocalizations.of(context)!;
+                              return IconButton(
+                                icon: const Icon(Icons.edit, size: 20),
+                                onPressed: () =>
+                                    _showConfigurationDialog(context),
+                                tooltip: l10n.tooltip_edit_tags,
+                              );
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Builder(
                         builder: (context) {
                           final l10n = AppLocalizations.of(context)!;
                           return Text(
-                            up.bytesTotal > 0
-                                ? l10n.panel_progress_percentage_with_bytes(
-                                    pct,
-                                    up.bytesSent.toString(),
-                                    up.bytesTotal.toString(),
-                                  )
-                                : l10n.panel_progress_percentage_only(pct),
+                            config.serverUrl ?? l10n.server_not_configured,
                             style: const TextStyle(color: Colors.grey),
                           );
                         },
@@ -349,12 +419,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-          InkWell(
-            
-            child: Card(
+              ),
+            ),
+            const SizedBox(height: 24),
+            Card(
+              elevation: 2,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -362,11 +431,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Row(
                       children: [
+                        const Icon(Icons.tag, color: Colors.blue),
+                        const SizedBox(width: 8),
                         Builder(
                           builder: (context) {
                             final l10n = AppLocalizations.of(context)!;
                             return Text(
-                              l10n.section_title_server_configuration,
+                              l10n.section_title_tag_configuration,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -380,20 +451,129 @@ class _HomeScreenState extends State<HomeScreen> {
                             final l10n = AppLocalizations.of(context)!;
                             return IconButton(
                               icon: const Icon(Icons.edit, size: 20),
-                              onPressed: () => _showConfigurationDialog(context),
+                              onPressed: () => _showTagSelectionDialog(context),
                               tooltip: l10n.tooltip_edit_tags,
                             );
                           },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) {
-                        final l10n = AppLocalizations.of(context)!;
-                        return Text(
-                          config.serverUrl ?? l10n.server_not_configured,
-                          style: const TextStyle(color: Colors.grey),
+                    const SizedBox(height: 12),
+                    Consumer<AppConfigProvider>(
+                      builder: (context, config, child) {
+                        return FutureBuilder<List<int>>(
+                          future: config.getSelectedTags(),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }
+
+                            final selectedTagIds = snapshot.data!;
+
+                            if (selectedTagIds.isEmpty) {
+                              return Container(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.tag_outlined,
+                                        size: 48, color: Colors.grey),
+                                    const SizedBox(height: 8),
+                                    Builder(
+                                      builder: (context) {
+                                        final l10n =
+                                            AppLocalizations.of(context)!;
+                                        return Column(
+                                          children: [
+                                            Text(
+                                              l10n.empty_tags_title,
+                                              style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 16),
+                                            ),
+                                            Text(
+                                              l10n.empty_tags_subtitle,
+                                              style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return FutureBuilder<List<Tag>>(
+                              future: config.getPaperlessService().then(
+                                  (service) =>
+                                      service?.fetchTags() ?? Future.value([])),
+                              builder: (context, tagsSnapshot) {
+                                if (!tagsSnapshot.hasData) {
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                }
+
+                                final allTags = tagsSnapshot.data!;
+                                final selectedTags = allTags
+                                    .where((tag) =>
+                                        selectedTagIds.contains(tag.id))
+                                    .toList();
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Builder(
+                                      builder: (context) {
+                                        final l10n =
+                                            AppLocalizations.of(context)!;
+                                        return Text(
+                                          l10n.tags_configured_count(
+                                            selectedTags.length.toString(),
+                                            selectedTags.length == 1 ? '' : 's',
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: selectedTags.map((tag) {
+                                        final colorHex = tag.color ?? '#808080';
+                                        final color = Color(
+                                          int.parse(colorHex.replaceFirst(
+                                              '#', '0xff')),
+                                        );
+                                        return Chip(
+                                          label: Text(
+                                            tag.name,
+                                            style: TextStyle(
+                                              color: _getContrastColor(color),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          backgroundColor: color,
+                                          elevation: 1,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
                         );
                       },
                     ),
@@ -401,178 +581,58 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.tag, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Builder(
-                        builder: (context) {
-                          final l10n = AppLocalizations.of(context)!;
-                          return Text(
-                            l10n.section_title_tag_configuration,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          );
-                        },
-                      ),
-                      const Spacer(),
-                      Builder(
-                        builder: (context) {
-                          final l10n = AppLocalizations.of(context)!;
-                          return IconButton(
-                            icon: const Icon(Icons.edit, size: 20),
-                            onPressed: () => _showTagSelectionDialog(context),
-                            tooltip: l10n.tooltip_edit_tags,
-                          );
-                        },
-                      ),
-                    ],
+            const SizedBox(height: 24),
+            Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return Text(
+                  l10n.howto_title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 12),
-                  Consumer<AppConfigProvider>(
-                    builder: (context, config, child) {
-                      if (config.selectedTags.isEmpty) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Column(
-                            children: [
-                              const Icon(Icons.tag_outlined, size: 48, color: Colors.grey),
-                              const SizedBox(height: 8),
-                              Builder(
-                                builder: (context) {
-                                  final l10n = AppLocalizations.of(context)!;
-                                  return Column(
-                                    children: [
-                                      Text(
-                                        l10n.empty_tags_title,
-                                        style: const TextStyle(color: Colors.grey, fontSize: 16),
-                                      ),
-                                      Text(
-                                        l10n.empty_tags_subtitle,
-                                        style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Builder(
+                      builder: (context) {
+                        final l10n = AppLocalizations.of(context)!;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l10n.howto_step_1),
+                            const SizedBox(height: 8),
+                            Text(l10n.howto_step_2),
+                            const SizedBox(height: 8),
+                            Text(l10n.howto_step_3),
+                          ],
                         );
-                      }
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Builder(
-                            builder: (context) {
-                              final l10n = AppLocalizations.of(context)!;
-                              return Text(
-                                l10n.tags_configured_count(
-                                  config.selectedTags.length.toString(),
-                                  config.selectedTags.length == 1 ? '' : 's',
-                                ),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: config.selectedTags.map((tag) {
-                              final colorHex = tag.color ?? '#808080';
-                              final color = Color(
-                                int.parse(colorHex.replaceFirst('#', '0xff')),
-                              );
-                              return Chip(
-                                label: Text(
-                                  tag.name,
-                                  style: TextStyle(
-                                    color: _getContrastColor(color),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                backgroundColor: color,
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Builder(
-            builder: (context) {
-              final l10n = AppLocalizations.of(context)!;
-              return Text(
-                l10n.howto_title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                      },
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Builder(
-                    builder: (context) {
-                      final l10n = AppLocalizations.of(context)!;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l10n.howto_step_1),
-                          const SizedBox(height: 8),
-                          Text(l10n.howto_step_2),
-                          const SizedBox(height: 8),
-                          Text(l10n.howto_step_3),
-                        ],
-                      );
-                    },
-                  ),
-                ],
               ),
             ),
-          ),
-          // const Spacer(),
-          // SizedBox(
-          //   width: double.infinity,
-          //   child: OutlinedButton.icon(
-          //     onPressed: () => _showConfigurationDialog(context),
-          //     icon: const Icon(Icons.edit),
-          //     label: const Text('Edit Server Configuration'),
-          //   ),
-          // ),
-        ],
+            // const Spacer(),
+            // SizedBox(
+            //   width: double.infinity,
+            //   child: OutlinedButton.icon(
+            //     onPressed: () => _showConfigurationDialog(context),
+            //     icon: const Icon(Icons.edit),
+            //     label: const Text('Edit Server Configuration'),
+            //   ),
+            // ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   void _showConfigurationDialog(BuildContext context) {
@@ -582,38 +642,83 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-  void _showTagSelectionDialog(BuildContext context) {
-    final config = Provider.of<AppConfigProvider>(context, listen: false);
-    final paperlessService = config.getPaperlessService();
-    final currentSelectedTags = List<Tag>.from(config.selectedTags);
+  void _showTagSelectionDialog(BuildContext context) async {
+    final serverManager = Provider.of<ServerManager>(context, listen: false);
+    final currentServer = serverManager.selectedServer;
     
-    if (paperlessService == null) {
-      final l10n = AppLocalizations.of(context)!;
-      Fluttertoast.showToast(
-        msg: l10n.snackbar_configure_server_first,
-        toastLength: Toast.LENGTH_LONG,
-        timeInSecForIosWeb: 5,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
+    if (currentServer == null) {
+      if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        Fluttertoast.showToast(
+          msg: l10n.snackbar_configure_server_first,
+          toastLength: Toast.LENGTH_LONG,
+          timeInSecForIosWeb: 5,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
       return;
     }
-    
-    showDialog<List<Tag>>(
-      context: context,
-      builder: (context) => TagSelectionDialog(
-        selectedTags: currentSelectedTags,
-        configProvider: config,
-        paperlessService: paperlessService,
-      ),
-    ).then((selectedTags) {
-      if (selectedTags != null) {
-        config.setSelectedTags(selectedTags);
+
+    try {
+      final paperlessService = PaperlessService(
+        baseUrl: currentServer.serverUrl,
+        username: currentServer.username ?? '',
+        password: currentServer.authMethod == AuthMethod.usernamePassword
+          ? await _getCurrentServerPassword()
+          : '',
+        useApiToken: currentServer.authMethod == AuthMethod.apiToken,
+        apiToken: currentServer.apiToken,
+        allowSelfSignedCertificates: currentServer.allowSelfSignedCertificates,
+      );
+      
+      // Get current selected tags for this server
+      final selectedTagIds = currentServer.defaultTagIds;
+      final allTags = await paperlessService.fetchTags();
+      final currentSelectedTags = allTags
+          .where((tag) => selectedTagIds.contains(tag.id))
+          .toList();
+
+      if (!mounted) return;
+
+      List<Tag>? result;
+      if (context.mounted) {
+        result = await showDialog<List<Tag>>(
+          context: context,
+          builder: (dialogContext) => TagSelectionDialog(
+            selectedTags: currentSelectedTags,
+            paperlessService: paperlessService,
+            initialSelectedTagIds: selectedTagIds,
+            onTagsSelected: (tagIds) async {
+              // Update the server's defaultTagIds
+              final updatedServer = currentServer.copyWith(defaultTagIds: tagIds);
+              await serverManager.updateServer(updatedServer);
+            },
+          ),
+        );
       }
-    });
+
+      if (result != null && mounted) {
+        final newSelectedTagIds = result.map((tag) => tag.id).toList();
+        final updatedServer = currentServer.copyWith(defaultTagIds: newSelectedTagIds);
+        await serverManager.updateServer(updatedServer);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        Fluttertoast.showToast(
+          msg: l10n.error_server,
+          toastLength: Toast.LENGTH_LONG,
+          timeInSecForIosWeb: 5,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    }
   }
 
   Color _getContrastColor(Color color) {
@@ -646,5 +751,14 @@ class _HomeScreenState extends State<HomeScreen> {
         // Fallback: if backend already provided a human message, show it.
         return codeOrMessage;
     }
+  }
+
+  Future<String> _getCurrentServerPassword() async {
+    final serverManager = Provider.of<ServerManager>(context, listen: false);
+    final currentServer = serverManager.selectedServer;
+    if (currentServer == null) return '';
+    
+    final secureStorage = SecureStorageService();
+    return await secureStorage.getServerCredentials(currentServer.id) ?? '';
   }
 }
