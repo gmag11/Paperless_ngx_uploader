@@ -536,15 +536,26 @@ class _ConfigDialogState extends State<ConfigDialog> {
                 obscureText: _passwordLoadedFromStorage ? true : _obscurePassword,
                 enableSuggestions: false,
                 autocorrect: false,
+                onTap: () {
+                  if (_passwordLoadedFromStorage) {
+                    setState(() {
+                      _passwordController.clear();
+                      _passwordLoadedFromStorage = false;
+                      _obscurePassword = true;
+                    });
+                  }
+                },
                 decoration: InputDecoration(
                   labelText: l10n.field_label_password,
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
                     icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
                     onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
+                      if (!_passwordLoadedFromStorage) {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      }
                     },
                   ),
                 ),
@@ -560,18 +571,30 @@ class _ConfigDialogState extends State<ConfigDialog> {
             ] else ...[
               TextFormField(
                 controller: _tokenController,
+                autofillHints: const [AutofillHints.password],
                 obscureText: _tokenLoadedFromStorage ? true : _obscureToken,
                 enableSuggestions: false,
                 autocorrect: false,
+                onTap: () {
+                  if (_tokenLoadedFromStorage) {
+                    setState(() {
+                      _tokenController.clear();
+                      _tokenLoadedFromStorage = false;
+                      _obscureToken = true;
+                    });
+                  }
+                },
                 decoration: InputDecoration(
                   labelText: l10n.field_label_api_token,
                   prefixIcon: const Icon(Icons.key),
                   suffixIcon: IconButton(
                     icon: Icon(_obscureToken ? Icons.visibility : Icons.visibility_off),
                     onPressed: () {
-                      setState(() {
-                        _obscureToken = !_obscureToken;
-                      });
+                      if (!_tokenLoadedFromStorage) {
+                        setState(() {
+                          _obscureToken = !_obscureToken;
+                        });
+                      }
                     },
                   ),
                 ),
