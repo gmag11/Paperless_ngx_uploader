@@ -486,7 +486,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<_AuthMethod>(
-              value: _authMethod,
+              initialValue: _authMethod,
               decoration: InputDecoration(
                 labelText: l10n.field_label_auth_method,
                 prefixIcon: const Icon(Icons.security),
