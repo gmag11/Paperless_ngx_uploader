@@ -10,7 +10,7 @@ plugins {
 android {
     // Apply final namespace/applicationId
     namespace = "net.gmartin.paperlessngx_uploader"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     // Load keystore properties if present
