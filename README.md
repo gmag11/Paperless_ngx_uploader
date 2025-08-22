@@ -13,7 +13,7 @@ This repository is an updated/re‑implemented version inspired by that project,
 
 ## Screenshots
 
-![Screenshot1](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/01.jpg) ![Screenshot2](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/02.png) ![Screenshot3](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/03.png)
+![Screenshot1](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/01.jpg) ![Screenshot2](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/02.jpg) ![Screenshot3](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/03.jpg) ![Screenshot4](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/04.jpg)
 
 ## Features
 
