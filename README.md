@@ -15,19 +15,18 @@ This repository is an updated/re‑implemented version inspired by that project,
 
 ![Screenshot1](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/01.jpg) ![Screenshot2](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/02.png) ![Screenshot3](https://raw.githubusercontent.com/gmag11/Paperless_ngx_uploader/main/fastlane/metadata/android/en-US/images/phoneScreenshots/03.png)
 
-
 ## Features
 
 - Android native Share Intent integration (supports multiple files in a single action).
-- Paperless‑NGX server configuration (URL), username and password.
+- **Multiple Paperless‑NGX server profiles:** Add, edit, and switch between multiple server configurations, each with independent credentials and default tags.
 - Secure credential storage with automatic recovery on startup.
 - Connection test with feedback (success, invalid credentials, unreachable host).
-- Tag management:
-  - Fetches tags from Paperless‑NGX after a valid connection.
+- Tag management per server:
+  - Fetches tags from the active Paperless‑NGX server after a valid connection.
   - Tag selection dialog with search/filter.
-  - Option to set default tags for uploads.
-  - Selected tags are persisted and restored on startup.
-- Uploads shared documents with the configured/default tags.
+  - Option to set default tags for uploads (specific to each server profile).
+  - Selected tags are persisted per server and restored on startup.
+- Uploads shared documents with the configured/default tags of the selected server.
 - Upload status indicator; on failure, a Snackbar notifies the user.
 - On success, the app returns to background.
 
@@ -91,18 +90,28 @@ flutter build apk --release
 The APK will be generated at:
 `build/app/outputs/flutter-apk/app-release.apk`
 
+## Server Management and Multi‑Server Support
+
+You can use multiple Paperless‑NGX servers within the app. Each server has its own profile, credentials, and default tag configuration.
+
+**How it works:**
+
+- When opening the app, you can add multiple servers, each with its own URL, authentication (username/password or token), and tags.
+- Switch between servers using the server manager dialog; the selected server becomes active for uploads and tag fetching.
+- All credentials and tag selections are stored securely and separately for each server.
+- You can edit or remove server profiles at any time.
+
 ## First‑time configuration
 
 When opening/using the app for the first time:
 
-- Enter the server URL (including protocol, e.g., <https://paperless.example.tld>).
-- Enter Paperless‑NGX username and password.
-- Alternatively, if your Paperless‑NGX instance uses OpenID login, you can provide an access token instead of username/password.
+- Add one or more Paperless‑NGX server profiles by providing the server URL (including protocol, e.g., <https://paperless.example.tld>).
+- For each server, enter the username and password, or—if your Paperless‑NGX instance uses OpenID—an access token.
 - Tap "Test connection". You'll see one of:
   - Success: credentials stored, tags fetched.
   - Invalid credentials: check username/password or access token.
   - Unreachable host: verify URL or network.
-- Optionally select default tags. The selection is saved and restored on startup.
+- Optionally select default tags for each server. Each server's tag selection is saved and restored independently.
 
 The app will not repeatedly prompt for tags; configure them when convenient.
 
@@ -165,7 +174,7 @@ Formatting/linting:
 
 ## Scope and status
 
-- Supports a single Paperless‑NGX server.
+- Supports multiple Paperless‑NGX servers (multi-server mode).
 - Multiple files per share action.
 - Simple, focused UI to complete uploads quickly.
 
