@@ -13,6 +13,10 @@ class AppConfigProvider extends ChangeNotifier {
   final ServerManager _serverManager;
   // final SecureStorageService _storageService = SecureStorageService();
   final StringCallback? _translate;
+  // Local fallback when no server is configured. This allows UI switches
+  // (like allowSelfSignedCertificates) to be toggled before any server
+  // exists and the value to be used when creating a new server.
+  bool _allowSelfSignedCertificates = false;
 
   AppConfigProvider(this._serverManager, {StringCallback? translate}) : _translate = translate {
     _serverManager.addListener(_onServerChanged);
@@ -38,7 +42,8 @@ class AppConfigProvider extends ChangeNotifier {
   String? get username => _serverManager.selectedServer?.username;
   String? get password => null; // Always null for security
   String? get apiToken => null; // Always null for security
-  bool get allowSelfSignedCertificates => _serverManager.selectedServer?.allowSelfSignedCertificates ?? false;
+  bool get allowSelfSignedCertificates =>
+      _serverManager.selectedServer?.allowSelfSignedCertificates ?? _allowSelfSignedCertificates;
 
   // Connection status and error
   ConnectionStatus _connectionStatus = ConnectionStatus.notConfigured;
@@ -88,6 +93,11 @@ class AppConfigProvider extends ChangeNotifier {
         allowSelfSignedCertificates: allow,
       );
       await _serverManager.updateServer(updatedServer);
+    } else {
+      // No server configured yet: update local fallback so UI reflects the
+      // change and the value can be used when creating a new server.
+      _allowSelfSignedCertificates = allow;
+      notifyListeners();
     }
   }
 
