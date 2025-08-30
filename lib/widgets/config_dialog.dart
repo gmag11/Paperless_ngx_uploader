@@ -246,13 +246,28 @@ class _ConfigDialogState extends State<ConfigDialog> {
 
         developer.log('Server configuration completed successfully', name: 'ConfigDialog');
 
-        Fluttertoast.showToast(
-          msg: l10n.connectionSuccess,
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
+        try {
+          await Fluttertoast.showToast(
+            msg: l10n.connectionSuccess,
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+        } catch (e, st) {
+          // Some platforms (desktop) or misconfigured runners may not have the
+          // fluttertoast plugin registered which throws MissingPluginException.
+          // Fallback to a SnackBar so the user still receives feedback.
+          developer.log('Fluttertoast unavailable or failed: $e', name: 'ConfigDialog', error: e, stackTrace: st);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n.connectionSuccess),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
 
         if (mounted) {
           _clearForm();
