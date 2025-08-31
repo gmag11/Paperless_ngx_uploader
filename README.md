@@ -5,12 +5,20 @@ Flutter application for Android that uploads documents to Paperless‑NGX direct
 **Origin project**: Paperless Share — <https://github.com/qcasey/paperless_share>
 This repository is an updated/re‑implemented version inspired by that project, using Flutter and current Android support.
 
-[<img src="https://shields.rbtlog.dev/simple/net.gmartin.paperlessngx_uploader" alt="RB shield">](https://shields.rbtlog.dev/net.gmartin.paperlessngx_uploader)
-[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/net.gmartin.paperlessngx_uploader)](https://apt.izzysoft.de/packages/net.gmartin.paperlessngx_uploader)
+<p align="center">
+  <a href="https://shields.rbtlog.dev/net.gmartin.paperlessngx_uploader">
+    <img src="https://shields.rbtlog.dev/simple/net.gmartin.paperlessngx_uploader" alt="RB shield" />
+  </a>
+  <a href="https://apt.izzysoft.de/packages/net.gmartin.paperlessngx_uploader">
+    <img src="https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/net.gmartin.paperlessngx_uploader" alt="IzzyOnDroid" />
+  </a>
+</p>
 
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png"
-     alt="Get it on IzzyOnDroid"
-     height="80">](https://apt.izzysoft.de/packages/net.gmartin.paperlessngx_uploader)
+<p align="center">
+  <a href="https://apt.izzysoft.de/packages/net.gmartin.paperlessngx_uploader">
+    <img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height="80" />
+  </a>
+</p>
 
 ## Screenshots
 
