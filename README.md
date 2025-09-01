@@ -13,6 +13,9 @@ This repository is an updated/re‑implemented version inspired by that project,
     <img src="https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/net.gmartin.paperlessngx_uploader" alt="IzzyOnDroid" />
   </a>
   <a href="https://github.com/gmag11/Paperless_ngx_uploader/releases/latest">
+    <img alt="GitHub Release" src="https://img.shields.io/github/v/release/gmag11/Paperless_ngx_uploader">
+  </a>
+  <a href="https://github.com/gmag11/Paperless_ngx_uploader/releases/latest">
     <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/gmag11/Paperless_ngx_uploader/build-release-apks.yml">
   </a>
 </p>
