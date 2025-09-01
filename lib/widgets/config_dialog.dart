@@ -88,9 +88,11 @@ class _ConfigDialogState extends State<ConfigDialog> {
   }
 
   Future<void> _loadServerForEdit(ServerConfig server) async {
+    if (!mounted) return;
     final credentials = await Provider.of<ServerManager>(context, listen: false)
         .getServerCredentials(server.id);
     
+    if (!mounted) return;
     setState(() {
       _serverNameController.text = server.name;
       _serverUrlController.text = server.serverUrl;
@@ -140,6 +142,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
   }
 
   Future<void> _saveAndTestServer() async {
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     if (!_serverFormKey.currentState!.validate()) {
       return;
@@ -152,6 +155,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       });
     }
 
+    if (!mounted) return;
     final config = Provider.of<AppConfigProvider>(context, listen: false);
     final serverManager = Provider.of<ServerManager>(context, listen: false);
 
@@ -194,6 +198,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       // Preserve existing defaultTagIds when updating server
       List<int> existingDefaultTagIds = [];
       if (_editingServerId != null) {
+        if (!mounted) return;
         final serverManager = Provider.of<ServerManager>(context, listen: false);
         final existingServer = serverManager.getServer(_editingServerId!);
         if (existingServer != null) {
@@ -202,6 +207,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
         }
       }
 
+      if (!mounted) return;
       final config = Provider.of<AppConfigProvider>(context, listen: false);
       final serverId = _editingServerId ?? ServerConfig.generateId();
       
@@ -692,6 +698,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
           ),
           TextButton(
             onPressed: () async {
+              if (!context.mounted) return;
               await Provider.of<ServerManager>(context, listen: false)
                   .removeServer(server.id);
               if (context.mounted) {
