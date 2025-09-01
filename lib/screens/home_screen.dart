@@ -234,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
         child: Container(
-          color: _dragging ? Colors.blue.withOpacity(0.04) : null,
+          color: _dragging ? Colors.blue.withValues(alpha: 0.04) : null,
           child: Consumer<AppConfigProvider>(
             builder: (context, config, child) {
               if (!config.isConfigured) {
