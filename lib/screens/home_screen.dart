@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../utils/ui_helper.dart';
 import '../providers/app_config_provider.dart';
 import '../providers/server_manager.dart';
 import '../widgets/tag_selection_dialog.dart';
@@ -30,6 +32,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String? _lastReceivedFileName;
   StreamSubscription<ShareReceivedEvent>? _intentSub;
+  bool _dragging = false;
 
   @override
   void initState() {
@@ -100,15 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Visible notification about the received file
     final receivedMsg = 'Received file: ${event.fileName}';
-    Fluttertoast.showToast(
-      msg: receivedMsg,
-      toastLength: Toast.LENGTH_SHORT,
-      timeInSecForIosWeb: 2,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.black87,
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
+  UIHelper.showMessage(context, receivedMsg, success: true);
 
     // Trigger immediate upload without leaving the main screen
     final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
@@ -136,30 +131,31 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       if (result.success) {
         final l10n = AppLocalizations.of(context)!;
-        Fluttertoast.showToast(
-          msg: l10n.snackbar_file_uploaded,
-          toastLength: Toast.LENGTH_SHORT,
-          timeInSecForIosWeb: 2,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
+  UIHelper.showMessage(context, l10n.snackbar_file_uploaded, success: true);
         await Future.delayed(const Duration(seconds: 2));
         if (!mounted) return;
-        SystemNavigator.pop();
+        // On Android the app was previously sent to background. On desktop, keep app
+        // open and reset the provider/UI so the progress indicator and banners are cleared.
+        try {
+          if (Platform.isAndroid) {
+            SystemNavigator.pop();
+          } else {
+            uploadProvider.resetUploadState();
+            setState(() {
+              _lastReceivedFileName = null;
+            });
+          }
+        } catch (_) {
+          // If Platform check fails for any reason, fallback to resetting UI.
+          uploadProvider.resetUploadState();
+          setState(() {
+            _lastReceivedFileName = null;
+          });
+        }
       } else if (uploadProvider.uploadError != null) {
         final l10n = AppLocalizations.of(context)!;
         final localized = _localizeError(l10n, uploadProvider.uploadError!);
-        Fluttertoast.showToast(
-          msg: l10n.snackbar_upload_error_prefix(localized),
-          toastLength: Toast.LENGTH_LONG,
-          timeInSecForIosWeb: 5,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
+  UIHelper.showMessage(context, l10n.snackbar_upload_error_prefix(localized), success: false);
       }
     } catch (e, st) {
       developer.log('HomeScreen: Exception during upload: $e', name: 'HomeScreen', error: e, stackTrace: st);
@@ -217,18 +213,38 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // Wrap body with DropTarget for desktop platforms (Windows/Linux/macOS)
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appbar_title_home),
       ),
-      body: Consumer<AppConfigProvider>(
-        builder: (context, config, child) {
-          if (!config.isConfigured) {
-            return _buildWelcomeScreen(context);
-          }
-
-          return _buildMainScreen(context, config);
+      body: DropTarget(
+        onDragEntered: (details) {
+          setState(() => _dragging = true);
         },
+        onDragExited: (details) {
+          setState(() => _dragging = false);
+        },
+        onDragDone: (details) async {
+          setState(() => _dragging = false);
+          final paths = details.files.map((f) => f.path).whereType<String>().toList();
+          if (paths.isNotEmpty) {
+            // Forward to IntentHandler's desktop handler
+            await IntentHandler.handleLocalFiles(paths);
+          }
+        },
+        child: Container(
+          color: _dragging ? Colors.blue.withOpacity(0.04) : null,
+          child: Consumer<AppConfigProvider>(
+            builder: (context, config, child) {
+              if (!config.isConfigured) {
+                return _buildWelcomeScreen(context);
+              }
+
+              return _buildMainScreen(context, config);
+            },
+          ),
+        ),
       ),
     );
   }
@@ -701,15 +717,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (currentServer == null) {
       if (context.mounted) {
         final l10n = AppLocalizations.of(context)!;
-        Fluttertoast.showToast(
-          msg: l10n.snackbar_configure_server_first,
-          toastLength: Toast.LENGTH_LONG,
-          timeInSecForIosWeb: 5,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
+    UIHelper.showMessage(context, l10n.snackbar_configure_server_first, success: false);
       }
       return;
     }

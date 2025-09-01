@@ -3,8 +3,10 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  desktop_drop
   flutter_secure_storage_linux
   url_launcher_linux
+  window_size
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

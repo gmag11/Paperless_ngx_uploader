@@ -5,6 +5,10 @@ import 'dart:io' show File, Platform;
 import 'package:path/path.dart' as p;
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
+// For desktop file drag-and-drop we will accept plain file paths and reuse
+// the same processing pipeline as the share intent. This keeps behavior
+// consistent across platforms.
+
 /// Event emitted to UI when a share intent is received.
 /// Adds validation info and a warning flag so UI can show a non-blocking banner.
 class ShareReceivedEvent {
@@ -223,5 +227,81 @@ class IntentHandler {
       developer.log('Error resetting intent: $e',
           name: 'IntentHandler.resetIntent', error: e, stackTrace: st);
     }
+  }
+
+  /// Public helper for desktop platforms: accept a list of local file paths
+  /// (from drag-and-drop) and process them like a share intent.
+  ///
+  /// This method is safe to call from Windows/Linux/macOS where
+  /// `ReceiveSharingIntent` is not available.
+  static Future<void> handleLocalFiles(List<String> filePaths) async {
+    developer.log('IntentHandler.handleLocalFiles: start (${filePaths.length} files)', name: 'IntentHandler');
+    if (filePaths.isEmpty) return;
+
+    try {
+      await _handleSharedFilePaths(filePaths);
+    } catch (e, st) {
+      developer.log('IntentHandler.handleLocalFiles: error $e', name: 'IntentHandler', error: e, stackTrace: st);
+    }
+    developer.log('IntentHandler.handleLocalFiles: end', name: 'IntentHandler');
+  }
+
+  static Future<void> _handleSharedFilePaths(List<String> paths) async {
+    developer.log('IntentHandler._handleSharedFilePaths: start (${paths.length} files)', name: 'IntentHandler');
+    if (paths.isEmpty) return;
+
+    final events = <ShareReceivedEvent>[];
+
+    // Clear pending events if any (app launched by drag-drop)
+    _pendingEvents.clear();
+
+    for (final filePath in paths) {
+      final fileName = filePath.split(RegExp(r'[\\/]+')).last;
+      developer.log('IntentHandler._handleSharedFilePaths: processing file $filePath', name: 'IntentHandler');
+
+      String? mime = _guessMimeFromPath(filePath);
+      int? size;
+      try {
+        final f = File(filePath);
+        if (await f.exists()) {
+          size = await f.length();
+        }
+      } catch (e, st) {
+        developer.log('IntentHandler._handleSharedFilePaths: error accessing file $filePath: $e', name: 'IntentHandler', error: e, stackTrace: st);
+      }
+
+      final supported = _isSupported(mime, fileName);
+      final showWarning = !supported;
+
+      final event = ShareReceivedEvent(
+        fileName: fileName,
+        filePath: filePath,
+        mimeType: mime,
+        fileSizeBytes: size,
+        supportedType: supported,
+        showWarning: showWarning,
+      );
+
+      events.add(event);
+      _pendingEvents.add(event);
+
+      if (!_eventController.isClosed) {
+        _eventController.add(event);
+      }
+    }
+
+    if (events.isNotEmpty && !_batchEventController.isClosed) {
+      _batchEventController.add(ShareReceivedBatchEvent(files: events));
+    }
+
+    developer.log('IntentHandler._handleSharedFilePaths: end', name: 'IntentHandler');
+  }
+
+  static String? _guessMimeFromPath(String filePath) {
+    final ext = p.extension(filePath).toLowerCase();
+    for (final entry in _supportedTypes.entries) {
+      if (entry.value.contains(ext)) return entry.key;
+    }
+    return null;
   }
 }

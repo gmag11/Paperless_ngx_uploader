@@ -9,10 +9,36 @@ import 'services/intent_handler.dart';
 import 'services/legacy_migration_service.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
+
+// Optional: only import window_size on desktop platforms
+// ignore: uri_does_not_exist
+import 'package:window_size/window_size.dart' as window_size;
 
 void main() async {
   // Ensure bindings so we can initialize platform channels safely
   WidgetsFlutterBinding.ensureInitialized();
+
+  // On desktop platforms, set a compact small window size similar to a
+  // smartphone default. Use a conservative size that works on typical
+  // desktop screens.
+  try {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      const width = 420.0; // compact width
+      const height = 620.0; // compact height
+      final screen = await window_size.getCurrentScreen();
+      if (screen != null) {
+        final frame = screen.visibleFrame;
+        final left = (frame.width - width) / 2 + frame.left;
+        final top = (frame.height - height) / 2 + frame.top;
+        window_size.setWindowFrame(Rect.fromLTWH(left, top, width, height));
+        window_size.setWindowTitle('Paperless-NGX Uploader');
+        window_size.setWindowMinSize(const Size(360, 600));
+      }
+    }
+  } catch (e) {
+    developer.log('Could not set desktop window size: $e', name: 'main');
+  }
 
   // Initialize Android share intent handling
   IntentHandler.initialize();
