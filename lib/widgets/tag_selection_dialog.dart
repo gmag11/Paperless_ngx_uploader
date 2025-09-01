@@ -148,6 +148,17 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
               decoration: InputDecoration(
                 labelText: l10n.search_label_search_tags,
                 prefixIcon: const Icon(Icons.search),
+                // Show a clear button when there's text in the field
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Clear',
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterTags();
+                        },
+                      )
+                    : null,
                 border: const OutlineInputBorder(),
               ),
             ),
