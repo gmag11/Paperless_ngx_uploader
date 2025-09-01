@@ -85,6 +85,11 @@
     "description": "Button to open the tag selection dialog for default tags."
   },
 
+  "action_clear": "Clear",
+  "@action_clear": {
+    "description": "Tooltip for the clear search button in tag selection dialog"
+  },
+
   "snackbar_received_file_prefix": "File: {fileName}",
   "@snackbar_received_file_prefix": {
     "description": "Shown when a file is received from the Android share intent",
@@ -273,6 +278,11 @@
   "error_invalid_response": "Invalid server response.",
   "@error_invalid_response": {
     "description": "Error message shown when server response is malformed or unexpected."
+  },
+
+  "error_loading_tags": "Error loading tags",
+  "@error_loading_tags": {
+    "description": "Shown when the app fails to load tags from the server."
   },
 
   "field_label_auth_method": "Authentication Method",

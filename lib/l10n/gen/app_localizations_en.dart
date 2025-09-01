@@ -67,6 +67,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get action_select_default_tags => 'Select Default Tags';
 
   @override
+  String get action_clear => 'Clear';
+
+  @override
   String snackbar_received_file_prefix(String fileName) {
     return 'File: $fileName';
   }
@@ -181,6 +184,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get error_invalid_response => 'Invalid server response.';
+
+  @override
+  String get error_loading_tags => 'Error loading tags';
 
   @override
   String get field_label_auth_method => 'Authentication Method';

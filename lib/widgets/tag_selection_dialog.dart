@@ -152,7 +152,7 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        tooltip: 'Clear',
+                        tooltip: l10n.action_clear,
                         onPressed: () {
                           _searchController.clear();
                           _filterTags();

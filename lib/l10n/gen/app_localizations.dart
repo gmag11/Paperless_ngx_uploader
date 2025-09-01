@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'Select Default Tags'**
   String get action_select_default_tags;
 
+  /// Tooltip for the clear search button in tag selection dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get action_clear;
+
   /// Shown when a file is received from the Android share intent
   ///
   /// In en, this message translates to:
@@ -404,6 +410,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid server response.'**
   String get error_invalid_response;
+
+  /// Shown when the app fails to load tags from the server.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading tags'**
+  String get error_loading_tags;
 
   /// Label for the dropdown where user selects authentication method.
   ///

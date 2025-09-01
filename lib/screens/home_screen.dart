@@ -101,9 +101,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
     uploadProvider.setIncomingFileWarning(event.showWarning, event.mimeType);
 
-    // Visible notification about the received file
-    final receivedMsg = 'Received file: ${event.fileName}';
-  UIHelper.showMessage(context, receivedMsg, success: true);
+  // Visible notification about the received file (localized)
+  final l10n = AppLocalizations.of(context)!;
+  UIHelper.showMessage(context, l10n.snackbar_received_file_prefix(event.fileName), success: true);
 
     // Trigger immediate upload without leaving the main screen
     final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
@@ -579,9 +579,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             
                             if (tagsSnapshot.hasError) {
                               developer.log('HomeScreen: Error loading tags: ${tagsSnapshot.error}', name: 'HomeScreen');
+                              final l10n = AppLocalizations.of(context)!;
                               return Container(
                                 padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: const Text('Error loading tags', style: TextStyle(color: Colors.red)),
+                                child: Text(l10n.error_loading_tags, style: const TextStyle(color: Colors.red)),
                               );
                             }
 

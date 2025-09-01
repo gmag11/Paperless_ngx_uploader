@@ -85,6 +85,11 @@
     "description": "Botón para abrir el diálogo de selección de etiquetas por defecto."
   },
 
+  "action_clear": "Borrar",
+  "@action_clear": {
+    "description": "Tooltip para el botón de limpiar la búsqueda en el diálogo de selección de etiquetas"
+  },
+
   "snackbar_received_file_prefix": "Archivo: {fileName}",
   "@snackbar_received_file_prefix": {
     "description": "Se muestra cuando se recibe un archivo desde la intención de compartir de Android",
@@ -466,5 +471,10 @@
   "server_configure_first": "Por favor, configura al menos un servidor para comenzar a subir documentos",
   "@server_configure_first": {
     "description": "Mensaje mostrado cuando el usuario necesita configurar un servidor antes de usar la aplicación."
+  }
+  ,
+  "error_loading_tags": "Error al cargar etiquetas",
+  "@error_loading_tags": {
+    "description": "Se muestra cuando la app no puede cargar las etiquetas desde el servidor."
   }
 }

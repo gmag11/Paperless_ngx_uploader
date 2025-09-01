@@ -69,6 +69,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get action_select_default_tags => 'Seleccionar etiquetas por defecto';
 
   @override
+  String get action_clear => 'Borrar';
+
+  @override
   String snackbar_received_file_prefix(String fileName) {
     return 'Archivo: $fileName';
   }
@@ -187,6 +190,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get error_invalid_response => 'Respuesta del servidor no válida.';
+
+  @override
+  String get error_loading_tags => 'Error al cargar etiquetas';
 
   @override
   String get field_label_auth_method => 'Método de autenticación';
