@@ -1,0 +1,2 @@
+json_key_file("")        # Path to your Google Play JSON key file
+package_name("net.gmartin.paperlessngx_uploader")

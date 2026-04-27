@@ -5,7 +5,10 @@ allprojects {
     }
 }
 
-val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
+val newBuildDir: Directory =
+    rootProject.layout.buildDirectory
+        .dir("../../build")
+        .get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
@@ -14,14 +17,6 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
-    
-    project.plugins.withId("org.jetbrains.kotlin.android") {
-        project.extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension> {
-            compilerOptions {
-                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-            }
-        }
-    }
 }
 
 tasks.register<Delete>("clean") {
