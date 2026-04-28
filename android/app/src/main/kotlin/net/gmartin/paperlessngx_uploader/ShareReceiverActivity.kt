@@ -1,7 +1,10 @@
 package net.gmartin.paperlessngx_uploader
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -12,20 +15,18 @@ class ShareReceiverActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Handle the share intent
         handleShareIntent(intent)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getSharedFile" -> {
                         result.success(sharedFilePaths)
-                        sharedFilePaths = emptyList() // Clear after reading
+                        sharedFilePaths = emptyList()
                     }
                     else -> result.notImplemented()
                 }
@@ -41,40 +42,44 @@ class ShareReceiverActivity : FlutterActivity() {
         when (intent.action) {
             Intent.ACTION_SEND -> {
                 if (intent.type != null) {
-                    val uri = intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)
-                    uri?.let {
-                        getRealPathFromURI(it)?.let { path ->
-                            sharedFilePaths = listOf(path)
-                        }
+                    val uri = intent.getParcelableExtraCompat<Uri>(Intent.EXTRA_STREAM)
+                    uri?.let { sharedFilePaths = listOf(uriToString(it)) }
+                }
+            }
+            Intent.ACTION_SEND_MULTIPLE -> {
+                if (intent.type != null) {
+                    val uris = intent.getParcelableArrayListExtraCompat<Uri>(Intent.EXTRA_STREAM)
+                    if (!uris.isNullOrEmpty()) {
+                        sharedFilePaths = uris.map { uriToString(it) }
                     }
                 }
             }
         }
     }
 
-    private fun getRealPathFromURI(uri: android.net.Uri): String? {
-        var path: String? = null
-        
-        // Handle content:// URIs
-        if (uri.scheme == "content") {
-            val cursor = contentResolver.query(uri, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val columnIndex = it.getColumnIndex(android.provider.MediaStore.Images.Media.DATA)
-                    if (columnIndex != -1) {
-                        path = it.getString(columnIndex)
-                    }
-                }
-            }
-            
-            // Fallback for documents
-            if (path == null) {
-                path = uri.toString()
-            }
-        } else if (uri.scheme == "file") {
-            path = uri.path
+    /**
+     * Returns a string representation of the URI suitable for the Flutter layer.
+     * For content:// URIs we return the URI string directly; the Dart side uses
+     * the uri with a ContentResolver to open an InputStream, which is the modern
+     * approach since MediaStore.Images.Media.DATA is deprecated since API 29.
+     */
+    private fun uriToString(uri: Uri): String = uri.toString()
+
+    // ── Compat helpers ────────────────────────────────────────────────────────
+
+    private inline fun <reified T : Parcelable> Intent.getParcelableExtraCompat(key: String): T? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableExtra(key, T::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            getParcelableExtra(key)
         }
-        
-        return path
-    }
+
+    private inline fun <reified T : Parcelable> Intent.getParcelableArrayListExtraCompat(key: String): ArrayList<T>? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableArrayListExtra(key, T::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            getParcelableArrayListExtra(key)
+        }
 }
