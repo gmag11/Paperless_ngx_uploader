@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io' show File, Platform;
 
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 // For desktop file drag-and-drop we will accept plain file paths and reuse
 // the same processing pipeline as the share intent. This keeps behavior
@@ -54,12 +54,15 @@ class IntentHandler {
     'image/webp': ['.webp'],
   };
 
+  static const _methodChannel = MethodChannel('net.gmartin.paperlessngx_uploader/share');
+  static const _eventChannel = EventChannel('net.gmartin.paperlessngx_uploader/share_stream');
+
   // Broadcast streams for UI to listen for received share events
   static final StreamController<ShareReceivedEvent> _eventController =
       StreamController<ShareReceivedEvent>.broadcast();
   static final StreamController<ShareReceivedBatchEvent> _batchEventController =
       StreamController<ShareReceivedBatchEvent>.broadcast();
-  static StreamSubscription<List<SharedMediaFile>>? _mediaSub;
+  static StreamSubscription<dynamic>? _streamSub;
 
   static Stream<ShareReceivedEvent> get eventStream => _eventController.stream;
   static Stream<ShareReceivedBatchEvent> get batchEventStream => _batchEventController.stream;
@@ -73,16 +76,19 @@ class IntentHandler {
 
     await _handleInitialIntent();
 
-    _mediaSub?.cancel();
-    _mediaSub = ReceiveSharingIntent.instance.getMediaStream().listen(
-      (List<SharedMediaFile> value) {
-        developer.log('IntentHandler.getMediaStream: received ${value.length} files', name: 'IntentHandler');
-        if (value.isNotEmpty) {
-          _handleSharedFiles(value);
+    _streamSub?.cancel();
+    _streamSub = _eventChannel.receiveBroadcastStream().listen(
+      (dynamic data) {
+        if (data is List) {
+          final paths = data.cast<String>();
+          developer.log('IntentHandler.eventChannel: received ${paths.length} files', name: 'IntentHandler');
+          if (paths.isNotEmpty) {
+            _handleSharedFilePaths(paths);
+          }
         }
       },
       onError: (e, st) {
-        developer.log('getMediaStream: error $e',
+        developer.log('eventChannel: error $e',
             name: 'IntentHandler', error: e, stackTrace: st);
       },
     );
@@ -90,7 +96,7 @@ class IntentHandler {
   }
 
   static Future<void> dispose() async {
-    await _mediaSub?.cancel();
+    await _streamSub?.cancel();
     await _eventController.close();
     await _batchEventController.close();
   }
@@ -98,11 +104,11 @@ class IntentHandler {
   static Future<void> _handleInitialIntent() async {
     developer.log('IntentHandler._handleInitialIntent: start', name: 'IntentHandler');
     try {
-      final sharedFiles =
-          await ReceiveSharingIntent.instance.getInitialMedia();
-      developer.log('IntentHandler._handleInitialIntent: received ${sharedFiles.length} files', name: 'IntentHandler');
-      if (sharedFiles.isNotEmpty) {
-        _handleSharedFiles(sharedFiles);
+      final result = await _methodChannel.invokeMethod<List<dynamic>>('getInitialSharedFiles');
+      final paths = result?.cast<String>() ?? <String>[];
+      developer.log('IntentHandler._handleInitialIntent: received ${paths.length} files', name: 'IntentHandler');
+      if (paths.isNotEmpty) {
+        await _handleSharedFilePaths(paths);
       }
     } catch (e, st) {
       developer.log('Error handling initial intent: $e',
@@ -111,81 +117,6 @@ class IntentHandler {
           stackTrace: st);
     }
     developer.log('IntentHandler._handleInitialIntent: end', name: 'IntentHandler');
-  }
-
-  static void _handleSharedFiles(List<SharedMediaFile> files) async {
-    developer.log('IntentHandler._handleSharedFiles: start (${files.length} files)', name: 'IntentHandler');
-    if (files.isEmpty) {
-      developer.log('IntentHandler._handleSharedFiles: no files', name: 'IntentHandler');
-      return;
-    }
-
-    final events = <ShareReceivedEvent>[];
-    // Keep pending events in case UI listeners aren't attached yet (app launched by share)
-    // These will be consumed by the UI when it is ready.
-    _pendingEvents.clear();
-
-    // Process each file to create events
-    for (final file in files) {
-      final filePath = file.path;
-      developer.log('IntentHandler._handleSharedFiles: processing $filePath', name: 'IntentHandler');
-
-      ShareReceivedEvent event;
-
-      if (_isUrl(filePath)) {
-        // Shared as a URL (e.g. from a browser)
-        final fileName = _fileNameFromUrl(filePath);
-        developer.log('IntentHandler._handleSharedFiles: detected URL, derived name=$fileName', name: 'IntentHandler');
-        // We can only validate the extension; MIME is unknown until download
-        final supported = p.extension(fileName).toLowerCase() == '.pdf' || fileName == 'document.pdf';
-        event = ShareReceivedEvent(
-          fileName: fileName,
-          filePath: filePath,
-          mimeType: 'application/pdf', // assumed; validated post-download
-          fileSizeBytes: null,
-          supportedType: supported,
-          showWarning: false,
-          isUrl: true,
-        );
-      } else {
-        // Regular file
-        final fileName = _deriveFileName(file);
-        String? mime = _guessMime(file, filePath);
-        int? size;
-        try {
-          final f = File(filePath);
-          if (await f.exists()) {
-            size = await f.length();
-          }
-        } catch (e, st) {
-          developer.log('IntentHandler._handleSharedFiles: error accessing file $filePath: $e',
-              name: 'IntentHandler', error: e, stackTrace: st);
-        }
-        final supported = _isSupported(mime, fileName);
-        event = ShareReceivedEvent(
-          fileName: fileName,
-          filePath: filePath,
-          mimeType: mime,
-          fileSizeBytes: size,
-          supportedType: supported,
-          showWarning: !supported,
-        );
-      }
-
-      events.add(event);
-      _pendingEvents.add(event);
-
-      // Emit individual events for backward compatibility
-      if (!_eventController.isClosed) {
-        _eventController.add(event);
-      }
-    }
-
-    // Emit batch event for multi-file support
-    if (events.isNotEmpty && !_batchEventController.isClosed) {
-      _batchEventController.add(ShareReceivedBatchEvent(files: events));
-    }
-    developer.log('IntentHandler._handleSharedFiles: end', name: 'IntentHandler');
   }
 
   // Pending events captured during initialization before UI listeners attach
@@ -213,28 +144,9 @@ class IntentHandler {
     return false;
   }
 
-  static String? _guessMime(SharedMediaFile file, String filePath) {
-    // SharedMediaFile has a type parameter on some platforms; use path as fallback
-    final ext = p.extension(filePath).toLowerCase();
-    for (final entry in _supportedTypes.entries) {
-      if (entry.value.contains(ext)) return entry.key;
-    }
-    // leave null to indicate unknown; server may still accept
-    return null;
-  }
-
-  static String _deriveFileName(SharedMediaFile file) {
-    final path = file.path;
-    if (path.isNotEmpty) {
-      final last = path.split('/').last;
-      if (last.trim().isNotEmpty) return last;
-    }
-    return 'archivo';
-  }
-
   static Future<void> resetIntent() async {
     try {
-      await ReceiveSharingIntent.instance.reset();
+      await _methodChannel.invokeMethod<void>('reset');
     } catch (e, st) {
       developer.log('Error resetting intent: $e',
           name: 'IntentHandler.resetIntent', error: e, stackTrace: st);
@@ -264,35 +176,52 @@ class IntentHandler {
 
     final events = <ShareReceivedEvent>[];
 
-    // Clear pending events if any (app launched by drag-drop)
+    // Clear pending events if any (app launched by drag-drop or share)
     _pendingEvents.clear();
 
     for (final filePath in paths) {
-      final fileName = filePath.split(RegExp(r'[\\/]+')).last;
       developer.log('IntentHandler._handleSharedFilePaths: processing file $filePath', name: 'IntentHandler');
 
-      String? mime = _guessMimeFromPath(filePath);
-      int? size;
-      try {
-        final f = File(filePath);
-        if (await f.exists()) {
-          size = await f.length();
+      ShareReceivedEvent event;
+
+      if (_isUrl(filePath)) {
+        // Shared as a URL (e.g. from a browser)
+        final fileName = _fileNameFromUrl(filePath);
+        developer.log('IntentHandler._handleSharedFilePaths: detected URL, derived name=$fileName', name: 'IntentHandler');
+        final supported = p.extension(fileName).toLowerCase() == '.pdf' || fileName == 'document.pdf';
+        event = ShareReceivedEvent(
+          fileName: fileName,
+          filePath: filePath,
+          mimeType: 'application/pdf',
+          fileSizeBytes: null,
+          supportedType: supported,
+          showWarning: false,
+          isUrl: true,
+        );
+      } else {
+        // Regular file path (already resolved by native code)
+        final fileName = filePath.split(RegExp(r'[\\/]+')).last;
+        String? mime = _guessMimeFromPath(filePath);
+        int? size;
+        try {
+          final f = File(filePath);
+          if (await f.exists()) {
+            size = await f.length();
+          }
+        } catch (e, st) {
+          developer.log('IntentHandler._handleSharedFilePaths: error accessing file $filePath: $e', name: 'IntentHandler', error: e, stackTrace: st);
         }
-      } catch (e, st) {
-        developer.log('IntentHandler._handleSharedFilePaths: error accessing file $filePath: $e', name: 'IntentHandler', error: e, stackTrace: st);
+
+        final supported = _isSupported(mime, fileName);
+        event = ShareReceivedEvent(
+          fileName: fileName,
+          filePath: filePath,
+          mimeType: mime,
+          fileSizeBytes: size,
+          supportedType: supported,
+          showWarning: !supported,
+        );
       }
-
-      final supported = _isSupported(mime, fileName);
-      final showWarning = !supported;
-
-      final event = ShareReceivedEvent(
-        fileName: fileName,
-        filePath: filePath,
-        mimeType: mime,
-        fileSizeBytes: size,
-        supportedType: supported,
-        showWarning: showWarning,
-      );
 
       events.add(event);
       _pendingEvents.add(event);
