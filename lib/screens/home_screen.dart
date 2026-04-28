@@ -31,7 +31,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _lastReceivedFileName;
-  StreamSubscription<ShareReceivedEvent>? _intentSub;
+  StreamSubscription<ShareReceivedBatchEvent>? _intentSub;
   bool _dragging = false;
 
   @override
@@ -48,42 +48,32 @@ class _HomeScreenState extends State<HomeScreen> {
       Provider.of<ServerManager>(context, listen: false).addListener(_onServerChanged);
     });
 
-    // Listen for share intent events (filename + file path)
-    _intentSub = IntentHandler.eventStream.listen((event) async {
-      await _processSharedEvent(event);
+    // Listen for batch share intent events and process files sequentially
+    _intentSub = IntentHandler.batchEventStream.listen((batch) async {
+      await _processSharedBatch(batch.files);
     });
 
     // Also consume any pending events captured during app initialization
     final pending = IntentHandler.consumePendingEvents();
     if (pending.isNotEmpty) {
       developer.log('HomeScreen: Processing ${pending.length} pending events', name: 'HomeScreen');
-      for (final ev in pending) {
-        // Fire in microtask to avoid reentrancy
-        Future.microtask(() => _processSharedEvent(ev));
-      }
+      // Fire in microtask to avoid reentrancy during initState
+      Future.microtask(() => _processSharedBatch(pending));
     }
   }
 
-  Future<void> _processSharedEvent(ShareReceivedEvent event) async {
-    developer.log('HomeScreen: Share intent received for file ${event.fileName}', name: 'HomeScreen');
-    setState(() {
-      _lastReceivedFileName = event.fileName;
-    });
-    if (!mounted) {
-      developer.log('HomeScreen: Widget not mounted after intent', name: 'HomeScreen');
-      return;
-    }
+  /// Processes a batch of shared files sequentially, then closes the activity.
+  Future<void> _processSharedBatch(List<ShareReceivedEvent> events) async {
+    if (events.isEmpty) return;
+    developer.log('HomeScreen: Processing batch of ${events.length} file(s)', name: 'HomeScreen');
 
-    // Check storage permissions before proceeding with upload
-    developer.log('HomeScreen: Checking storage permissions before upload', name: 'HomeScreen');
+    if (!mounted) return;
+
+    // Check permissions once for the whole batch
     final hasPermission = await PermissionService.checkAndRequestStoragePermissions(context);
-    developer.log('HomeScreen: PermissionService.checkAndRequestStoragePermissions returned $hasPermission', name: 'HomeScreen');
-    if (!mounted) {
-      developer.log('HomeScreen: Widget not mounted after permission check', name: 'HomeScreen');
-      return;
-    }
+    if (!mounted) return;
     if (!hasPermission) {
-      developer.log('HomeScreen: Permissions not granted, aborting upload', name: 'HomeScreen');
+      developer.log('HomeScreen: Permissions not granted, aborting batch upload', name: 'HomeScreen');
       final l10n = AppLocalizations.of(context)!;
       Fluttertoast.showToast(
         msg: l10n.snackbar_upload_error_prefix(l10n.error_permission_denied),
@@ -97,80 +87,69 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Inform provider about warning preference (non-blocking)
     final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
-    uploadProvider.setIncomingFileWarning(event.showWarning, event.mimeType);
-
-  // Visible notification about the received file (localized)
-  final l10n = AppLocalizations.of(context)!;
-  UIHelper.showMessage(context, l10n.snackbar_received_file_prefix(event.fileName), success: true);
-
-    // Trigger immediate upload without leaving the main screen
     final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
-    // Ensure configuration and tags are loaded before using them
+    // Ensure configuration and tags are loaded before uploading
     try {
-      if (!appConfig.isConfigured) {
-        await appConfig.loadConfiguration();
+      if (!appConfig.isConfigured) await appConfig.loadConfiguration();
+      if (appConfig.selectedTags.isEmpty) await appConfig.loadStoredTags();
+    } catch (_) {}
+
+    int successCount = 0;
+    bool anyError = false;
+
+    for (final event in events) {
+      if (!mounted) return;
+      developer.log('HomeScreen: Uploading file ${event.fileName}', name: 'HomeScreen');
+
+      setState(() => _lastReceivedFileName = event.fileName);
+      uploadProvider.setIncomingFileWarning(event.showWarning, event.mimeType);
+      UIHelper.showMessage(context, l10n.snackbar_received_file_prefix(event.fileName), success: true);
+
+      // Reset upload state between files so the guard in UploadProvider doesn't block
+      uploadProvider.resetUploadState();
+
+      try {
+        final result = await uploadProvider.uploadFile(
+          File(event.filePath),
+          event.fileName,
+        );
+        if (!mounted) return;
+        if (result.success) {
+          successCount++;
+          UIHelper.showMessage(context, l10n.snackbar_file_uploaded, success: true);
+        } else {
+          anyError = true;
+          final localized = _localizeError(l10n, uploadProvider.uploadError ?? '');
+          UIHelper.showMessage(context, l10n.snackbar_upload_error_prefix(localized), success: false);
+        }
+      } catch (e, st) {
+        anyError = true;
+        developer.log('HomeScreen: Exception uploading ${event.fileName}: $e',
+            name: 'HomeScreen', error: e, stackTrace: st);
+        if (!mounted) return;
+        final localized = _localizeError(l10n, e.toString());
+        UIHelper.showMessage(context, l10n.snackbar_upload_error_prefix(localized), success: false);
       }
-      if (appConfig.selectedTags.isEmpty) {
-        await appConfig.loadStoredTags();
-      }
-    } catch (_) {
-      // Ignore loading errors here; upload provider will validate configuration again
     }
 
-    try {
-      developer.log('HomeScreen: Permissions granted, proceeding to upload', name: 'HomeScreen');
-      final result = await uploadProvider.uploadFile(
-        File(event.filePath),
-        event.fileName,
-      );
+    // Wait a moment so the user can see the last toast, then close the activity
+    if (!mounted) return;
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
 
-      // On success: show confirmation for ~1s then send app to background
-      if (!mounted) return;
-      if (result.success) {
-        final l10n = AppLocalizations.of(context)!;
-  UIHelper.showMessage(context, l10n.snackbar_file_uploaded, success: true);
-        await Future.delayed(const Duration(seconds: 2));
-        if (!mounted) return;
-        // On Android the app was previously sent to background. On desktop, keep app
-        // open and reset the provider/UI so the progress indicator and banners are cleared.
-        try {
-          if (Platform.isAndroid) {
-            SystemNavigator.pop();
-          } else {
-            uploadProvider.resetUploadState();
-            setState(() {
-              _lastReceivedFileName = null;
-            });
-          }
-        } catch (_) {
-          // If Platform check fails for any reason, fallback to resetting UI.
-          uploadProvider.resetUploadState();
-          setState(() {
-            _lastReceivedFileName = null;
-          });
-        }
-      } else if (uploadProvider.uploadError != null) {
-        final l10n = AppLocalizations.of(context)!;
-        final localized = _localizeError(l10n, uploadProvider.uploadError!);
-  UIHelper.showMessage(context, l10n.snackbar_upload_error_prefix(localized), success: false);
+    try {
+      if (Platform.isAndroid && !anyError) {
+        SystemNavigator.pop();
+      } else {
+        uploadProvider.resetUploadState();
+        setState(() => _lastReceivedFileName = null);
       }
-    } catch (e, st) {
-      developer.log('HomeScreen: Exception during upload: $e', name: 'HomeScreen', error: e, stackTrace: st);
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      final localized = _localizeError(l10n, e.toString());
-      Fluttertoast.showToast(
-        msg: l10n.snackbar_upload_error_prefix(localized),
-        toastLength: Toast.LENGTH_LONG,
-        timeInSecForIosWeb: 5,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
+    } catch (_) {
+      uploadProvider.resetUploadState();
+      setState(() => _lastReceivedFileName = null);
     }
   }
 
