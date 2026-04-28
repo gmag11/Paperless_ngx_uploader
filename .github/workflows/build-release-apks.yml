@@ -29,6 +29,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Set up NDK 27.0.12077973
+        run: echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;27.0.12077973"
+
       - name: Set up Flutter (stable)
         uses: subosito/flutter-action@v2
         with:
