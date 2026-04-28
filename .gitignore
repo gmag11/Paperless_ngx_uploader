@@ -12,6 +12,7 @@
 .swiftpm/
 migrate_working_dir/
 context_portal/
+*.bak
 
 # IntelliJ related
 *.iml
