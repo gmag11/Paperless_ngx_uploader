@@ -27,6 +27,12 @@ class MainActivity : FlutterActivity() {
         super.onCreate(savedInstanceState)
         // Capture initial intent (cold start via share)
         initialSharedFiles = resolveShareIntent(intent)
+        // Clear the stored intent so that if Android recreates this activity
+        // (e.g. after killing it due to memory pressure while backgrounded),
+        // the share intent is not re-delivered and files are not uploaded again.
+        if (!initialSharedFiles.isNullOrEmpty()) {
+            setIntent(Intent(Intent.ACTION_MAIN))
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -41,6 +47,10 @@ class MainActivity : FlutterActivity() {
                     }
                     "reset" -> {
                         initialSharedFiles = null
+                        result.success(null)
+                    }
+                    "moveToBackground" -> {
+                        moveTaskToBack(true)
                         result.success(null)
                     }
                     else -> result.notImplemented()
@@ -64,6 +74,8 @@ class MainActivity : FlutterActivity() {
         val files = resolveShareIntent(intent)
         if (files.isNotEmpty()) {
             eventSink?.success(files)
+            // Clear intent so recreation doesn't re-deliver it
+            setIntent(Intent(Intent.ACTION_MAIN))
         }
     }
 

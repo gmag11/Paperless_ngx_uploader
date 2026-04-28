@@ -5,7 +5,6 @@ import 'package:dio/dio.dart' as dio;
 import 'package:path_provider/path_provider.dart';
 import '../services/paperless_service.dart' as paperless;
 import '../providers/app_config_provider.dart';
-import '../services/permission_service.dart';
 
 typedef StringCallback = String Function(String key);
 
@@ -61,17 +60,6 @@ class UploadProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check permissions
-      final hasPermission = await PermissionService.hasStoragePermissions();
-      if (!hasPermission) {
-        _isUploading = false;
-        notifyListeners();
-        return paperless.UploadResult.error(
-          translate('error_permission_denied'),
-          'PERMISSION_DENIED',
-        );
-      }
-
       // Check if server is configured
       if (!appConfigProvider.isConfigured) {
         _isUploading = false;

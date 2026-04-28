@@ -14,7 +14,6 @@ import '../widgets/config_dialog.dart';
 import '../models/tag.dart';
 import '../models/server_config.dart';
 import '../services/intent_handler.dart';
-import '../services/permission_service.dart';
 import '../services/paperless_service.dart' as paperless;
 import '../services/secure_storage_service.dart';
 import '../providers/upload_provider.dart';
@@ -41,9 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final config = Provider.of<AppConfigProvider>(context, listen: false);
       config.loadConfiguration();
 
-      // Check storage permissions on startup
-      _checkStoragePermissions();
-      
       // Listen for server changes to refresh tags display
       Provider.of<ServerManager>(context, listen: false).addListener(_onServerChanged);
     });
@@ -68,24 +64,6 @@ class _HomeScreenState extends State<HomeScreen> {
     developer.log('HomeScreen: Processing batch of ${events.length} file(s)', name: 'HomeScreen');
 
     if (!mounted) return;
-
-    // Check permissions once for the whole batch
-    final hasPermission = await PermissionService.checkAndRequestStoragePermissions(context);
-    if (!mounted) return;
-    if (!hasPermission) {
-      developer.log('HomeScreen: Permissions not granted, aborting batch upload', name: 'HomeScreen');
-      final l10n = AppLocalizations.of(context)!;
-      Fluttertoast.showToast(
-        msg: l10n.snackbar_upload_error_prefix(l10n.error_permission_denied),
-        toastLength: Toast.LENGTH_LONG,
-        timeInSecForIosWeb: 5,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
-      return;
-    }
 
     final uploadProvider = Provider.of<UploadProvider>(context, listen: false);
     final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
@@ -147,7 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       if (Platform.isAndroid && !anyError) {
-        SystemNavigator.pop();
+        const channel = MethodChannel('net.gmartin.paperlessngx_uploader/share');
+        await channel.invokeMethod<void>('moveToBackground');
       } else {
         uploadProvider.resetUploadState();
         setState(() => _lastReceivedFileName = null);
@@ -177,21 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // Version checking functionality removed - no longer needed
 
   /// Checks storage permissions and shows appropriate messages
-  Future<void> _checkStoragePermissions() async {
-    developer.log('HomeScreen: Checking storage permissions on startup',
-        name: 'HomeScreen');
-    final hasPermission = await PermissionService.hasStoragePermissions();
-    developer.log('HomeScreen: hasStoragePermissions returned $hasPermission',
-        name: 'HomeScreen');
-    if (!hasPermission) {
-      // Don't show dialog on startup, just log it
-      // The permission will be requested when user tries to upload
-      developer.log(
-          'HomeScreen: Storage permissions not granted, will request when needed',
-          name: 'HomeScreen');
-    }
-  }
-
   // Update notification functionality removed - no longer needed
 
   @override
