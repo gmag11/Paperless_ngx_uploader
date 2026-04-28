@@ -41,9 +41,23 @@ class ShareReceiverActivity : FlutterActivity() {
     private fun handleShareIntent(intent: Intent) {
         when (intent.action) {
             Intent.ACTION_SEND -> {
-                if (intent.type != null) {
-                    val uri = intent.getParcelableExtraCompat<Uri>(Intent.EXTRA_STREAM)
-                    uri?.let { sharedFilePaths = listOf(uriToString(it)) }
+                val mimeType = intent.type ?: return
+                when {
+                    mimeType == "text/plain" -> {
+                        // URL shared from browser or another app
+                        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+                        if (!text.isNullOrBlank()) {
+                            val trimmed = text.trim()
+                            // Only handle if it looks like a URL
+                            if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+                                sharedFilePaths = listOf(trimmed)
+                            }
+                        }
+                    }
+                    else -> {
+                        val uri = intent.getParcelableExtraCompat<Uri>(Intent.EXTRA_STREAM)
+                        uri?.let { sharedFilePaths = listOf(uriToString(it)) }
+                    }
                 }
             }
             Intent.ACTION_SEND_MULTIPLE -> {

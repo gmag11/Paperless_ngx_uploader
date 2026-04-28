@@ -18,6 +18,8 @@ class ShareReceivedEvent {
   final int? fileSizeBytes;
   final bool supportedType;
   final bool showWarning;
+  /// True when [filePath] is an http/https URL rather than a local file path.
+  final bool isUrl;
 
   ShareReceivedEvent({
     required this.fileName,
@@ -26,6 +28,7 @@ class ShareReceivedEvent {
     this.fileSizeBytes,
     required this.supportedType,
     required this.showWarning,
+    this.isUrl = false,
   });
 }
 
@@ -118,50 +121,59 @@ class IntentHandler {
     }
 
     final events = <ShareReceivedEvent>[];
-  // Keep pending events in case UI listeners aren't attached yet (app launched by share)
-  // These will be consumed by the UI when it is ready.
-  _pendingEvents.clear();
-    
+    // Keep pending events in case UI listeners aren't attached yet (app launched by share)
+    // These will be consumed by the UI when it is ready.
+    _pendingEvents.clear();
+
     // Process each file to create events
     for (final file in files) {
       final filePath = file.path;
-      final fileName = _deriveFileName(file);
+      developer.log('IntentHandler._handleSharedFiles: processing $filePath', name: 'IntentHandler');
 
-      developer.log('IntentHandler._handleSharedFiles: processing file $filePath', name: 'IntentHandler');
+      ShareReceivedEvent event;
 
-      // Best-effort MIME detection: prefer SharedMediaFile type if present, else by extension.
-      String? mime = _guessMime(file, filePath);
-      // Best-effort size (works for file:// paths)
-      int? size;
-      try {
-        final f = File(filePath);
-        developer.log('IntentHandler._handleSharedFiles: checking file exists $filePath', name: 'IntentHandler');
-        if (await f.exists()) {
-          size = await f.length();
-          developer.log('IntentHandler._handleSharedFiles: file exists, size=$size', name: 'IntentHandler');
-        } else {
-          developer.log('IntentHandler._handleSharedFiles: file does not exist', name: 'IntentHandler');
+      if (_isUrl(filePath)) {
+        // Shared as a URL (e.g. from a browser)
+        final fileName = _fileNameFromUrl(filePath);
+        developer.log('IntentHandler._handleSharedFiles: detected URL, derived name=$fileName', name: 'IntentHandler');
+        // We can only validate the extension; MIME is unknown until download
+        final supported = p.extension(fileName).toLowerCase() == '.pdf' || fileName == 'document.pdf';
+        event = ShareReceivedEvent(
+          fileName: fileName,
+          filePath: filePath,
+          mimeType: 'application/pdf', // assumed; validated post-download
+          fileSizeBytes: null,
+          supportedType: supported,
+          showWarning: false,
+          isUrl: true,
+        );
+      } else {
+        // Regular file
+        final fileName = _deriveFileName(file);
+        String? mime = _guessMime(file, filePath);
+        int? size;
+        try {
+          final f = File(filePath);
+          if (await f.exists()) {
+            size = await f.length();
+          }
+        } catch (e, st) {
+          developer.log('IntentHandler._handleSharedFiles: error accessing file $filePath: $e',
+              name: 'IntentHandler', error: e, stackTrace: st);
         }
-      } catch (e, st) {
-        developer.log('IntentHandler._handleSharedFiles: error accessing file $filePath: $e',
-            name: 'IntentHandler', error: e, stackTrace: st);
+        final supported = _isSupported(mime, fileName);
+        event = ShareReceivedEvent(
+          fileName: fileName,
+          filePath: filePath,
+          mimeType: mime,
+          fileSizeBytes: size,
+          supportedType: supported,
+          showWarning: !supported,
+        );
       }
 
-      final supported = _isSupported(mime, fileName);
-      final showWarning = !supported; // per product decision, warn but proceed
-
-      final event = ShareReceivedEvent(
-        fileName: fileName,
-        filePath: filePath,
-        mimeType: mime,
-        fileSizeBytes: size,
-        supportedType: supported,
-        showWarning: showWarning,
-      );
-
       events.add(event);
-  // Store pending event for late listeners (e.g., app started from share intent)
-  _pendingEvents.add(event);
+      _pendingEvents.add(event);
 
       // Emit individual events for backward compatibility
       if (!_eventController.isClosed) {
@@ -303,5 +315,29 @@ class IntentHandler {
       if (entry.value.contains(ext)) return entry.key;
     }
     return null;
+  }
+
+  /// Returns true if [path] is an http/https URL.
+  static bool _isUrl(String path) {
+    final lower = path.toLowerCase();
+    return lower.startsWith('http://') || lower.startsWith('https://');
+  }
+
+  /// Derives a file name from a URL.
+  /// Strips query parameters and fragments, then takes the last path segment.
+  /// Falls back to 'document.pdf' if nothing useful is found.
+  static String _fileNameFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final segments = uri.pathSegments;
+      if (segments.isNotEmpty) {
+        final last = Uri.decodeComponent(segments.last);
+        if (last.isNotEmpty) {
+          // Ensure it has a file extension; if not, append .pdf
+          return p.extension(last).isEmpty ? '$last.pdf' : last;
+        }
+      }
+    } catch (_) {}
+    return 'document.pdf';
   }
 }

@@ -1,7 +1,8 @@
 import 'dart:io';
-// import removed - no longer needed
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
+import 'package:dio/dio.dart' as dio;
+import 'package:path_provider/path_provider.dart';
 import '../services/paperless_service.dart' as paperless;
 import '../providers/app_config_provider.dart';
 import '../services/permission_service.dart';
@@ -159,5 +160,106 @@ class UploadProvider extends ChangeNotifier {
     _showTypeWarning = false;
     _lastMimeType = null;
     notifyListeners();
+  }
+
+  /// Downloads a remote URL to a temporary file, then uploads it to Paperless.
+  /// The temporary file is deleted after the upload completes (success or error).
+  Future<paperless.UploadResult> uploadUrl(String url, String fileName) async {
+    if (_isUploading) {
+      return paperless.UploadResult.error(
+        'Upload already in progress',
+        'UPLOAD_IN_PROGRESS',
+      );
+    }
+
+    _isUploading = true;
+    _progress = 0.0;
+    _bytesSent = 0;
+    _bytesTotal = 0;
+    _uploadError = null;
+    notifyListeners();
+
+    File? tempFile;
+    try {
+      if (!appConfigProvider.isConfigured) {
+        _isUploading = false;
+        notifyListeners();
+        return paperless.UploadResult.error(
+          translate('snackbar_configure_server_first'),
+          'NOT_CONFIGURED',
+        );
+      }
+
+      final service = await appConfigProvider.getPaperlessService();
+      if (service == null) {
+        _isUploading = false;
+        notifyListeners();
+        return paperless.UploadResult.error(
+          translate('error_auth_failed'),
+          'AUTH_FAILED',
+        );
+      }
+
+      // --- Download to temp file ---
+      developer.log('UploadProvider.uploadUrl: downloading $url', name: 'UploadProvider');
+      final tempDir = await getTemporaryDirectory();
+      tempFile = File('${tempDir.path}/$fileName');
+
+      final downloader = dio.Dio();
+      await downloader.download(
+        url,
+        tempFile.path,
+        onReceiveProgress: (received, total) {
+          // Show download progress in the first half (0..0.5)
+          if (total > 0) {
+            _bytesSent = received;
+            _bytesTotal = total;
+            _progress = (received / total) * 0.5;
+            notifyListeners();
+          }
+        },
+        options: dio.Options(
+          receiveTimeout: const Duration(minutes: 5),
+          followRedirects: true,
+          maxRedirects: 5,
+        ),
+      );
+      developer.log('UploadProvider.uploadUrl: download complete, size=${await tempFile.length()}', name: 'UploadProvider');
+
+      // --- Upload to Paperless ---
+      final selectedTagIds = await appConfigProvider.getSelectedTags();
+      final result = await service.uploadDocument(
+        filePath: tempFile.path,
+        fileName: fileName,
+        tagIds: selectedTagIds,
+        onProgress: (sent, total) {
+          // Upload progress in the second half (0.5..1.0)
+          _bytesSent = sent;
+          _bytesTotal = total;
+          _progress = 0.5 + (total > 0 ? sent / total : 0.0) * 0.5;
+          notifyListeners();
+        },
+      );
+
+      _isUploading = false;
+      notifyListeners();
+      return result;
+    } catch (e) {
+      _isUploading = false;
+      _uploadError = e.toString();
+      notifyListeners();
+      developer.log('UploadProvider.uploadUrl: error $e', name: 'UploadProvider');
+      return paperless.UploadResult.error(
+        translate('error_network'),
+        'DOWNLOAD_ERROR',
+      );
+    } finally {
+      try {
+        if (tempFile != null && await tempFile.exists()) {
+          await tempFile.delete();
+          developer.log('UploadProvider.uploadUrl: temp file deleted', name: 'UploadProvider');
+        }
+      } catch (_) {}
+    }
   }
 }

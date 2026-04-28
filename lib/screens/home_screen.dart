@@ -15,7 +15,7 @@ import '../models/tag.dart';
 import '../models/server_config.dart';
 import '../services/intent_handler.dart';
 import '../services/permission_service.dart';
-import '../services/paperless_service.dart';
+import '../services/paperless_service.dart' as paperless;
 import '../services/secure_storage_service.dart';
 import '../providers/upload_provider.dart';
 import '../l10n/gen/app_localizations.dart';
@@ -112,10 +112,15 @@ class _HomeScreenState extends State<HomeScreen> {
       uploadProvider.resetUploadState();
 
       try {
-        final result = await uploadProvider.uploadFile(
-          File(event.filePath),
-          event.fileName,
-        );
+        final paperless.UploadResult result;
+        if (event.isUrl) {
+          result = await uploadProvider.uploadUrl(event.filePath, event.fileName);
+        } else {
+          result = await uploadProvider.uploadFile(
+            File(event.filePath),
+            event.fileName,
+          );
+        }
         if (!mounted) return;
         if (result.success) {
           successCount++;
@@ -724,7 +729,7 @@ class _HomeScreenState extends State<HomeScreen> {
           context: context,
           builder: (dialogContext) => TagSelectionDialog(
             selectedTags: currentSelectedTags,
-            paperlessService: PaperlessService(
+            paperlessService: paperless.PaperlessService(
               baseUrl: currentServer.serverUrl,
               username: currentServer.username ?? '',
               password: currentServer.authMethod == AuthMethod.usernamePassword ? password : '',
@@ -785,7 +790,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final password = await secureStorage.getServerCredentials(currentServer.id) ?? '';
       final apiToken = await secureStorage.getServerApiToken(currentServer.id) ?? '';
       
-      final paperlessService = PaperlessService(
+      final paperlessService = paperless.PaperlessService(
         baseUrl: currentServer.serverUrl,
         username: currentServer.username ?? '',
         password: currentServer.authMethod == AuthMethod.usernamePassword ? password : '',
