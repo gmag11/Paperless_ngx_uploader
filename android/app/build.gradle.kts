@@ -148,17 +148,6 @@ android.applicationVariants.configureEach {
     }
 }
 
-// Exclude ALL Google Play Core artifacts (pulled in transitively by the Flutter engine for
-// deferred components / split-APK delivery). This app does not use Play Store delivery.
-// Excluding the entire group removes both the legacy monolithic 'core' AAR and the newer
-// split artifacts ('feature-delivery', 'asset-delivery', 'app-update', 'review', etc.)
-// whose SplitInstall* classes trip F-Droid's non-free-component scanner.
-// The -dontwarn rules in proguard-rules.pro suppress any R8 missing-class warnings that
-// remain after the exclusion.
-configurations.configureEach {
-    exclude(group = "com.google.android.play")
-}
-
 flutter {
     source = "../.."
 }
