@@ -148,6 +148,16 @@ android.applicationVariants.configureEach {
     }
 }
 
+// Exclude Google Play Core (pulled in as a transitive dependency of the Flutter engine
+// for deferred components / split-APK delivery). This app does not use Play Store delivery,
+// and the classes trip F-Droid's non-free-component scanner. The -dontwarn rules in
+// proguard-rules.pro handle any R8 references that remain after exclusion.
+configurations.configureEach {
+    exclude(group = "com.google.android.play", module = "core")
+    exclude(group = "com.google.android.play", module = "core-ktx")
+    exclude(group = "com.google.android.play", module = "core-common")
+}
+
 flutter {
     source = "../.."
 }
