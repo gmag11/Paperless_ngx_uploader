@@ -1,0 +1,6 @@
+What's New in 1.8.3
+
+Highlights:
+• Update dependencies.
+• Enhanced close method for better app closing control.
+• Removal of unused plugins and configurations.
