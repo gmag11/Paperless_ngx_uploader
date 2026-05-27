@@ -53,6 +53,10 @@ class MainActivity : FlutterActivity() {
                         moveTaskToBack(true)
                         result.success(null)
                     }
+                    "finishAndRemoveTask" -> {
+                        finishAndRemoveTask()
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

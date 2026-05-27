@@ -24,7 +24,7 @@ dependencies:
   dio: ^5.5.0
   
   # Secure storage for credentials
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^10.3.1
   
   # File handling
   path_provider: ^2.1.5
@@ -37,18 +37,18 @@ dependencies:
   flutter_typeahead: ^5.2.0
 
   # Toast notifications
-  fluttertoast: ^8.2.12
+  fluttertoast: ^9.1.0
 
   # App info and version checking
-  package_info_plus: ^8.1.2
-  shared_preferences: ^2.3.5
+  package_info_plus: ^10.1.0
+  shared_preferences: ^2.5.5
 
   # URL launching
   url_launcher: ^6.3.1
 
 
   # Desktop drag & drop support for Windows/Linux/macOS
-  desktop_drop: ^0.6.1
+  desktop_drop: ^0.7.1
   # Desktop window sizing helpers
   window_size: ^0.1.0
 

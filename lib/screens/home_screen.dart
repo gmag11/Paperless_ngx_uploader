@@ -126,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       if (Platform.isAndroid && !anyError) {
         const channel = MethodChannel('net.gmartin.paperlessngx_uploader/share');
-        await channel.invokeMethod<void>('moveToBackground');
+        await channel.invokeMethod<void>('finishAndRemoveTask');
       } else {
         uploadProvider.resetUploadState();
         setState(() => _lastReceivedFileName = null);
