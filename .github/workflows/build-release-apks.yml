@@ -45,6 +45,9 @@ jobs:
       - name: Fetch Flutter dependencies
         run: flutter pub get
 
+      - name: Remove build-id from dartjni for reproducible builds
+        run: sed -i -e 's/-Wl,/-Wl,--build-id=none,/' ~/.pub-cache/hosted/pub.dev/jni-*/src/CMakeLists.txt
+
       - name: Detect KEYSTORE_BASE64 presence
         id: detect_keystore
         shell: bash
