@@ -52,6 +52,12 @@ dependencies:
   # Desktop window sizing helpers
   window_size: ^0.1.0
 
+dependency_overrides:
+  # Pin path_provider_android to <2.3.0 to avoid the jni package dependency
+  # which compiles libdartjni.so from C source. This native library is not
+  # reproducible across build environments, causing F-Droid verification to fail.
+  path_provider_android: ">=2.2.17 <2.3.0"
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
