@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      PUB_CACHE: ${{ github.workspace }}/.pub-cache
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -35,7 +37,7 @@ jobs:
       - name: Set up Flutter (stable)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.0'
+          flutter-version: '3.44.4'
           channel: stable
           cache: true
 
@@ -43,10 +45,9 @@ jobs:
         run: flutter --version
 
       - name: Fetch Flutter dependencies
-        run: flutter pub get
-
-      - name: Remove build-id from dartjni for reproducible builds
-        run: sed -i -e 's/-Wl,/-Wl,--build-id=none,/' ~/.pub-cache/hosted/pub.dev/jni-*/src/CMakeLists.txt
+        run: flutter pub get --enforce-lockfile
+        env:
+          PUB_CACHE: ${{ github.workspace }}/.pub-cache
 
       - name: Detect KEYSTORE_BASE64 presence
         id: detect_keystore
@@ -93,7 +94,7 @@ jobs:
 
       - name: Clean build cache between APK builds
         shell: bash
-        run: flutter clean && flutter pub get
+        run: flutter clean && flutter pub get --enforce-lockfile
 
       - name: Build universal APK (all ABIs in one)
         shell: bash

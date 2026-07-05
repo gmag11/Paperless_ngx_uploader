@@ -40,6 +40,32 @@ subprojects {
     }
 }
 
+// --- Reproducible builds for native CMake-based Flutter plugins ---
+// Add every Flutter plugin that compiles native .so files via CMake here.
+// Run the discovery steps in the fdroid-reproducible-build skill after adding/updating dependencies.
+val nativeLibraryModules = setOf(
+    "jni"
+)
+subprojects {
+    plugins.withId("com.android.library") {
+        if (name in nativeLibraryModules) {
+            extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+                defaultConfig {
+                    externalNativeBuild {
+                        cmake {
+                            // Remove build-id so ELF .so files are byte-identical across machines
+                            arguments += "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--build-id=none"
+                            // Normalize absolute source paths so embedded debug paths match on any builder
+                            cFlags += "-ffile-prefix-map=${project.projectDir.absolutePath}=."
+                            cppFlags += "-ffile-prefix-map=${project.projectDir.absolutePath}=."
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
