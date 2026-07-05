@@ -1,0 +1,12 @@
+What's New in 1.8.4
+
+Highlights:
+• Favorite tags — mark tags as favorites for quick access with three-tier sorting.
+• Custom HTTP headers — add custom request headers for reverse proxy authentication.
+• Ask for tags before upload — new option to prompt for tags on each document upload (#13).
+• F-Droid reproducible builds — Gradle and CI configured for byte-identical APK rebuilds.
+
+Other improvements:
+• Upgraded Gradle, AGP, Kotlin, and Flutter SDK dependencies.
+• Enforced LF line endings across the project for build consistency.
+• Removed unused code and cleaned up project configuration.
