@@ -363,6 +363,24 @@ abstract class AppLocalizations {
   /// **'3. Upload will happen immediately'**
   String get howto_step_3;
 
+  /// First desktop step of the quick start instructions.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Drag and drop a document onto this window'**
+  String get howto_step_1_desktop;
+
+  /// Second desktop step of the quick start instructions.
+  ///
+  /// In en, this message translates to:
+  /// **'2. The upload will happen immediately'**
+  String get howto_step_2_desktop;
+
+  /// Third desktop step of the quick start instructions.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Configure tags and server first if needed'**
+  String get howto_step_3_desktop;
+
   /// Snackbar shown when an action requires server configuration beforehand.
   ///
   /// In en, this message translates to:

@@ -160,6 +160,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get howto_step_3 => '3. Upload will happen immediately';
 
   @override
+  String get howto_step_1_desktop =>
+      '1. Drag and drop a document onto this window';
+
+  @override
+  String get howto_step_2_desktop => '2. The upload will happen immediately';
+
+  @override
+  String get howto_step_3_desktop =>
+      '3. Configure tags and server first if needed';
+
+  @override
   String get snackbar_configure_server_first =>
       'Please configure server connection first';
 

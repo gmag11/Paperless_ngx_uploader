@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.8.4
+Type=Application
+Name=Paperless-NGX Uploader
+Comment=Upload documents to Paperless-NGX via drag and drop
+Exec=paperlessngx_uploader
+Icon=net.gmartin.paperlessngx_uploader
+Categories=Utility;
+Terminal=false
+StartupWMClass=paperlessngx_uploader

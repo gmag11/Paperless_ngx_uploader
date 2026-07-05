@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:developer' as developer;
 
 import 'package:paperlessngx_uploader/models/connection_status.dart';
@@ -9,6 +8,7 @@ import 'package:paperlessngx_uploader/providers/server_manager.dart';
 import 'package:paperlessngx_uploader/models/server_config.dart';
 import 'package:paperlessngx_uploader/l10n/gen/app_localizations.dart';
 import 'package:paperlessngx_uploader/services/paperless_service.dart';
+import 'package:paperlessngx_uploader/utils/ui_helper.dart';
 
 enum _AuthMethod { userPass, apiToken }
 
@@ -352,28 +352,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
 
         developer.log('Server configuration completed successfully', name: 'ConfigDialog');
 
-        try {
-          await Fluttertoast.showToast(
-            msg: l10n.connectionSuccess,
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.green,
-            textColor: Colors.white,
-          );
-        } catch (e, st) {
-          // Some platforms (desktop) or misconfigured runners may not have the
-          // fluttertoast plugin registered which throws MissingPluginException.
-          // Fallback to a SnackBar so the user still receives feedback.
-          developer.log('Fluttertoast unavailable or failed: $e', name: 'ConfigDialog', error: e, stackTrace: st);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.connectionSuccess),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        }
+        UIHelper.showMessage(context, l10n.connectionSuccess, success: true);
 
         if (mounted) {
           _clearForm();

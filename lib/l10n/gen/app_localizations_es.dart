@@ -163,6 +163,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get howto_step_3 => '3. La subida se realizará inmediatamente';
 
   @override
+  String get howto_step_1_desktop =>
+      '1. Arrastra y suelta un documento en esta ventana';
+
+  @override
+  String get howto_step_2_desktop => '2. La subida se realizará inmediatamente';
+
+  @override
+  String get howto_step_3_desktop =>
+      '3. Configura etiquetas y servidor primero si es necesario';
+
+  @override
   String get snackbar_configure_server_first =>
       'Por favor, configura primero la conexión con el servidor';
 

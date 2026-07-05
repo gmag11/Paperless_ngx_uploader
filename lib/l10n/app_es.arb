@@ -239,6 +239,18 @@
   "@howto_step_3": {
     "description": "Tercer paso de las instrucciones rápidas."
   },
+  "howto_step_1_desktop": "1. Arrastra y suelta un documento en esta ventana",
+  "@howto_step_1_desktop": {
+    "description": "Primer paso de escritorio de las instrucciones rápidas."
+  },
+  "howto_step_2_desktop": "2. La subida se realizará inmediatamente",
+  "@howto_step_2_desktop": {
+    "description": "Segundo paso de escritorio de las instrucciones rápidas."
+  },
+  "howto_step_3_desktop": "3. Configura etiquetas y servidor primero si es necesario",
+  "@howto_step_3_desktop": {
+    "description": "Tercer paso de escritorio de las instrucciones rápidas."
+  },
 
   "snackbar_configure_server_first": "Por favor, configura primero la conexión con el servidor",
   "@snackbar_configure_server_first": {

@@ -239,6 +239,18 @@
   "@howto_step_3": {
     "description": "Third step of the quick start instructions."
   },
+  "howto_step_1_desktop": "1. Drag and drop a document onto this window",
+  "@howto_step_1_desktop": {
+    "description": "First desktop step of the quick start instructions."
+  },
+  "howto_step_2_desktop": "2. The upload will happen immediately",
+  "@howto_step_2_desktop": {
+    "description": "Second desktop step of the quick start instructions."
+  },
+  "howto_step_3_desktop": "3. Configure tags and server first if needed",
+  "@howto_step_3_desktop": {
+    "description": "Third desktop step of the quick start instructions."
+  },
 
   "snackbar_configure_server_first": "Please configure server connection first",
   "@snackbar_configure_server_first": {
