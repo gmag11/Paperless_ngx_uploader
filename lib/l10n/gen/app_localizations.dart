@@ -614,6 +614,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please configure at least one server to start uploading documents'**
   String get server_configure_first;
+
+  /// Label for the toggle that enables per-upload tag selection
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for tags before upload'**
+  String get ask_tags_before_upload_title;
+
+  /// Subtitle explaining the ask-tags-before-upload toggle
+  ///
+  /// In en, this message translates to:
+  /// **'Show tag selection dialog before each upload'**
+  String get ask_tags_before_upload_subtitle;
+
+  /// Title of the tag selection dialog shown before upload
+  ///
+  /// In en, this message translates to:
+  /// **'Select tags for this upload'**
+  String get ask_tags_dialog_title;
+
+  /// Confirm button in the per-upload tag selection dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Upload'**
+  String get ask_tags_dialog_confirm;
 }
 
 class _AppLocalizationsDelegate

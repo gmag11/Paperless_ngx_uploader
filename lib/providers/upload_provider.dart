@@ -44,7 +44,7 @@ class UploadProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<paperless.UploadResult> uploadFile(File file, String fileName) async {
+  Future<paperless.UploadResult> uploadFile(File file, String fileName, {List<int>? tagIds}) async {
     if (_isUploading) {
       return paperless.UploadResult.error(
         'Upload already in progress',
@@ -87,8 +87,8 @@ class UploadProvider extends ChangeNotifier {
         developer.log('UploadProvider: Uploading to ${service.baseUrl} using $authSummary', name: 'UploadProvider');
       } catch (_) {}
 
-      // Get selected tags
-      final selectedTagIds = await appConfigProvider.getSelectedTags();
+      // Get selected tags (use provided tags if passed, otherwise defaults)
+      final selectedTagIds = tagIds ?? await appConfigProvider.getSelectedTags();
       
       // Upload the file
       final result = await service.uploadDocument(
@@ -152,7 +152,7 @@ class UploadProvider extends ChangeNotifier {
 
   /// Downloads a remote URL to a temporary file, then uploads it to Paperless.
   /// The temporary file is deleted after the upload completes (success or error).
-  Future<paperless.UploadResult> uploadUrl(String url, String fileName) async {
+  Future<paperless.UploadResult> uploadUrl(String url, String fileName, {List<int>? tagIds}) async {
     if (_isUploading) {
       return paperless.UploadResult.error(
         'Upload already in progress',
@@ -215,7 +215,7 @@ class UploadProvider extends ChangeNotifier {
       developer.log('UploadProvider.uploadUrl: download complete, size=${await tempFile.length()}', name: 'UploadProvider');
 
       // --- Upload to Paperless ---
-      final selectedTagIds = await appConfigProvider.getSelectedTags();
+      final selectedTagIds = tagIds ?? await appConfigProvider.getSelectedTags();
       final result = await service.uploadDocument(
         filePath: tempFile.path,
         fileName: fileName,

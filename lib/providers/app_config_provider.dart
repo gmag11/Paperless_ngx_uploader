@@ -117,6 +117,13 @@ class AppConfigProvider extends ChangeNotifier {
     if (server == null) return [];
     return server.defaultTagIds;
   }
+
+  /// Whether to prompt for tag selection before each upload.
+  bool get askTagsBeforeUpload {
+    final server = _serverManager.selectedServer;
+    if (server == null) return false;
+    return server.askTagsBeforeUpload;
+  }
   
   Future<List<int>> getSelectedTags() async {
     final server = _serverManager.selectedServer;

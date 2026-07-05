@@ -307,4 +307,19 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get server_configure_first =>
       'Por favor, configura al menos un servidor para comenzar a subir documentos';
+
+  @override
+  String get ask_tags_before_upload_title =>
+      'Preguntar etiquetas antes de subir';
+
+  @override
+  String get ask_tags_before_upload_subtitle =>
+      'Mostrar diálogo de selección de etiquetas antes de cada subida';
+
+  @override
+  String get ask_tags_dialog_title =>
+      'Selecciona las etiquetas para esta subida';
+
+  @override
+  String get ask_tags_dialog_confirm => 'Subir';
 }

@@ -297,4 +297,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get server_configure_first =>
       'Please configure at least one server to start uploading documents';
+
+  @override
+  String get ask_tags_before_upload_title => 'Ask for tags before upload';
+
+  @override
+  String get ask_tags_before_upload_subtitle =>
+      'Show tag selection dialog before each upload';
+
+  @override
+  String get ask_tags_dialog_title => 'Select tags for this upload';
+
+  @override
+  String get ask_tags_dialog_confirm => 'Upload';
 }
