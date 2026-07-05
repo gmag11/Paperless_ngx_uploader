@@ -13,6 +13,7 @@
 migrate_working_dir/
 context_portal/
 *.bak
+skills
 
 # IntelliJ related
 *.iml

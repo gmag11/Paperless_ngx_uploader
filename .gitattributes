@@ -1,0 +1,22 @@
+# Normalizar todos los archivos de texto a LF
+* text=auto eol=lf
+
+# Archivos binarios — no tocar
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.keystore binary
+*.db binary
+*.bundle binary
+*.jar binary
+*.aar binary
+*.apk binary
+*.aab binary
