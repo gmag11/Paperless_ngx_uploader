@@ -9,6 +9,7 @@ class SecureStorageService {
   static String _serverPasswordKey(String serverId) => 'server_${serverId}_password';
   static String _serverApiTokenKey(String serverId) => 'server_${serverId}_api_token';
   static String _serverSelectedTagsKey(String serverId) => 'server_${serverId}_selected_tags';
+  static String _serverFavoriteTagsKey(String serverId) => 'server_${serverId}_favorite_tags';
   
   // Server list management keys
   static const _serversKey = 'servers';
@@ -55,6 +56,24 @@ class SecureStorageService {
   Future<void> cleanupLegacyTagStorage(String serverId) async {
     final key = _serverSelectedTagsKey(serverId);
     await _storage.delete(key: key);
+  }
+
+  // Favorite tags — persisted independently from ServerConfig for reliability
+  Future<void> saveFavoriteTags(String serverId, List<int> tagIds) async {
+    final key = _serverFavoriteTagsKey(serverId);
+    await _storage.write(key: key, value: jsonEncode(tagIds));
+  }
+
+  Future<List<int>> getFavoriteTags(String serverId) async {
+    final key = _serverFavoriteTagsKey(serverId);
+    final json = await _storage.read(key: key);
+    if (json == null) return [];
+    try {
+      final List<dynamic> list = jsonDecode(json) as List<dynamic>;
+      return list.map((id) => id as int).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<void> saveServers(List<Map<String, dynamic>> servers) async {

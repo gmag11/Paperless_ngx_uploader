@@ -335,4 +335,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get validation_custom_header_incomplete =>
       'Custom header key or value is empty. Complete or remove the row.';
+
+  @override
+  String get mark_favorite => 'Mark as favorite';
+
+  @override
+  String get mark_unfavorite => 'Remove from favorites';
 }

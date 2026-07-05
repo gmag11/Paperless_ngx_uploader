@@ -347,4 +347,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get validation_custom_header_incomplete =>
       'La clave o valor de la cabecera está vacío. Completá o eliminá la fila.';
+
+  @override
+  String get mark_favorite => 'Marcar como favorita';
+
+  @override
+  String get mark_unfavorite => 'Quitar de favoritas';
 }

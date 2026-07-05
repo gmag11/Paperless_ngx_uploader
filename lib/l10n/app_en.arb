@@ -516,5 +516,14 @@
   "validation_custom_header_incomplete": "Custom header key or value is empty. Complete or remove the row.",
   "@validation_custom_header_incomplete": {
     "description": "Validation error shown when a custom header key or value is empty"
+  },
+
+  "mark_favorite": "Mark as favorite",
+  "@mark_favorite": {
+    "description": "Tooltip for star button to mark a tag as favorite"
+  },
+  "mark_unfavorite": "Remove from favorites",
+  "@mark_unfavorite": {
+    "description": "Tooltip for star button to remove a tag from favorites"
   }
 }

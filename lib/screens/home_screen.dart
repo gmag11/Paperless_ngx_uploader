@@ -96,6 +96,17 @@ class _HomeScreenState extends State<HomeScreen> {
         if (appConfig.askTagsBeforeUpload) {
           final service = await appConfig.getPaperlessService();
           if (service != null && mounted) {
+            final serverManager = Provider.of<ServerManager>(context, listen: false);
+            final currentServer = serverManager.selectedServer;
+            if (currentServer == null) return;
+            final serverId = currentServer.id;
+            // Read favorites from independent storage (survives activity recreation)
+            final favStorage = SecureStorageService();
+            final storedFavorites = await favStorage.getFavoriteTags(serverId);
+            // Also sync back to ServerConfig for in-memory consistency
+            final syncedServer = currentServer.copyWith(favoriteTagIds: storedFavorites);
+            await serverManager.updateServer(syncedServer, silent: true);
+
             final chosenTags = await showDialog<List<Tag>>(
               context: context,
               barrierDismissible: false,
@@ -104,6 +115,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 paperlessService: service,
                 initialSelectedTagIds: List.from(appConfig.selectedTags),
                 onTagsSelected: (_) {},
+                favoriteTagIds: storedFavorites,
+                onToggleFavorite: (tagId) async {
+                  // Reload fresh from storage to avoid race conditions
+                  final freshFavs = await favStorage.getFavoriteTags(serverId);
+                  if (freshFavs.contains(tagId)) {
+                    freshFavs.remove(tagId);
+                  } else {
+                    freshFavs.add(tagId);
+                  }
+                  await favStorage.saveFavoriteTags(serverId, freshFavs);
+                  developer.log('HomeScreen: Ask-dialog toggled favorite $tagId, now: $freshFavs', name: 'HomeScreen');
+                },
               ),
             );
             if (!mounted) return;
@@ -724,6 +747,13 @@ class _HomeScreenState extends State<HomeScreen> {
       final password = await secureStorage.getServerCredentials(currentServer.id) ?? '';
       final apiToken = await secureStorage.getServerApiToken(currentServer.id) ?? '';
       
+      // Read favorites from independent storage (survives activity recreation)
+      final storedFavorites = await secureStorage.getFavoriteTags(currentServer.id);
+      // Sync back to ServerConfig for in-memory consistency
+      final syncedServer = currentServer.copyWith(favoriteTagIds: storedFavorites);
+      await serverManager.updateServer(syncedServer, silent: true);
+      final currentFavorites = storedFavorites;
+
       // Get current selected tags for this server
       final selectedTagIds = currentServer.defaultTagIds;
       final allTags = await _getTagsForCurrentServer(serverManager, currentServer);
@@ -731,7 +761,7 @@ class _HomeScreenState extends State<HomeScreen> {
           .where((tag) => selectedTagIds.contains(tag.id))
           .toList();
 
-      developer.log('HomeScreen: Showing tag selection dialog for server ${currentServer.id} with ${selectedTagIds.length} selected tags', name: 'HomeScreen');
+      developer.log('HomeScreen: Showing tag selection dialog for server ${currentServer.id} with ${selectedTagIds.length} selected tags, favorites: $currentFavorites', name: 'HomeScreen');
 
       if (!mounted) return;
 
@@ -756,13 +786,27 @@ class _HomeScreenState extends State<HomeScreen> {
               await serverManager.updateServer(updatedServer);
               developer.log('HomeScreen: Updated server ${currentServer.id} with ${tagIds.length} default tags', name: 'HomeScreen');
             },
+            favoriteTagIds: currentFavorites,
+            onToggleFavorite: (tagId) async {
+              // Reload fresh from storage to avoid race conditions
+              final freshFavs = await secureStorage.getFavoriteTags(currentServer.id);
+              if (freshFavs.contains(tagId)) {
+                freshFavs.remove(tagId);
+              } else {
+                freshFavs.add(tagId);
+              }
+              await secureStorage.saveFavoriteTags(currentServer.id, freshFavs);
+              developer.log('HomeScreen: Toggled favorite tag $tagId for server ${currentServer.id}, now: $freshFavs', name: 'HomeScreen');
+            },
           ),
         );
       }
 
       if (result != null && mounted) {
         final newSelectedTagIds = result.map((tag) => tag.id).toList();
-        final updatedServer = currentServer.copyWith(defaultTagIds: newSelectedTagIds);
+        // Re-read current server to preserve favorites updated silently during dialog
+        final freshServer = serverManager.selectedServer ?? currentServer;
+        final updatedServer = freshServer.copyWith(defaultTagIds: newSelectedTagIds);
         await serverManager.updateServer(updatedServer);
         developer.log('HomeScreen: Updated server ${currentServer.id} with ${newSelectedTagIds.length} default tags after dialog', name: 'HomeScreen');
         
