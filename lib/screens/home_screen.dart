@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (appConfig.selectedTags.isEmpty) await appConfig.loadStoredTags();
     } catch (_) {}
 
-    int successCount = 0;
+    // int successCount = 0;
     bool anyError = false;
 
     for (final event in events) {
@@ -101,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         if (!mounted) return;
         if (result.success) {
-          successCount++;
+          // successCount++;
           UIHelper.showMessage(context, l10n.snackbar_file_uploaded, success: true);
         } else {
           anyError = true;
