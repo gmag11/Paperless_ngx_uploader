@@ -10,6 +10,7 @@ import 'services/legacy_migration_service.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'dart:developer' as developer;
 import 'dart:io' show Platform;
+import 'package:package_info_plus/package_info_plus.dart';
 
 // Optional: only import window_size on desktop platforms
 // ignore: uri_does_not_exist
@@ -32,7 +33,8 @@ void main() async {
         final left = (frame.width - width) / 2 + frame.left;
         final top = (frame.height - height) / 2 + frame.top;
         window_size.setWindowFrame(Rect.fromLTWH(left, top, width, height));
-        window_size.setWindowTitle('Paperless-NGX Uploader');
+        final packageInfo = await PackageInfo.fromPlatform();
+        window_size.setWindowTitle('Paperless-NGX Uploader v${packageInfo.version}');
         window_size.setWindowMinSize(const Size(420, 610));
       }
     }
