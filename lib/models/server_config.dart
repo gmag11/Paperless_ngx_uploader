@@ -14,6 +14,7 @@ class ServerConfig {
   final String? apiToken;
   final bool allowSelfSignedCertificates;
   final List<int> defaultTagIds;
+  final bool askTagsBeforeUpload;
 
   const ServerConfig({
     required this.id,
@@ -24,6 +25,7 @@ class ServerConfig {
     this.apiToken,
     this.allowSelfSignedCertificates = false,
     this.defaultTagIds = const [],
+    this.askTagsBeforeUpload = false,
   });
 
   bool get isValid {
@@ -41,6 +43,7 @@ class ServerConfig {
     String? apiToken,
     bool? allowSelfSignedCertificates,
     List<int>? defaultTagIds,
+    bool? askTagsBeforeUpload,
   }) {
     return ServerConfig(
       id: id ?? this.id,
@@ -51,6 +54,7 @@ class ServerConfig {
       apiToken: apiToken ?? this.apiToken,
       allowSelfSignedCertificates: allowSelfSignedCertificates ?? this.allowSelfSignedCertificates,
       defaultTagIds: defaultTagIds ?? this.defaultTagIds,
+      askTagsBeforeUpload: askTagsBeforeUpload ?? this.askTagsBeforeUpload,
     );
   }
 
@@ -64,6 +68,7 @@ class ServerConfig {
       'apiToken': apiToken,
       'allowSelfSignedCertificates': allowSelfSignedCertificates,
       'defaultTagIds': defaultTagIds,
+      'askTagsBeforeUpload': askTagsBeforeUpload,
     };
   }
 
@@ -82,6 +87,7 @@ class ServerConfig {
       defaultTagIds: (json['defaultTagIds'] as List<dynamic>?)
           ?.map((id) => id as int)
           .toList() ?? [],
+      askTagsBeforeUpload: json['askTagsBeforeUpload'] as bool? ?? false,
     );
   }
 
@@ -94,10 +100,18 @@ class ServerConfig {
       identical(this, other) ||
       other is ServerConfig &&
           runtimeType == other.runtimeType &&
-          id == other.id;
+          id == other.id &&
+          name == other.name &&
+          serverUrl == other.serverUrl &&
+          authMethod == other.authMethod &&
+          username == other.username &&
+          apiToken == other.apiToken &&
+          allowSelfSignedCertificates == other.allowSelfSignedCertificates &&
+          defaultTagIds == other.defaultTagIds &&
+          askTagsBeforeUpload == other.askTagsBeforeUpload;
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => Object.hash(id, name, serverUrl, authMethod, username, apiToken, allowSelfSignedCertificates, defaultTagIds, askTagsBeforeUpload);
 
   @override
   String toString() {

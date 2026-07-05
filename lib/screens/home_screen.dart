@@ -90,13 +90,41 @@ class _HomeScreenState extends State<HomeScreen> {
       uploadProvider.resetUploadState();
 
       try {
+        List<int>? uploadTagIds;
+
+        // If ask-before-upload is enabled, show tag selection dialog
+        if (appConfig.askTagsBeforeUpload) {
+          final service = await appConfig.getPaperlessService();
+          if (service != null && mounted) {
+            final chosenTags = await showDialog<List<Tag>>(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) => TagSelectionDialog(
+                selectedTags: [],
+                paperlessService: service,
+                initialSelectedTagIds: List.from(appConfig.selectedTags),
+                onTagsSelected: (_) {},
+              ),
+            );
+            if (!mounted) return;
+            if (chosenTags == null) {
+              // User cancelled — skip this file
+              developer.log('HomeScreen: User cancelled tag selection for ${event.fileName}, skipping', name: 'HomeScreen');
+              continue;
+            }
+            uploadTagIds = chosenTags.map((t) => t.id).toList();
+          }
+        }
+
         final paperless.UploadResult result;
         if (event.isUrl) {
-          result = await uploadProvider.uploadUrl(event.filePath, event.fileName);
+          result = await uploadProvider.uploadUrl(event.filePath, event.fileName,
+            tagIds: uploadTagIds);
         } else {
           result = await uploadProvider.uploadFile(
             File(event.filePath),
             event.fileName,
+            tagIds: uploadTagIds,
           );
         }
         if (!mounted) return;
@@ -591,6 +619,26 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             );
                           },
+                        );
+                      },
+                    ),
+                    const Divider(height: 24),
+                    Consumer<AppConfigProvider>(
+                      builder: (context, config, _) {
+                        final l10n = AppLocalizations.of(context)!;
+                        return SwitchListTile(
+                          title: Text(l10n.ask_tags_before_upload_title),
+                          subtitle: Text(l10n.ask_tags_before_upload_subtitle),
+                          value: config.askTagsBeforeUpload,
+                          onChanged: (value) async {
+                            final server = config.serverManager.selectedServer;
+                            if (server != null) {
+                              await config.serverManager.updateServer(
+                                server.copyWith(askTagsBeforeUpload: value),
+                              );
+                            }
+                          },
+                          contentPadding: EdgeInsets.zero,
                         );
                       },
                     ),

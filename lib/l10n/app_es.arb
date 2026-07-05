@@ -476,5 +476,22 @@
   "error_loading_tags": "Error al cargar etiquetas",
   "@error_loading_tags": {
     "description": "Se muestra cuando la app no puede cargar las etiquetas desde el servidor."
+  },
+
+  "ask_tags_before_upload_title": "Preguntar etiquetas antes de subir",
+  "@ask_tags_before_upload_title": {
+    "description": "Etiqueta del interruptor que activa la selección de etiquetas por subida"
+  },
+  "ask_tags_before_upload_subtitle": "Mostrar diálogo de selección de etiquetas antes de cada subida",
+  "@ask_tags_before_upload_subtitle": {
+    "description": "Subtítulo que explica la función de preguntar etiquetas antes de subir"
+  },
+  "ask_tags_dialog_title": "Selecciona las etiquetas para esta subida",
+  "@ask_tags_dialog_title": {
+    "description": "Título del diálogo de selección de etiquetas mostrado antes de subir"
+  },
+  "ask_tags_dialog_confirm": "Subir",
+  "@ask_tags_dialog_confirm": {
+    "description": "Botón de confirmación en el diálogo de etiquetas antes de subir"
   }
 }

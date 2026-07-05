@@ -466,5 +466,22 @@
   "server_configure_first": "Please configure at least one server to start uploading documents",
   "@server_configure_first": {
     "description": "Message shown when user needs to configure a server before using the app."
+  },
+
+  "ask_tags_before_upload_title": "Ask for tags before upload",
+  "@ask_tags_before_upload_title": {
+    "description": "Label for the toggle that enables per-upload tag selection"
+  },
+  "ask_tags_before_upload_subtitle": "Show tag selection dialog before each upload",
+  "@ask_tags_before_upload_subtitle": {
+    "description": "Subtitle explaining the ask-tags-before-upload toggle"
+  },
+  "ask_tags_dialog_title": "Select tags for this upload",
+  "@ask_tags_dialog_title": {
+    "description": "Title of the tag selection dialog shown before upload"
+  },
+  "ask_tags_dialog_confirm": "Upload",
+  "@ask_tags_dialog_confirm": {
+    "description": "Confirm button in the per-upload tag selection dialog"
   }
 }
