@@ -75,7 +75,7 @@ class ServerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateServer(ServerConfig server) async {
+  Future<void> updateServer(ServerConfig server, {bool silent = false}) async {
     developer.log('Updating server: ${server.id} - ${server.name} (${server.serverUrl})', name: 'ServerManager');
     
     final index = _servers.indexWhere((s) => s.id == server.id);
@@ -89,7 +89,9 @@ class ServerManager extends ChangeNotifier {
         developer.log('Selected server updated: ${server.id}', name: 'ServerManager');
       }
       
-      notifyListeners();
+      if (!silent) {
+        notifyListeners();
+      }
     } else {
       developer.log('Server not found for update: ${server.id}', name: 'ServerManager');
     }

@@ -8,6 +8,8 @@ class TagSelectionDialog extends StatefulWidget {
   final PaperlessService paperlessService;
   final List<int> initialSelectedTagIds;
   final Function(List<int>) onTagsSelected;
+  final List<int> favoriteTagIds;
+  final Function(int)? onToggleFavorite;
 
   const TagSelectionDialog({
     super.key,
@@ -15,6 +17,8 @@ class TagSelectionDialog extends StatefulWidget {
     required this.paperlessService,
     required this.initialSelectedTagIds,
     required this.onTagsSelected,
+    this.favoriteTagIds = const [],
+    this.onToggleFavorite,
   });
 
   @override
@@ -24,6 +28,7 @@ class TagSelectionDialog extends StatefulWidget {
 class _TagSelectionDialogState extends State<TagSelectionDialog> {
   late List<Tag> _selectedTags;
   late List<Tag> _filteredTags;
+  late List<int> _favoriteTagIds;
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
   String? _error;
@@ -33,6 +38,7 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
   void initState() {
     super.initState();
     _selectedTags = List.from(widget.selectedTags);
+    _favoriteTagIds = List.from(widget.favoriteTagIds);
     _filteredTags = [];
     _searchController.addListener(_filterTags);
     _fetchTags();
@@ -43,6 +49,15 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
       final tags = await widget.paperlessService.fetchTags();
       setState(() {
         _allTags = tags;
+        // Pre-select tags from initialSelectedTagIds that weren't already in selectedTags
+        if (widget.initialSelectedTagIds.isNotEmpty) {
+          for (final tag in _allTags) {
+            if (widget.initialSelectedTagIds.contains(tag.id) &&
+                !_selectedTags.any((t) => t.id == tag.id)) {
+              _selectedTags.add(tag);
+            }
+          }
+        }
         _updateFilteredTags();
         _isLoading = false;
       });
@@ -76,6 +91,19 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
       }
     }
     
+    // Sort: selected first, favorites second, rest third — alphabetical within each tier
+    newFilteredTags.sort((a, b) {
+      final aSelected = _selectedTags.any((t) => t.id == a.id);
+      final bSelected = _selectedTags.any((t) => t.id == b.id);
+      if (aSelected != bSelected) return aSelected ? -1 : 1;
+
+      final aFavorite = _favoriteTagIds.contains(a.id);
+      final bFavorite = _favoriteTagIds.contains(b.id);
+      if (aFavorite != bFavorite) return aFavorite ? -1 : 1;
+
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
     _filteredTags = newFilteredTags;
   }
 
@@ -87,6 +115,20 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
         _selectedTags.add(tag);
       }
     });
+  }
+
+  void _toggleFavorite(Tag tag) {
+    setState(() {
+      if (_favoriteTagIds.contains(tag.id)) {
+        _favoriteTagIds.remove(tag.id);
+      } else {
+        _favoriteTagIds.add(tag.id);
+      }
+    });
+    // Fire-and-forget: callback persists to server manager
+    if (widget.onToggleFavorite != null) {
+      widget.onToggleFavorite!(tag.id);
+    }
   }
 
   void _clearSelection() {
@@ -175,6 +217,7 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
                 itemBuilder: (context, index) {
                   final tag = _filteredTags[index];
                   final isSelected = _selectedTags.any((t) => t.id == tag.id);
+                  final isFavorite = _favoriteTagIds.contains(tag.id);
                   
                   return ListTile(
                     leading: Checkbox(
@@ -201,6 +244,16 @@ class _TagSelectionDialogState extends State<TagSelectionDialog> {
                           ),
                         ),
                       ],
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(
+                        isFavorite ? Icons.star : Icons.star_border,
+                        color: isFavorite ? Colors.amber : null,
+                      ),
+                      tooltip: isFavorite
+                          ? AppLocalizations.of(context)!.mark_unfavorite
+                          : AppLocalizations.of(context)!.mark_favorite,
+                      onPressed: () => _toggleFavorite(tag),
                     ),
                     onTap: () => _toggleTag(tag),
                   );

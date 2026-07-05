@@ -526,5 +526,14 @@
   "validation_custom_header_incomplete": "La clave o valor de la cabecera está vacío. Completá o eliminá la fila.",
   "@validation_custom_header_incomplete": {
     "description": "Error de validación cuando una clave o valor de cabecera personalizada está vacío"
+  },
+
+  "mark_favorite": "Marcar como favorita",
+  "@mark_favorite": {
+    "description": "Tooltip del botón estrella para marcar una etiqueta como favorita"
+  },
+  "mark_unfavorite": "Quitar de favoritas",
+  "@mark_unfavorite": {
+    "description": "Tooltip del botón estrella para quitar una etiqueta de favoritas"
   }
 }

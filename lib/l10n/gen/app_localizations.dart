@@ -686,6 +686,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Custom header key or value is empty. Complete or remove the row.'**
   String get validation_custom_header_incomplete;
+
+  /// Tooltip for star button to mark a tag as favorite
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as favorite'**
+  String get mark_favorite;
+
+  /// Tooltip for star button to remove a tag from favorites
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get mark_unfavorite;
 }
 
 class _AppLocalizationsDelegate
