@@ -691,14 +691,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     Builder(
                       builder: (context) {
                         final l10n = AppLocalizations.of(context)!;
+                        final isDesktop =
+                            Platform.isWindows || Platform.isLinux || Platform.isMacOS;
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(l10n.howto_step_1),
+                            Text(isDesktop ? l10n.howto_step_1_desktop : l10n.howto_step_1),
                             const SizedBox(height: 8),
-                            Text(l10n.howto_step_2),
-                            const SizedBox(height: 8),
-                            Text(l10n.howto_step_3),
+                            Text(isDesktop ? l10n.howto_step_2_desktop : l10n.howto_step_2),
+                            if (!isDesktop) ...[
+                              const SizedBox(height: 8),
+                              Text(l10n.howto_step_3),
+                            ],
                           ],
                         );
                       },
