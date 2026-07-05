@@ -493,5 +493,38 @@
   "ask_tags_dialog_confirm": "Subir",
   "@ask_tags_dialog_confirm": {
     "description": "Botón de confirmación en el diálogo de etiquetas antes de subir"
+  },
+
+  "section_title_custom_headers": "Cabeceras personalizadas",
+  "@section_title_custom_headers": {
+    "description": "Título de la sección de configuración de cabeceras HTTP personalizadas"
+  },
+  "field_label_header_key": "Clave",
+  "@field_label_header_key": {
+    "description": "Etiqueta del campo de clave de cabecera personalizada"
+  },
+  "field_hint_header_key": "ej. P-Access-Token-Id",
+  "@field_hint_header_key": {
+    "description": "Texto de ayuda para el campo de clave de cabecera"
+  },
+  "field_label_header_value": "Valor",
+  "@field_label_header_value": {
+    "description": "Etiqueta del campo de valor de cabecera personalizada"
+  },
+  "field_hint_header_value": "ej. abc123",
+  "@field_hint_header_value": {
+    "description": "Texto de ayuda para el campo de valor de cabecera"
+  },
+  "action_add_header": "Añadir cabecera",
+  "@action_add_header": {
+    "description": "Etiqueta del botón para añadir una nueva fila de cabecera"
+  },
+  "action_remove_header": "Quitar cabecera",
+  "@action_remove_header": {
+    "description": "Tooltip del botón para eliminar una fila de cabecera"
+  },
+  "validation_custom_header_incomplete": "La clave o valor de la cabecera está vacío. Completá o eliminá la fila.",
+  "@validation_custom_header_incomplete": {
+    "description": "Error de validación cuando una clave o valor de cabecera personalizada está vacío"
   }
 }

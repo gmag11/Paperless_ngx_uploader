@@ -53,6 +53,9 @@ class PaperlessService {
   // Whether SSL certificate validation is disabled for self-signed certificates
   final bool allowSelfSignedCertificates;
 
+  // Custom HTTP headers to include in every request (e.g. proxy auth tokens)
+  final Map<String, String>? customHeaders;
+
   // Shared Dio client configured for streaming, timeouts, and retries
   late final Dio _dio;
 
@@ -63,6 +66,7 @@ class PaperlessService {
     this.useApiToken = false,
     this.apiToken,
     this.allowSelfSignedCertificates = false,
+    this.customHeaders,
   })  : baseUrl = _normalizeBaseUrl(baseUrl) {
     _dio = Dio(BaseOptions(
       baseUrl: this.baseUrl,
@@ -74,6 +78,7 @@ class PaperlessService {
         password: password,
         useApiToken: useApiToken,
         apiToken: apiToken,
+        customHeaders: customHeaders,
       ),
       followRedirects: true,
       validateStatus: (code) => code != null && code >= 200 && code < 600,
@@ -92,8 +97,17 @@ class PaperlessService {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         if (kDebugMode) {
-          developer.log('➡️ ${options.method} ${options.uri}',
+          final customHeaderNames = options.headers.keys
+              .where((k) => customHeaders?.containsKey(k) ?? false)
+              .toList();
+          developer.log(
+              '➡️ ${options.method} ${options.uri}',
               name: 'PaperlessService.Dio');
+          if (customHeaderNames.isNotEmpty) {
+            developer.log(
+                '   Custom headers: ${customHeaderNames.join(", ")}',
+                name: 'PaperlessService.Dio');
+          }
         }
         handler.next(options);
       },
@@ -128,18 +142,21 @@ class PaperlessService {
     required String password,
     required bool useApiToken,
     String? apiToken,
+    Map<String, String>? customHeaders,
   }) {
+    final headers = <String, dynamic>{};
     if (useApiToken) {
       final token = (apiToken ?? '').trim();
-      return {
-        HttpHeaders.authorizationHeader: 'Token $token',
-      };
+      headers[HttpHeaders.authorizationHeader] = 'Token $token';
     } else {
       final credentials = base64Encode(utf8.encode('$username:$password'));
-      return {
-        HttpHeaders.authorizationHeader: 'Basic $credentials',
-      };
+      headers[HttpHeaders.authorizationHeader] = 'Basic $credentials';
     }
+    // Merge custom headers after auth so they can't override Authorization
+    if (customHeaders != null && customHeaders.isNotEmpty) {
+      headers.addAll(customHeaders);
+    }
+    return headers;
   }
 
   String get _authHeader {

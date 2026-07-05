@@ -15,6 +15,7 @@ class ServerConfig {
   final bool allowSelfSignedCertificates;
   final List<int> defaultTagIds;
   final bool askTagsBeforeUpload;
+  final Map<String, String>? customHeaders;
 
   const ServerConfig({
     required this.id,
@@ -26,6 +27,7 @@ class ServerConfig {
     this.allowSelfSignedCertificates = false,
     this.defaultTagIds = const [],
     this.askTagsBeforeUpload = false,
+    this.customHeaders,
   });
 
   bool get isValid {
@@ -44,6 +46,7 @@ class ServerConfig {
     bool? allowSelfSignedCertificates,
     List<int>? defaultTagIds,
     bool? askTagsBeforeUpload,
+    Map<String, String>? customHeaders,
   }) {
     return ServerConfig(
       id: id ?? this.id,
@@ -55,6 +58,7 @@ class ServerConfig {
       allowSelfSignedCertificates: allowSelfSignedCertificates ?? this.allowSelfSignedCertificates,
       defaultTagIds: defaultTagIds ?? this.defaultTagIds,
       askTagsBeforeUpload: askTagsBeforeUpload ?? this.askTagsBeforeUpload,
+      customHeaders: customHeaders ?? this.customHeaders,
     );
   }
 
@@ -69,6 +73,7 @@ class ServerConfig {
       'allowSelfSignedCertificates': allowSelfSignedCertificates,
       'defaultTagIds': defaultTagIds,
       'askTagsBeforeUpload': askTagsBeforeUpload,
+      'customHeaders': customHeaders,
     };
   }
 
@@ -88,6 +93,8 @@ class ServerConfig {
           ?.map((id) => id as int)
           .toList() ?? [],
       askTagsBeforeUpload: json['askTagsBeforeUpload'] as bool? ?? false,
+      customHeaders: (json['customHeaders'] as Map<String, dynamic>?)
+          ?.map((k, v) => MapEntry(k, v as String)),
     );
   }
 
@@ -108,10 +115,11 @@ class ServerConfig {
           apiToken == other.apiToken &&
           allowSelfSignedCertificates == other.allowSelfSignedCertificates &&
           defaultTagIds == other.defaultTagIds &&
-          askTagsBeforeUpload == other.askTagsBeforeUpload;
+          askTagsBeforeUpload == other.askTagsBeforeUpload &&
+          customHeaders == other.customHeaders;
 
   @override
-  int get hashCode => Object.hash(id, name, serverUrl, authMethod, username, apiToken, allowSelfSignedCertificates, defaultTagIds, askTagsBeforeUpload);
+  int get hashCode => Object.hash(id, name, serverUrl, authMethod, username, apiToken, allowSelfSignedCertificates, defaultTagIds, askTagsBeforeUpload, customHeaders);
 
   @override
   String toString() {

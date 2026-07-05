@@ -41,6 +41,10 @@ class _ConfigDialogState extends State<ConfigDialog> {
   bool _showServerForm = false;
   String? _editingServerId;
 
+  // Custom headers state
+  final List<({TextEditingController keyController, TextEditingController valueController})>
+      _customHeaderRows = [];
+
   @override
   void initState() {
     super.initState();
@@ -83,6 +87,18 @@ class _ConfigDialogState extends State<ConfigDialog> {
         _obscureToken = true;
         _editingServerId = currentServer.id;
         _showServerForm = false; // Ensure we show server list when loading current server
+
+        // Load custom headers
+        _customHeaderRows.clear();
+        final customHeaders = currentServer.customHeaders;
+        if (customHeaders != null && customHeaders.isNotEmpty) {
+          for (final entry in customHeaders.entries) {
+            _customHeaderRows.add((
+              keyController: TextEditingController(text: entry.key),
+              valueController: TextEditingController(text: entry.value),
+            ));
+          }
+        }
       });
     }
   }
@@ -119,6 +135,18 @@ class _ConfigDialogState extends State<ConfigDialog> {
       _obscureToken = true;
       _editingServerId = server.id;
       _showServerForm = true;
+
+      // Load custom headers
+      _customHeaderRows.clear();
+      final customHeaders = server.customHeaders;
+      if (customHeaders != null && customHeaders.isNotEmpty) {
+        for (final entry in customHeaders.entries) {
+          _customHeaderRows.add((
+            keyController: TextEditingController(text: entry.key),
+            valueController: TextEditingController(text: entry.value),
+          ));
+        }
+      }
     });
   }
 
@@ -138,7 +166,62 @@ class _ConfigDialogState extends State<ConfigDialog> {
       _inlineConnectionError = null;
       _editingServerId = null;
       _showServerForm = false;
+
+      // Clear custom headers
+      for (final row in _customHeaderRows) {
+        row.keyController.dispose();
+        row.valueController.dispose();
+      }
+      _customHeaderRows.clear();
     });
+  }
+
+  void _addCustomHeaderRow() {
+    setState(() {
+      _customHeaderRows.add((
+        keyController: TextEditingController(),
+        valueController: TextEditingController(),
+      ));
+    });
+  }
+
+  void _removeCustomHeaderRow(int index) {
+    setState(() {
+      final row = _customHeaderRows.removeAt(index);
+      row.keyController.dispose();
+      row.valueController.dispose();
+    });
+  }
+
+  Map<String, String> _collectCustomHeaders() {
+    final headers = <String, String>{};
+    for (final row in _customHeaderRows) {
+      final key = row.keyController.text.trim();
+      final value = row.valueController.text.trim();
+      if (key.isNotEmpty) {
+        headers[key] = value;
+      }
+      // Empty-key rows with empty values are silently skipped
+    }
+    return headers;
+  }
+
+  bool _validateCustomHeaders() {
+    for (final row in _customHeaderRows) {
+      final key = row.keyController.text.trim();
+      final value = row.valueController.text.trim();
+      // Key is empty but value is not: reject
+      if (key.isEmpty && value.isNotEmpty) {
+        return false;
+      }
+      // Key is not empty but value is empty: reject
+      if (key.isNotEmpty && value.isEmpty) {
+        return false;
+      }
+      // Both empty: silently skip (handled in _collectCustomHeaders)
+      // Both non-empty: valid
+    }
+    return true;
   }
 
   Future<void> _saveAndTestServer() async {
@@ -160,9 +243,24 @@ class _ConfigDialogState extends State<ConfigDialog> {
     final serverManager = Provider.of<ServerManager>(context, listen: false);
 
     var serverUrl = _serverUrlController.text.trim();
+
+    // Validate and collect custom headers early so they're available for protocol detection
+    if (!_validateCustomHeaders()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.validation_custom_header_incomplete),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    final customHeaders = _collectCustomHeaders();
     
     if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
-      serverUrl = await _determineProtocol(serverUrl, config);
+      serverUrl = await _determineProtocol(serverUrl, config, customHeaders.isNotEmpty ? customHeaders : null);
       if (serverUrl.isEmpty) {
         if (mounted) {
           setState(() {
@@ -184,6 +282,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       useApiToken: useApi,
       apiToken: useApi ? secret : null,
       allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+      customHeaders: customHeaders.isNotEmpty ? customHeaders : null,
     );
 
     final status = await tempService.testConnection();
@@ -226,6 +325,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
         username: _authMethod == _AuthMethod.userPass ? username : null,
         defaultTagIds: existingDefaultTagIds,
         allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+        customHeaders: customHeaders.isNotEmpty ? customHeaders : null,
       );
 
       try {
@@ -306,7 +406,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
   }
 
-  Future<String> _determineProtocol(String serverWithoutProtocol, AppConfigProvider config) async {
+  Future<String> _determineProtocol(String serverWithoutProtocol, AppConfigProvider config, Map<String, String>? customHeaders) async {
     final username = _authMethod == _AuthMethod.userPass ? _usernameController.text.trim() : '';
     final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
     final useApi = _authMethod == _AuthMethod.apiToken;
@@ -319,6 +419,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       useApiToken: useApi,
       apiToken: useApi ? secret : null,
       allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+      customHeaders: customHeaders,
     );
 
     final httpsStatus = await httpsService.testConnection();
@@ -335,6 +436,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       useApiToken: useApi,
       apiToken: useApi ? secret : null,
       allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+      customHeaders: customHeaders,
     );
 
     final httpStatus = await httpService.testConnection();
@@ -353,6 +455,10 @@ class _ConfigDialogState extends State<ConfigDialog> {
     _passwordController.dispose();
     _tokenController.dispose();
     _serverNameController.dispose();
+    for (final row in _customHeaderRows) {
+      row.keyController.dispose();
+      row.valueController.dispose();
+    }
     super.dispose();
   }
 
@@ -640,6 +746,63 @@ class _ConfigDialogState extends State<ConfigDialog> {
                   },
                 );
               },
+            ),
+            const SizedBox(height: 8),
+            // Custom Headers section
+            ExpansionTile(
+              title: Text(l10n.section_title_custom_headers),
+              leading: const Icon(Icons.http),
+              initiallyExpanded: _customHeaderRows.isNotEmpty,
+              children: [
+                ..._customHeaderRows.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final row = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            controller: row.keyController,
+                            decoration: InputDecoration(
+                              labelText: l10n.field_label_header_key,
+                              hintText: l10n.field_hint_header_key,
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            controller: row.valueController,
+                            decoration: InputDecoration(
+                              labelText: l10n.field_label_header_value,
+                              hintText: l10n.field_hint_header_value,
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline),
+                          tooltip: l10n.action_remove_header,
+                          onPressed: () => _removeCustomHeaderRow(index),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.action_add_header),
+                    onPressed: _addCustomHeaderRow,
+                  ),
+                ),
+              ],
             ),
             if (_inlineConnectionError != null) ...[
               const SizedBox(height: 8),

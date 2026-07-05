@@ -483,5 +483,38 @@
   "ask_tags_dialog_confirm": "Upload",
   "@ask_tags_dialog_confirm": {
     "description": "Confirm button in the per-upload tag selection dialog"
+  },
+
+  "section_title_custom_headers": "Custom Headers",
+  "@section_title_custom_headers": {
+    "description": "Section title for custom HTTP headers configuration"
+  },
+  "field_label_header_key": "Header Key",
+  "@field_label_header_key": {
+    "description": "Label for custom header key input field"
+  },
+  "field_hint_header_key": "e.g. P-Access-Token-Id",
+  "@field_hint_header_key": {
+    "description": "Placeholder hint for custom header key input"
+  },
+  "field_label_header_value": "Header Value",
+  "@field_label_header_value": {
+    "description": "Label for custom header value input field"
+  },
+  "field_hint_header_value": "e.g. abc123",
+  "@field_hint_header_value": {
+    "description": "Placeholder hint for custom header value input"
+  },
+  "action_add_header": "Add Header",
+  "@action_add_header": {
+    "description": "Button label to add a new custom header row"
+  },
+  "action_remove_header": "Remove header",
+  "@action_remove_header": {
+    "description": "Tooltip for button to remove a custom header row"
+  },
+  "validation_custom_header_incomplete": "Custom header key or value is empty. Complete or remove the row.",
+  "@validation_custom_header_incomplete": {
+    "description": "Validation error shown when a custom header key or value is empty"
   }
 }
