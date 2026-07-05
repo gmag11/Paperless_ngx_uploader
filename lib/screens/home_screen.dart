@@ -213,9 +213,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final l10n = AppLocalizations.of(context)!;
     // Wrap body with DropTarget for desktop platforms (Windows/Linux/macOS)
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.appbar_title_home),
-      ),
+      appBar: Platform.isWindows || Platform.isLinux || Platform.isMacOS
+          ? null
+          : AppBar(
+              title: Text(l10n.appbar_title_home),
+            ),
       body: DropTarget(
         onDragEntered: (details) {
           setState(() => _dragging = true);

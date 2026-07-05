@@ -25,7 +25,7 @@ void main() async {
   try {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       const width = 420.0; // compact width
-      const height = 680.0; // compact height — fits all content including howto
+      const height = 610.0; // compact height — fits all content including howto
       final screen = await window_size.getCurrentScreen();
       if (screen != null) {
         final frame = screen.visibleFrame;
@@ -33,7 +33,7 @@ void main() async {
         final top = (frame.height - height) / 2 + frame.top;
         window_size.setWindowFrame(Rect.fromLTWH(left, top, width, height));
         window_size.setWindowTitle('Paperless-NGX Uploader');
-        window_size.setWindowMinSize(const Size(360, 680));
+        window_size.setWindowMinSize(const Size(420, 610));
       }
     }
   } catch (e) {
