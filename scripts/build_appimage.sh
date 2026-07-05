@@ -67,8 +67,8 @@ cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/lib/* build/appimage/Paperles
 cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/share/* build/appimage/PaperlessNGX_Uploader.AppDir/usr/share/
 cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/data build/appimage/PaperlessNGX_Uploader.AppDir/usr/bin/
 
-# Copy icon
-cp paperlessngx-share.png build/appimage/PaperlessNGX_Uploader.AppDir/net.gmartin.paperlessngx_uploader.png
+# Copy icon (Android launcher icon, highest resolution)
+cp android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png build/appimage/PaperlessNGX_Uploader.AppDir/net.gmartin.paperlessngx_uploader.png
 
 # Create the AppRun script if it does not exist
 if [ ! -f build/appimage/PaperlessNGX_Uploader.AppDir/AppRun ]; then

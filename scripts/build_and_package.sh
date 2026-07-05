@@ -101,9 +101,10 @@ cp "$REPO_ROOT/linux/$APP_ID.desktop" "$INSTALL_PREFIX/share/applications/$APP_I
 # Ensure Exec points to the wrapper
 sed -i "s|^Exec=.*|Exec=paperlessngx_uploader|" "$INSTALL_PREFIX/share/applications/$APP_ID.desktop"
 
-# Icon
-if [[ -f "$REPO_ROOT/paperlessngx-share.png" ]]; then
-  cp "$REPO_ROOT/paperlessngx-share.png" "$INSTALL_PREFIX/share/icons/hicolor/256x256/apps/$APP_ID.png"
+# Icon (Android launcher icon, highest resolution)
+ICON_SRC="$REPO_ROOT/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
+if [[ -f "$ICON_SRC" ]]; then
+  cp "$ICON_SRC" "$INSTALL_PREFIX/share/icons/hicolor/256x256/apps/$APP_ID.png"
 fi
 
 # Calculate installed size in KiB
