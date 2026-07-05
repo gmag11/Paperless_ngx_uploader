@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import '../utils/ui_helper.dart';
 import '../providers/app_config_provider.dart';
 import '../providers/server_manager.dart';
@@ -817,15 +816,7 @@ class _HomeScreenState extends State<HomeScreen> {
       developer.log('HomeScreen: Error showing tag selection dialog: $e', name: 'HomeScreen', error: e);
       if (context.mounted) {
         final l10n = AppLocalizations.of(context)!;
-        Fluttertoast.showToast(
-          msg: l10n.error_server,
-          toastLength: Toast.LENGTH_LONG,
-          timeInSecForIosWeb: 5,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
+        UIHelper.showMessage(context, l10n.error_server, success: false);
       }
     }
   }
