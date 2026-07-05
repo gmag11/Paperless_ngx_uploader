@@ -1,0 +1,75 @@
+name: Build Windows and Create Installer
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  windows:
+    name: Build Windows and create installer
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.4"
+          channel: stable
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Fetch Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Download Inno Setup installer
+        shell: powershell
+        run: |
+          $url = 'https://jrsoftware.org/download.php/is.exe?site=1'
+          Write-Host "Downloading Inno Setup from $url"
+          Invoke-WebRequest -Uri $url -OutFile is.exe
+
+      - name: Install Inno Setup silently
+        shell: powershell
+        run: |
+          Write-Host 'Attempting silent install of Inno Setup to "C:\Program Files (x86)\Inno Setup 6"'
+          Start-Process -FilePath .\is.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/DIR="C:\Program Files (x86)\Inno Setup 6"' -Wait -NoNewWindow
+
+      - name: Confirm ISCC exists
+        shell: powershell
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            Write-Error "ISCC.exe not found at $iscc"
+            exit 1
+          }
+          Write-Host "Found ISCC at $iscc"
+
+      - name: Build installer (PowerShell script)
+        shell: powershell
+        run: |
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+          .\scripts\build_and_package.ps1
+
+      - name: Verify installer exists
+        shell: powershell
+        run: |
+          $installer = Resolve-Path -Path "windows\installer\Output\PaperlessNGX_Uploader_Installer_Windows_x64.exe" -ErrorAction SilentlyContinue
+          if (-not $installer) {
+            Write-Error "Installer not found at windows\\installer\\Output\\PaperlessNGX_Uploader_Installer_Windows_x64.exe"
+            exit 1
+          }
+          Write-Host "Installer found: $($installer.Path)"
+
+      - name: Upload installer to release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: windows/installer/Output/PaperlessNGX_Uploader_Installer_Windows_x64.exe
+          token: ${{ secrets.TOKEN }}

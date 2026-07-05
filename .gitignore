@@ -55,3 +55,6 @@ app.*.map.json
 **/generated_plugin_registrant.h
 **/GeneratedPluginRegistrant.swift
 **/GeneratedPluginRegistrant.m
+
+# Inno Setup installer output
+windows/installer/Output/
