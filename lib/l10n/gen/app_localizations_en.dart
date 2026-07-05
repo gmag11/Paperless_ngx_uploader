@@ -310,4 +310,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ask_tags_dialog_confirm => 'Upload';
+
+  @override
+  String get section_title_custom_headers => 'Custom Headers';
+
+  @override
+  String get field_label_header_key => 'Header Key';
+
+  @override
+  String get field_hint_header_key => 'e.g. P-Access-Token-Id';
+
+  @override
+  String get field_label_header_value => 'Header Value';
+
+  @override
+  String get field_hint_header_value => 'e.g. abc123';
+
+  @override
+  String get action_add_header => 'Add Header';
+
+  @override
+  String get action_remove_header => 'Remove header';
+
+  @override
+  String get validation_custom_header_incomplete =>
+      'Custom header key or value is empty. Complete or remove the row.';
 }

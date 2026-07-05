@@ -37,6 +37,7 @@ class PaperlessServiceFactory {
       useApiToken: server.authMethod == AuthMethod.apiToken,
       apiToken: server.apiToken,
       allowSelfSignedCertificates: server.allowSelfSignedCertificates,
+      customHeaders: server.customHeaders,
     );
   }
 
@@ -55,6 +56,7 @@ class PaperlessServiceFactory {
       useApiToken: server.authMethod == AuthMethod.apiToken,
       apiToken: credentials['apiToken'] ?? server.apiToken,
       allowSelfSignedCertificates: server.allowSelfSignedCertificates,
+      customHeaders: server.customHeaders,
     );
   }
 
@@ -73,6 +75,7 @@ class PaperlessServiceFactory {
       useApiToken: server.authMethod == AuthMethod.apiToken,
       apiToken: credentials['apiToken'] ?? server.apiToken,
       allowSelfSignedCertificates: server.allowSelfSignedCertificates,
+      customHeaders: server.customHeaders,
     );
   }
 }

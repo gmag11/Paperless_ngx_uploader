@@ -638,6 +638,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upload'**
   String get ask_tags_dialog_confirm;
+
+  /// Section title for custom HTTP headers configuration
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Headers'**
+  String get section_title_custom_headers;
+
+  /// Label for custom header key input field
+  ///
+  /// In en, this message translates to:
+  /// **'Header Key'**
+  String get field_label_header_key;
+
+  /// Placeholder hint for custom header key input
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. P-Access-Token-Id'**
+  String get field_hint_header_key;
+
+  /// Label for custom header value input field
+  ///
+  /// In en, this message translates to:
+  /// **'Header Value'**
+  String get field_label_header_value;
+
+  /// Placeholder hint for custom header value input
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. abc123'**
+  String get field_hint_header_value;
+
+  /// Button label to add a new custom header row
+  ///
+  /// In en, this message translates to:
+  /// **'Add Header'**
+  String get action_add_header;
+
+  /// Tooltip for button to remove a custom header row
+  ///
+  /// In en, this message translates to:
+  /// **'Remove header'**
+  String get action_remove_header;
+
+  /// Validation error shown when a custom header key or value is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Custom header key or value is empty. Complete or remove the row.'**
+  String get validation_custom_header_incomplete;
 }
 
 class _AppLocalizationsDelegate

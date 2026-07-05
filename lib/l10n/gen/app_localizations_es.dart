@@ -322,4 +322,29 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get ask_tags_dialog_confirm => 'Subir';
+
+  @override
+  String get section_title_custom_headers => 'Cabeceras personalizadas';
+
+  @override
+  String get field_label_header_key => 'Clave';
+
+  @override
+  String get field_hint_header_key => 'ej. P-Access-Token-Id';
+
+  @override
+  String get field_label_header_value => 'Valor';
+
+  @override
+  String get field_hint_header_value => 'ej. abc123';
+
+  @override
+  String get action_add_header => 'Añadir cabecera';
+
+  @override
+  String get action_remove_header => 'Quitar cabecera';
+
+  @override
+  String get validation_custom_header_incomplete =>
+      'La clave o valor de la cabecera está vacío. Completá o eliminá la fila.';
 }
