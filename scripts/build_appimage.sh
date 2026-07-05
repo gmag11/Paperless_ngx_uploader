@@ -64,8 +64,17 @@ mkdir -p build/appimage/PaperlessNGX_Uploader.AppDir/usr/share
 echo -e "${YELLOW}📋 Copying application files...${NC}"
 cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/* build/appimage/PaperlessNGX_Uploader.AppDir/usr/bin/
 cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/lib/* build/appimage/PaperlessNGX_Uploader.AppDir/usr/lib/
-cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/share/* build/appimage/PaperlessNGX_Uploader.AppDir/usr/share/
-cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/data build/appimage/PaperlessNGX_Uploader.AppDir/usr/bin/
+
+# share/ and data/ directories are optional in Flutter Linux builds
+if [ -d "build/linux/${BUILD_DIR_ARCH}/release/bundle/share" ] && [ "$(ls -A build/linux/${BUILD_DIR_ARCH}/release/bundle/share 2>/dev/null)" ]; then
+    cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/share/* build/appimage/PaperlessNGX_Uploader.AppDir/usr/share/
+else
+    echo -e "${YELLOW}⚠️  No share/ directory found in bundle, skipping...${NC}"
+fi
+
+if [ -d "build/linux/${BUILD_DIR_ARCH}/release/bundle/data" ]; then
+    cp -r build/linux/${BUILD_DIR_ARCH}/release/bundle/data build/appimage/PaperlessNGX_Uploader.AppDir/usr/bin/
+fi
 
 # Copy icon (Android launcher icon, highest resolution)
 cp android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png build/appimage/PaperlessNGX_Uploader.AppDir/net.gmartin.paperlessngx_uploader.png
