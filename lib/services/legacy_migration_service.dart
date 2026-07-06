@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/server_config.dart';
 import '../models/tag.dart';
@@ -34,6 +35,14 @@ static Map<String, dynamic>? _legacyConfigCache;
       
       // Check if we have the minimum required configuration
       return serverUrl != null && serverUrl.isNotEmpty && authMethod != null;
+    } on PlatformException catch (e) {
+      if (e.code == 'KeyringLocked') {
+        developer.log('System keyring unavailable, assuming no legacy configuration',
+            name: 'LegacyMigrationService');
+      } else {
+        developer.log('Error checking legacy configuration: $e', name: 'LegacyMigrationService');
+      }
+      return false;
     } catch (e) {
       developer.log('Error checking legacy configuration: $e', name: 'LegacyMigrationService');
       return false;
@@ -119,6 +128,14 @@ static Map<String, dynamic>? _legacyConfigCache;
       };
       
       return _legacyConfigCache!;
+    } on PlatformException catch (e) {
+      if (e.code == 'KeyringLocked') {
+        developer.log('System keyring unavailable, cannot read legacy configuration',
+            name: 'LegacyMigrationService');
+      } else {
+        developer.log('Error getting legacy configuration: $e', name: 'LegacyMigrationService');
+      }
+      rethrow;
     } catch (e) {
       developer.log('Error getting legacy configuration: $e', name: 'LegacyMigrationService');
       rethrow;
