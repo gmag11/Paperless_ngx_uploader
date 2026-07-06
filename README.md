@@ -21,6 +21,11 @@ This repository is an updated/re‑implemented version inspired by that project,
 </p>
 
 <p align="center">
+  <a href="https://f-droid.org/packages/net.gmartin.paperlessngx_uploader">
+    <img src="https://f-droid.org/badge/get-it-on.png"
+    alt="Get it on F-Droid"
+    height="80">
+  </a>
   <a href="https://apt.izzysoft.de/packages/net.gmartin.paperlessngx_uploader">
     <img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height="80" />
   </a>
