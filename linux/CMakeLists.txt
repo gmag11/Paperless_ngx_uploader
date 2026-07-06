@@ -126,3 +126,19 @@ if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
   install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
 endif()
+
+# === Application icons ===
+# Install PNG icons into the hicolor theme so the desktop file and window
+# manager can find them via the APPLICATION_ID icon name.
+set(ICON_SIZES 16 32 48 64 128 256)
+foreach(size ${ICON_SIZES})
+  install(FILES "runner/resources/icons/${size}x${size}.png"
+    DESTINATION "share/icons/hicolor/${size}x${size}/apps"
+    RENAME "${APPLICATION_ID}.png"
+    COMPONENT Runtime)
+endforeach()
+
+# === Desktop file ===
+install(FILES "net.gmartin.paperlessngx_uploader.desktop"
+  DESTINATION "share/applications"
+  COMPONENT Runtime)

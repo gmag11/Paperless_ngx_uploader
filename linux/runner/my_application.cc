@@ -47,7 +47,30 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "paperlessngx_uploader");
   }
 
-  gtk_window_set_default_size(window, 1280, 720);
+  // Set the window icon.
+  // When installed system-wide the icon is found via the hicolor theme.
+  // During development (flutter run) we resolve it relative to the binary.
+  gtk_window_set_default_icon_name(APPLICATION_ID);
+  {
+    g_autofree gchar* exe_path = g_file_read_link("/proc/self/exe", nullptr);
+    if (exe_path != nullptr) {
+      g_autofree gchar* exe_dir = g_path_get_dirname(exe_path);
+      g_autofree gchar* icon_path = g_build_filename(
+          exe_dir, "share", "icons", "hicolor", "256x256", "apps",
+          APPLICATION_ID ".png", nullptr);
+      g_autoptr(GError) err = nullptr;
+      GdkPixbuf* icon = gdk_pixbuf_new_from_file(icon_path, &err);
+      if (icon != nullptr) {
+        gtk_window_set_icon(window, icon);
+        g_object_unref(icon);
+      } else {
+        g_warning("Could not load bundled application icon: %s", err->message);
+      }
+    }
+  }
+
+  gtk_window_set_default_size(window, 420, 610);
+  gtk_widget_set_size_request(GTK_WIDGET(window), 420, 610);
   gtk_widget_show(GTK_WIDGET(window));
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
