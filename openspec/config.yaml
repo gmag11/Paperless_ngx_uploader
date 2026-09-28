@@ -1,13 +1,18 @@
 schema: spec-driven
+githubCopilot:
+  cloudAgent: false
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Language policy — MANDATORY: every OpenSpec artifact (proposal, design,
+  tasks, and all spec deltas) MUST be written in English. This applies no
+  matter which language the conversation, the user request, or an existing
+  document uses. Never author or update a change in Spanish; if an existing
+  artifact is in Spanish, translate it fully to English instead of continuing
+  in Spanish. UI labels quoted from the app may keep their localized form
+  (e.g. the Android "Abrir con" / "Open with" chooser) when the artifact
+  refers to them.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
