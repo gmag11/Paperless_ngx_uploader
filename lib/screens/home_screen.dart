@@ -45,21 +45,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Listen for batch share intent events and process files sequentially
     _intentSub = IntentHandler.batchEventStream.listen((batch) async {
-      await _processSharedBatch(batch.files);
+      await _processSharedBatch(batch);
     });
 
     // Also consume any pending events captured during app initialization
-    final pending = IntentHandler.consumePendingEvents();
-    if (pending.isNotEmpty) {
-      developer.log('HomeScreen: Processing ${pending.length} pending events', name: 'HomeScreen');
+    final pending = IntentHandler.consumePendingBatch();
+    if (pending.files.isNotEmpty || pending.hasErrors) {
+      developer.log('HomeScreen: Processing ${pending.files.length} pending events', name: 'HomeScreen');
       // Fire in microtask to avoid reentrancy during initState
       Future.microtask(() => _processSharedBatch(pending));
     }
   }
 
   /// Processes a batch of shared files sequentially, then closes the activity.
-  Future<void> _processSharedBatch(List<ShareReceivedEvent> events) async {
-    if (events.isEmpty) return;
+  Future<void> _processSharedBatch(ShareReceivedBatchEvent batch) async {
+    final events = batch.files;
+    if (events.isEmpty && !batch.hasErrors) return;
     developer.log('HomeScreen: Processing batch of ${events.length} file(s)', name: 'HomeScreen');
 
     if (!mounted) return;
@@ -68,6 +69,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final appConfig = Provider.of<AppConfigProvider>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
+    // Files that could not be read are reported once per batch. They are not
+    // uploaded, so the activity stays open for the user to read the notice.
+    if (batch.hasErrors) {
+      developer.log('HomeScreen: Unreadable files: ${batch.errors.join(', ')}', name: 'HomeScreen');
+      UIHelper.showMessage(
+        context,
+        l10n.snackbar_unreadable_files(batch.errors.join(', ')),
+        success: false,
+      );
+    }
+
     // Ensure configuration and tags are loaded before uploading
     try {
       if (!appConfig.isConfigured) await appConfig.loadConfiguration();
@@ -75,7 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
 
     // int successCount = 0;
-    bool anyError = false;
+    // An unreadable file counts as an error: the activity must stay open so the
+    // notice is visible instead of being closed right after showing it.
+    bool anyError = batch.hasErrors;
 
     for (final event in events) {
       if (!mounted) return;

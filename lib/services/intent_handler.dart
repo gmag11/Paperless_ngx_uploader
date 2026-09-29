@@ -32,13 +32,30 @@ class ShareReceivedEvent {
   });
 }
 
+/// Payload delivered by the native side for a share or "open with" intent:
+/// the local paths that could be read, plus the display names of the files that
+/// could not be read.
+class SharePayload {
+  final List<String> files;
+  final List<String> errors;
+
+  SharePayload({required this.files, this.errors = const <String>[]});
+
+  bool get isEmpty => files.isEmpty && errors.isEmpty;
+}
+
 /// Batch event for multiple files received from share intent
 class ShareReceivedBatchEvent {
   final List<ShareReceivedEvent> files;
 
-  ShareReceivedBatchEvent({required this.files});
+  /// Display names of the files the native side could not read. They are not
+  /// uploaded, so the UI must report them instead of pretending they arrived.
+  final List<String> errors;
+
+  ShareReceivedBatchEvent({required this.files, this.errors = const <String>[]});
 
   bool get hasUnsupportedFiles => files.any((f) => !f.supportedType);
+  bool get hasErrors => errors.isNotEmpty;
   int get totalFiles => files.length;
   int get supportedFilesCount => files.where((f) => f.supportedType).length;
 }
@@ -79,12 +96,13 @@ class IntentHandler {
     _streamSub?.cancel();
     _streamSub = _eventChannel.receiveBroadcastStream().listen(
       (dynamic data) {
-        if (data is List) {
-          final paths = data.cast<String>();
-          developer.log('IntentHandler.eventChannel: received ${paths.length} files', name: 'IntentHandler');
-          if (paths.isNotEmpty) {
-            _handleSharedFilePaths(paths);
-          }
+        final payload = parseSharePayload(data);
+        developer.log(
+          'IntentHandler.eventChannel: received ${payload.files.length} files, '
+          '${payload.errors.length} errors',
+          name: 'IntentHandler');
+        if (!payload.isEmpty) {
+          handleSharePayload(payload);
         }
       },
       onError: (e, st) {
@@ -101,14 +119,31 @@ class IntentHandler {
     await _batchEventController.close();
   }
 
+  /// Parses the value delivered by the native side. Accepts the `{files, errors}`
+  /// map and the legacy plain list of paths.
+  static SharePayload parseSharePayload(dynamic data) {
+    if (data is Map) {
+      final files = (data['files'] as List?)?.cast<String>() ?? const <String>[];
+      final errors = (data['errors'] as List?)?.cast<String>() ?? const <String>[];
+      return SharePayload(files: files, errors: errors);
+    }
+    if (data is List) {
+      return SharePayload(files: data.cast<String>());
+    }
+    return SharePayload(files: const <String>[]);
+  }
+
   static Future<void> _handleInitialIntent() async {
     developer.log('IntentHandler._handleInitialIntent: start', name: 'IntentHandler');
     try {
-      final result = await _methodChannel.invokeMethod<List<dynamic>>('getInitialSharedFiles');
-      final paths = result?.cast<String>() ?? <String>[];
-      developer.log('IntentHandler._handleInitialIntent: received ${paths.length} files', name: 'IntentHandler');
-      if (paths.isNotEmpty) {
-        await _handleSharedFilePaths(paths);
+      final result = await _methodChannel.invokeMethod<dynamic>('getInitialSharedFiles');
+      final payload = parseSharePayload(result);
+      developer.log(
+        'IntentHandler._handleInitialIntent: received ${payload.files.length} files, '
+        '${payload.errors.length} errors',
+        name: 'IntentHandler');
+      if (!payload.isEmpty) {
+        await handleSharePayload(payload);
       }
     } catch (e, st) {
       developer.log('Error handling initial intent: $e',
@@ -121,18 +156,27 @@ class IntentHandler {
 
   // Pending events captured during initialization before UI listeners attach
   static final List<ShareReceivedEvent> _pendingEvents = [];
+  static final List<String> _pendingErrors = [];
 
-  /// Returns and clears any pending events that were captured before listeners
-  /// were attached. This is used by the UI to consume initial share intents.
-  static List<ShareReceivedEvent> consumePendingEvents() {
-    if (_pendingEvents.isEmpty) {
-      developer.log('IntentHandler.consumePendingEvents: no pending events', name: 'IntentHandler');
-      return <ShareReceivedEvent>[];
+  /// Returns and clears the pending batch (events and the names of the files that
+  /// could not be read) captured before listeners were attached. This is used by
+  /// the UI to consume initial share intents.
+  static ShareReceivedBatchEvent consumePendingBatch() {
+    if (_pendingEvents.isEmpty && _pendingErrors.isEmpty) {
+      developer.log('IntentHandler.consumePendingBatch: no pending events', name: 'IntentHandler');
+      return ShareReceivedBatchEvent(files: const <ShareReceivedEvent>[]);
     }
-    developer.log('IntentHandler.consumePendingEvents: returning ${_pendingEvents.length} pending events', name: 'IntentHandler');
-    final copy = List<ShareReceivedEvent>.from(_pendingEvents);
+    developer.log(
+      'IntentHandler.consumePendingBatch: returning ${_pendingEvents.length} pending events '
+      'and ${_pendingErrors.length} errors',
+      name: 'IntentHandler');
+    final batch = ShareReceivedBatchEvent(
+      files: List<ShareReceivedEvent>.from(_pendingEvents),
+      errors: List<String>.from(_pendingErrors),
+    );
     _pendingEvents.clear();
-    return copy;
+    _pendingErrors.clear();
+    return batch;
   }
 
   static bool _isSupported(String? mime, String fileName) {
@@ -163,31 +207,40 @@ class IntentHandler {
     if (filePaths.isEmpty) return;
 
     try {
-      await _handleSharedFilePaths(filePaths);
+      await handleSharePayload(SharePayload(files: filePaths));
     } catch (e, st) {
       developer.log('IntentHandler.handleLocalFiles: error $e', name: 'IntentHandler', error: e, stackTrace: st);
     }
     developer.log('IntentHandler.handleLocalFiles: end', name: 'IntentHandler');
   }
 
-  static Future<void> _handleSharedFilePaths(List<String> paths) async {
-    developer.log('IntentHandler._handleSharedFilePaths: start (${paths.length} files)', name: 'IntentHandler');
-    if (paths.isEmpty) return;
+  /// Processes a payload coming from the native side (share intent or "open
+  /// with") or from desktop drag-and-drop, and emits the batch event with the
+  /// files that could not be read so the UI can report them.
+  static Future<void> handleSharePayload(SharePayload payload) async {
+    developer.log(
+      'IntentHandler.handleSharePayload: start (${payload.files.length} files, '
+      '${payload.errors.length} errors)',
+      name: 'IntentHandler');
+    if (payload.isEmpty) return;
 
     final events = <ShareReceivedEvent>[];
 
     // Clear pending events if any (app launched by drag-drop or share)
     _pendingEvents.clear();
+    _pendingErrors.clear();
+
+    final paths = payload.files;
 
     for (final filePath in paths) {
-      developer.log('IntentHandler._handleSharedFilePaths: processing file $filePath', name: 'IntentHandler');
+      developer.log('IntentHandler.handleSharePayload: processing file $filePath', name: 'IntentHandler');
 
       ShareReceivedEvent event;
 
       if (_isUrl(filePath)) {
         // Shared as a URL (e.g. from a browser)
         final fileName = _fileNameFromUrl(filePath);
-        developer.log('IntentHandler._handleSharedFilePaths: detected URL, derived name=$fileName', name: 'IntentHandler');
+        developer.log('IntentHandler.handleSharePayload: detected URL, derived name=$fileName', name: 'IntentHandler');
         final supported = p.extension(fileName).toLowerCase() == '.pdf' || fileName == 'document.pdf';
         event = ShareReceivedEvent(
           fileName: fileName,
@@ -209,7 +262,7 @@ class IntentHandler {
             size = await f.length();
           }
         } catch (e, st) {
-          developer.log('IntentHandler._handleSharedFilePaths: error accessing file $filePath: $e', name: 'IntentHandler', error: e, stackTrace: st);
+          developer.log('IntentHandler.handleSharePayload: error accessing file $filePath: $e', name: 'IntentHandler', error: e, stackTrace: st);
         }
 
         final supported = _isSupported(mime, fileName);
@@ -231,11 +284,18 @@ class IntentHandler {
       }
     }
 
-    if (events.isNotEmpty && !_batchEventController.isClosed) {
-      _batchEventController.add(ShareReceivedBatchEvent(files: events));
+    // The files that could not be read are carried through the batch so the UI
+    // reports them instead of pretending they arrived.
+    _pendingErrors.addAll(payload.errors);
+
+    if ((events.isNotEmpty || payload.errors.isNotEmpty) &&
+        !_batchEventController.isClosed) {
+      _batchEventController.add(
+        ShareReceivedBatchEvent(files: events, errors: payload.errors),
+      );
     }
 
-    developer.log('IntentHandler._handleSharedFilePaths: end', name: 'IntentHandler');
+    developer.log('IntentHandler.handleSharePayload: end', name: 'IntentHandler');
   }
 
   static String? _guessMimeFromPath(String filePath) {

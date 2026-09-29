@@ -95,6 +95,11 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String snackbar_unreadable_files(String files) {
+    return 'No se pudo leer: $files';
+  }
+
+  @override
   String get appbar_title_home => 'Paperless-NGX Uploader';
 
   @override

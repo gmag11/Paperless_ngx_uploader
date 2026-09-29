@@ -248,6 +248,12 @@ abstract class AppLocalizations {
   /// **'{failed} of {total} files failed to upload'**
   String snackbar_multiple_uploads_failed(String failed, String total);
 
+  /// Notice shown when a shared or opened file could not be read
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read: {files}'**
+  String snackbar_unreadable_files(String files);
+
   /// Title shown in the AppBar on the home screen.
   ///
   /// In en, this message translates to:

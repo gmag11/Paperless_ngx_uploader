@@ -139,6 +139,17 @@
     }
   },
 
+  "snackbar_unreadable_files": "No se pudo leer: {files}",
+  "@snackbar_unreadable_files": {
+    "description": "Aviso mostrado cuando no se pudo leer un archivo compartido o abierto",
+    "placeholders": {
+      "files": {
+        "type": "String",
+        "example": "documento.pdf, foto.png"
+      }
+    }
+  },
+
   "appbar_title_home": "Paperless-NGX Uploader",
   "@appbar_title_home": {
     "description": "Título mostrado en el AppBar de la pantalla principal."
