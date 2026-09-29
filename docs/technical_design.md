@@ -216,6 +216,53 @@ class ValidationError extends UploadError {
 }
 ```
 
+## 4. Intent Intake (Share and "Open with")
+
+### Registered intent filters
+
+`android/app/src/main/AndroidManifest.xml` declares on `MainActivity`:
+
+- `ACTION_MAIN` + `CATEGORY_LAUNCHER` (normal launch).
+- `ACTION_SEND` and `ACTION_SEND_MULTIPLE` with `CATEGORY_DEFAULT` and `*/*` (the Share menu), plus a dedicated `text/plain` filter for URLs shared from a browser.
+- `ACTION_VIEW` with `CATEGORY_DEFAULT`, the `content` and `file` schemes, and one `<data android:mimeType>` per supported type (PDF, JPEG, PNG, TIFF, GIF, WebP). This is what makes the app appear in the "Open with" chooser. `http(s)` is deliberately not registered here: URL sharing keeps using the `SEND` filter above.
+
+`ACTION_VIEW` delivers a single file in `intent.data`.
+
+### Native resolution
+
+`ShareIntentResolver` (`android/app/src/main/kotlin/net/gmartin/paperlessngx_uploader/ShareIntentResolver.kt`) turns an incoming `Intent` into a `ShareResolution(files, errors)`:
+
+- `ACTION_VIEW` reads `intent.data` and accepts only `content://` and `file://`.
+- `ACTION_SEND` keeps the text-URL behavior and `EXTRA_STREAM`; `ACTION_SEND_MULTIPLE` iterates `EXTRA_STREAM`.
+- `copyUriToCache` copies a readable `content://` URI into `cacheDir/shared_files` using its display name, and keeps the original path for a readable `file://`.
+- A file that cannot be read produces no path and is added to `errors` with its display name; no exception escapes the resolver.
+
+`MainActivity` is a thin wrapper around it: it resolves the intent, sends the payload to Dart, and replaces the intent with `ACTION_MAIN` so that an activity recreation does not re-deliver the same file (exactly-once delivery).
+
+### Payload to Dart and the unreadable-file notice
+
+Both `getInitialSharedFiles` and the EventChannel deliver `{files, errors}`. `IntentHandler.parseSharePayload` accepts that map (and the legacy plain list of paths), `ShareReceivedBatchEvent` carries `errors` (`hasErrors`), and `consumePendingBatch()` returns the pending batch captured before the UI attaches its listeners.
+
+`home_screen` shows one notice per batch with `UIHelper.showMessage(context, l10n.snackbar_unreadable_files(names), success: false)` — the red toast/snackbar — naming the affected files, and counts them as an error so `finishAndRemoveTask()` is not called and the activity stays open for the user to read it. The string is `snackbar_unreadable_files` in `lib/l10n/app_en.arb` and `lib/l10n/app_es.arb`.
+
+### Running the test suites
+
+Dart:
+
+```bash
+flutter test
+```
+
+Android JVM (Robolectric) tests live in `android/app/src/test/kotlin/net/gmartin/paperlessngx_uploader/` and run with:
+
+```bash
+cd android && ./gradlew :app:testDebugUnitTest
+```
+
+They need the Android SDK (`android/local.properties` with `sdk.dir`, or `ANDROID_HOME`) and network access the first time to download the `android-all` jars. Robolectric 4.14.1 supports API 21–35 while the app targets SDK 36, so the tests pin `@Config(sdk = 35)`.
+
+Coverage: the manifest intent filters (`ManifestIntentFilterTest`) and the resolver behavior (`ShareIntentResolverTest`). The lifecycle cases (cold start, warm start, activity recreation) and the notice shown on a real device are verified manually.
+
 ## Implementation Notes
 
 1. File Handling

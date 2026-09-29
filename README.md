@@ -43,6 +43,7 @@ This repository is an updated/re‑implemented version inspired by that project,
 ## Features
 
 - Android native Share Intent integration (supports multiple files in a single action).
+- **"Open with" support:** a compatible document (PDF, JPEG, PNG, TIFF, GIF or WebP) can also be delivered from a file manager or viewer with *Open with*; it receives the same treatment as a shared file. Only these types appear in the chooser, so the app is not offered for other files.
 - **Multiple Paperless‑NGX server profiles:** Add, edit, and switch between multiple server configurations, each with independent credentials and default tags.
 - Secure credential storage with automatic recovery on startup.
 - Connection test with feedback (success, invalid credentials, unreachable host).
@@ -68,7 +69,7 @@ No user action is required; this logic is automatic.
 
 ## How it works
 
-1. From any app that supports sharing (PDF viewer, gallery, file manager), share one or more documents and choose "Paperless‑NGX Android Uploader".
+1. From any app that supports sharing (PDF viewer, gallery, file manager), share one or more documents — or open a compatible document with *Open with* and choose "Paperless‑NGX Android Uploader" — and the app receives it.
 2. On first use, configure the server URL, username and password; the app stores them securely.
 3. The app tests the connection and downloads available tags from your Paperless‑NGX server.
 4. Select any default tags you want to apply.
@@ -78,6 +79,7 @@ Notes:
 
 - Multiple files can be uploaded in a single share action.
 - Tag configuration is optional. You can upload without changing tags and set them later if needed.
+- A file that cannot be read is never uploaded and never crashes the app: the app shows a single red notice per batch naming the affected file(s) (in Spanish, "No se pudo leer: …") and processes the readable files of the same batch normally. The app stays open so the notice can be read.
 
 ## Requirements
 
