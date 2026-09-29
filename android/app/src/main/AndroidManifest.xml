@@ -64,6 +64,23 @@
                     <category android:name="android.intent.category.DEFAULT" />
                     <data android:mimeType="text/plain" />
                 </intent-filter>
+
+                <!-- "Open with" (ACTION_VIEW) for the document types the app supports.
+                     Only the supported mime types are registered so the app does not
+                     appear in the chooser for other file types. http/https are not
+                     registered here: URL sharing keeps using the SEND filter above. -->
+                <intent-filter>
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <data android:scheme="content" />
+                    <data android:scheme="file" />
+                    <data android:mimeType="application/pdf" />
+                    <data android:mimeType="image/jpeg" />
+                    <data android:mimeType="image/png" />
+                    <data android:mimeType="image/tiff" />
+                    <data android:mimeType="image/gif" />
+                    <data android:mimeType="image/webp" />
+                </intent-filter>
             
         </activity>
         
