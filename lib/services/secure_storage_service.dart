@@ -1,14 +1,34 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:io' show Platform;
+import 'dart:io';
+
+/// Thrown internally when the secure key/value backend cannot hold a payload
+/// and certificate material must use the app-private file fallback instead.
+class SecureBackendUnavailable implements Exception {
+  const SecureBackendUnavailable();
+}
 
 class SecureStorageService {
   static const _storage = FlutterSecureStorage();
   static SharedPreferences? _fallbackPrefs;
   static bool _keyringFailed = false;
+
+  /// Above this size (in base64 characters) a certificate blob is written to an
+  /// app-private file instead of the key/value store.
+  static const _inlineBlobLimit = 2048;
+
+  /// Marker prefix for a blob stored in an app-private file.
+  static const _filePrefix = 'file:';
+
+  // ---- test seams (null in production) ----
+  static Future<String?> Function(String key)? debugKvRead;
+  static Future<void> Function(String key, String value)? debugKvWrite;
+  static Future<void> Function(String key)? debugKvDelete;
+  static Future<Directory> Function()? debugCertificateDirectory;
 
   /// Label used in log messages to distinguish fallback vs secure storage.
   static String get _backendLabel => _keyringFailed ? 'SharedPreferences (fallback)' : 'SecureStorage';
@@ -107,6 +127,10 @@ class SecureStorageService {
 
   static String _serverPasswordKey(String serverId) => 'server_${serverId}_password';
   static String _serverApiTokenKey(String serverId) => 'server_${serverId}_api_token';
+  static String _serverClientCertificateKey(String serverId) => 'server_${serverId}_client_cert';
+  static String _serverClientPrivateKeyKey(String serverId) => 'server_${serverId}_client_key';
+  static String _serverClientCertificatePasswordKey(String serverId) => 'server_${serverId}_client_cert_password';
+  static String _serverCustomCaKey(String serverId) => 'server_${serverId}_custom_ca';
   static String _serverSelectedTagsKey(String serverId) => 'server_${serverId}_selected_tags';
   static String _serverFavoriteTagsKey(String serverId) => 'server_${serverId}_favorite_tags';
 
@@ -129,6 +153,169 @@ class SecureStorageService {
 
   Future<String?> getServerApiToken(String serverId) async {
     return await _read(_serverApiTokenKey(serverId));
+  }
+
+  // ---- Client certificate (mutual TLS) material ----
+
+  Future<void> saveServerClientCertificate(String serverId, List<int> bytes) async {
+    await _writeBlob(_serverClientCertificateKey(serverId), bytes);
+  }
+
+  Future<List<int>?> getServerClientCertificate(String serverId) async {
+    return await _readBlob(_serverClientCertificateKey(serverId));
+  }
+
+  Future<void> saveServerClientPrivateKey(String serverId, List<int> bytes) async {
+    await _writeBlob(_serverClientPrivateKeyKey(serverId), bytes);
+  }
+
+  Future<List<int>?> getServerClientPrivateKey(String serverId) async {
+    return await _readBlob(_serverClientPrivateKeyKey(serverId));
+  }
+
+  Future<void> saveServerClientCertificatePassword(String serverId, String password) async {
+    await _kvWrite(_serverClientCertificatePasswordKey(serverId), password);
+  }
+
+  Future<String?> getServerClientCertificatePassword(String serverId) async {
+    return await _kvRead(_serverClientCertificatePasswordKey(serverId));
+  }
+
+  Future<void> saveServerCustomCa(String serverId, List<int> bytes) async {
+    await _writeBlob(_serverCustomCaKey(serverId), bytes);
+  }
+
+  Future<List<int>?> getServerCustomCa(String serverId) async {
+    return await _readBlob(_serverCustomCaKey(serverId));
+  }
+
+  Future<void> deleteServerClientCertificate(String serverId) async {
+    await _deleteBlob(_serverClientCertificateKey(serverId));
+  }
+
+  Future<void> deleteServerClientPrivateKey(String serverId) async {
+    await _deleteBlob(_serverClientPrivateKeyKey(serverId));
+  }
+
+  Future<void> deleteServerClientCertificatePassword(String serverId) async {
+    await _kvDelete(_serverClientCertificatePasswordKey(serverId));
+  }
+
+  Future<void> deleteServerCustomCa(String serverId) async {
+    await _deleteBlob(_serverCustomCaKey(serverId));
+  }
+
+  /// Deletes all client-certificate and custom-CA material for a server.
+  Future<void> removeServerClientCertificateData(String serverId) async {
+    await deleteServerClientCertificate(serverId);
+    await deleteServerClientPrivateKey(serverId);
+    await deleteServerClientCertificatePassword(serverId);
+    await deleteServerCustomCa(serverId);
+  }
+
+  // ---- secret blob helpers ----
+
+  Future<String?> _kvRead(String key) async {
+    final override = debugKvRead;
+    return override != null ? override(key) : _read(key);
+  }
+
+  Future<void> _kvWrite(String key, String value) async {
+    final override = debugKvWrite;
+    if (override != null) {
+      await override(key, value);
+      return;
+    }
+    await _write(key, value);
+  }
+
+  Future<void> _kvDelete(String key) async {
+    final override = debugKvDelete;
+    if (override != null) {
+      await override(key);
+      return;
+    }
+    await _delete(key);
+  }
+
+  /// Writes certificate material without ever using the plaintext preferences
+  /// fallback: if the secure backend is unavailable the caller falls back to an
+  /// app-private file instead.
+  Future<void> _writeSecureValue(String key, String value) async {
+    final override = debugKvWrite;
+    if (override != null) {
+      await override(key, value);
+      return;
+    }
+    if (_keyringFailed) {
+      throw const SecureBackendUnavailable();
+    }
+    await _storage.write(key: key, value: value);
+  }
+
+  Future<Directory> _certificateDirectory() async {
+    final override = debugCertificateDirectory;
+    if (override != null) return override();
+    final base = await getApplicationSupportDirectory();
+    final dir = Directory('${base.path}/certificates');
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
+  }
+
+  static String _blobFileName(String key) =>
+      '${key.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_')}.bin';
+
+  Future<void> _writeBlob(String key, List<int> bytes) async {
+    final encoded = base64Encode(bytes);
+    if (encoded.length <= _inlineBlobLimit) {
+      try {
+        await _writeSecureValue(key, encoded);
+        return;
+      } on PlatformException catch (e) {
+        if (e.code == 'KeyringLocked' && Platform.isLinux) {
+          _keyringFailed = true;
+        }
+      } on SecureBackendUnavailable {
+        // Fall through to the file fallback.
+      } catch (e) {
+        developer.log(
+            'Secure backend rejected certificate payload (${e.runtimeType})',
+            name: 'SecureStorageService');
+      }
+    }
+    final dir = await _certificateDirectory();
+    final file = File('${dir.path}/${_blobFileName(key)}');
+    await file.writeAsBytes(bytes, flush: true);
+    // The reference is not secret, so the normal storage path is fine.
+    await _kvWrite(key, '$_filePrefix${file.path}');
+  }
+
+  Future<List<int>?> _readBlob(String key) async {
+    final value = await _kvRead(key);
+    if (value == null) return null;
+    if (value.startsWith(_filePrefix)) {
+      final file = File(value.substring(_filePrefix.length));
+      if (!await file.exists()) return null;
+      return await file.readAsBytes();
+    }
+    try {
+      return base64Decode(value);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _deleteBlob(String key) async {
+    final value = await _kvRead(key);
+    if (value != null && value.startsWith(_filePrefix)) {
+      final file = File(value.substring(_filePrefix.length));
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+    await _kvDelete(key);
   }
 
   @Deprecated('Use ServerConfig.defaultTagIds instead of separate tag storage')
@@ -213,5 +400,6 @@ class SecureStorageService {
     await _delete(_serverPasswordKey(serverId));
     await _delete(_serverApiTokenKey(serverId));
     await _delete(_serverSelectedTagsKey(serverId));
+    await removeServerClientCertificateData(serverId);
   }
 }

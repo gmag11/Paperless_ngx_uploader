@@ -5,6 +5,15 @@ enum AuthMethod {
   apiToken,
 }
 
+/// Format of a client certificate configured for mutual TLS.
+enum ClientCertificateFormat {
+  /// A PKCS#12 container holding the certificate, chain and private key.
+  pkcs12,
+
+  /// A PEM certificate chain with a separate PEM private key.
+  pem,
+}
+
 class ServerConfig {
   final String id;
   final String name;
@@ -18,6 +27,16 @@ class ServerConfig {
   final Map<String, String>? customHeaders;
   final List<int> favoriteTagIds;
 
+  /// Whether a client certificate is presented to this server (mutual TLS).
+  /// The certificate material itself is kept in secure storage, not here.
+  final bool useClientCertificate;
+
+  /// Format of the configured client certificate.
+  final ClientCertificateFormat clientCertificateFormat;
+
+  /// Whether a custom CA certificate is configured for server trust.
+  final bool hasCustomCa;
+
   const ServerConfig({
     required this.id,
     required this.name,
@@ -30,6 +49,9 @@ class ServerConfig {
     this.askTagsBeforeUpload = false,
     this.customHeaders,
     this.favoriteTagIds = const [],
+    this.useClientCertificate = false,
+    this.clientCertificateFormat = ClientCertificateFormat.pkcs12,
+    this.hasCustomCa = false,
   });
 
   bool get isValid {
@@ -50,6 +72,9 @@ class ServerConfig {
     bool? askTagsBeforeUpload,
     Map<String, String>? customHeaders,
     List<int>? favoriteTagIds,
+    bool? useClientCertificate,
+    ClientCertificateFormat? clientCertificateFormat,
+    bool? hasCustomCa,
   }) {
     return ServerConfig(
       id: id ?? this.id,
@@ -63,6 +88,9 @@ class ServerConfig {
       askTagsBeforeUpload: askTagsBeforeUpload ?? this.askTagsBeforeUpload,
       customHeaders: customHeaders ?? this.customHeaders,
       favoriteTagIds: favoriteTagIds ?? this.favoriteTagIds,
+      useClientCertificate: useClientCertificate ?? this.useClientCertificate,
+      clientCertificateFormat: clientCertificateFormat ?? this.clientCertificateFormat,
+      hasCustomCa: hasCustomCa ?? this.hasCustomCa,
     );
   }
 
@@ -79,6 +107,9 @@ class ServerConfig {
       'askTagsBeforeUpload': askTagsBeforeUpload,
       'customHeaders': customHeaders,
       'favoriteTagIds': favoriteTagIds,
+      'useClientCertificate': useClientCertificate,
+      'clientCertificateFormat': clientCertificateFormat.name,
+      'hasCustomCa': hasCustomCa,
     };
   }
 
@@ -103,6 +134,12 @@ class ServerConfig {
       favoriteTagIds: (json['favoriteTagIds'] as List<dynamic>?)
           ?.map((id) => id as int)
           .toList() ?? [],
+      useClientCertificate: json['useClientCertificate'] as bool? ?? false,
+      clientCertificateFormat: ClientCertificateFormat.values.firstWhere(
+        (e) => e.name == json['clientCertificateFormat'],
+        orElse: () => ClientCertificateFormat.pkcs12,
+      ),
+      hasCustomCa: json['hasCustomCa'] as bool? ?? false,
     );
   }
 
@@ -124,6 +161,9 @@ class ServerConfig {
     required bool allowSelfSignedCertificates,
     required Map<String, String>? customHeaders,
     required List<int> defaultTagIds,
+    bool? useClientCertificate,
+    ClientCertificateFormat? clientCertificateFormat,
+    bool? hasCustomCa,
   }) {
     return ServerConfig(
       id: id,
@@ -137,6 +177,12 @@ class ServerConfig {
       askTagsBeforeUpload: existing?.askTagsBeforeUpload ?? false,
       customHeaders: customHeaders,
       favoriteTagIds: existing?.favoriteTagIds ?? const [],
+      useClientCertificate:
+          useClientCertificate ?? existing?.useClientCertificate ?? false,
+      clientCertificateFormat: clientCertificateFormat ??
+          existing?.clientCertificateFormat ??
+          ClientCertificateFormat.pkcs12,
+      hasCustomCa: hasCustomCa ?? existing?.hasCustomCa ?? false,
     );
   }
 
@@ -159,10 +205,13 @@ class ServerConfig {
           defaultTagIds == other.defaultTagIds &&
           askTagsBeforeUpload == other.askTagsBeforeUpload &&
           customHeaders == other.customHeaders &&
-          favoriteTagIds == other.favoriteTagIds;
+          favoriteTagIds == other.favoriteTagIds &&
+          useClientCertificate == other.useClientCertificate &&
+          clientCertificateFormat == other.clientCertificateFormat &&
+          hasCustomCa == other.hasCustomCa;
 
   @override
-  int get hashCode => Object.hash(id, name, serverUrl, authMethod, username, apiToken, allowSelfSignedCertificates, defaultTagIds, askTagsBeforeUpload, customHeaders, favoriteTagIds);
+  int get hashCode => Object.hash(id, name, serverUrl, authMethod, username, apiToken, allowSelfSignedCertificates, defaultTagIds, askTagsBeforeUpload, customHeaders, favoriteTagIds, useClientCertificate, clientCertificateFormat, hasCustomCa);
 
   @override
   String toString() {
