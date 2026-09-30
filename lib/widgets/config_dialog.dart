@@ -3,11 +3,10 @@ import 'package:provider/provider.dart';
 import 'dart:developer' as developer;
 
 import 'package:paperlessngx_uploader/models/connection_status.dart';
-import 'package:paperlessngx_uploader/providers/app_config_provider.dart';
 import 'package:paperlessngx_uploader/providers/server_manager.dart';
 import 'package:paperlessngx_uploader/models/server_config.dart';
 import 'package:paperlessngx_uploader/l10n/gen/app_localizations.dart';
-import 'package:paperlessngx_uploader/services/paperless_service.dart';
+import 'package:paperlessngx_uploader/services/paperless_service_factory.dart';
 import 'package:paperlessngx_uploader/utils/ui_helper.dart';
 
 enum _AuthMethod { userPass, apiToken }
@@ -41,6 +40,9 @@ class _ConfigDialogState extends State<ConfigDialog> {
   bool _showServerForm = false;
   String? _editingServerId;
 
+  // TLS trust policy of the server being edited (form-local, committed on save).
+  bool _allowSelfSignedCertificates = false;
+
   // Custom headers state
   final List<({TextEditingController keyController, TextEditingController valueController})>
       _customHeaderRows = [];
@@ -64,6 +66,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       setState(() {
         _serverNameController.text = currentServer.name;
         _serverUrlController.text = currentServer.serverUrl;
+        _allowSelfSignedCertificates = currentServer.allowSelfSignedCertificates;
         
         if (currentServer.authMethod == AuthMethod.usernamePassword) {
           _authMethod = _AuthMethod.userPass;
@@ -135,6 +138,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       _obscureToken = true;
       _editingServerId = server.id;
       _showServerForm = true;
+      _allowSelfSignedCertificates = server.allowSelfSignedCertificates;
 
       // Load custom headers
       _customHeaderRows.clear();
@@ -166,6 +170,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       _inlineConnectionError = null;
       _editingServerId = null;
       _showServerForm = false;
+      _allowSelfSignedCertificates = false;
 
       // Clear custom headers
       for (final row in _customHeaderRows) {
@@ -239,7 +244,6 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
 
     if (!mounted) return;
-    final config = Provider.of<AppConfigProvider>(context, listen: false);
     final serverManager = Provider.of<ServerManager>(context, listen: false);
 
     var serverUrl = _serverUrlController.text.trim();
@@ -260,7 +264,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
     final customHeaders = _collectCustomHeaders();
     
     if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
-      serverUrl = await _determineProtocol(serverUrl, config, customHeaders.isNotEmpty ? customHeaders : null);
+      serverUrl = await _determineProtocol(serverUrl, customHeaders.isNotEmpty ? customHeaders : null);
       if (serverUrl.isEmpty) {
         if (mounted) {
           setState(() {
@@ -275,14 +279,20 @@ class _ConfigDialogState extends State<ConfigDialog> {
     final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
     final useApi = _authMethod == _AuthMethod.apiToken;
 
-    final tempService = PaperlessService(
-      baseUrl: serverUrl,
-      username: username,
-      password: useApi ? '' : secret,
-      useApiToken: useApi,
-      apiToken: useApi ? secret : null,
-      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+    final draftConfig = ServerConfig(
+      id: _editingServerId ?? ServerConfig.generateId(),
+      name: _serverNameController.text.trim(),
+      serverUrl: serverUrl,
+      authMethod: useApi ? AuthMethod.apiToken : AuthMethod.usernamePassword,
+      username: useApi ? null : username,
+      allowSelfSignedCertificates: _allowSelfSignedCertificates,
       customHeaders: customHeaders.isNotEmpty ? customHeaders : null,
+    );
+
+    final tempService = PaperlessServiceFactory.createServiceForConfig(
+      draftConfig,
+      password: useApi ? null : secret,
+      apiToken: useApi ? secret : null,
     );
 
     final status = await tempService.testConnection();
@@ -307,7 +317,6 @@ class _ConfigDialogState extends State<ConfigDialog> {
       }
 
       if (!mounted) return;
-      final config = Provider.of<AppConfigProvider>(context, listen: false);
       final serverId = _editingServerId ?? ServerConfig.generateId();
       
       developer.log('Creating/updating server with ID: $serverId', name: 'ConfigDialog');
@@ -324,7 +333,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
             : AuthMethod.usernamePassword,
         username: _authMethod == _AuthMethod.userPass ? username : null,
         defaultTagIds: existingDefaultTagIds,
-        allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+        allowSelfSignedCertificates: _allowSelfSignedCertificates,
         customHeaders: customHeaders.isNotEmpty ? customHeaders : null,
       );
 
@@ -385,20 +394,28 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
   }
 
-  Future<String> _determineProtocol(String serverWithoutProtocol, AppConfigProvider config, Map<String, String>? customHeaders) async {
+  Future<String> _determineProtocol(String serverWithoutProtocol, Map<String, String>? customHeaders) async {
     final username = _authMethod == _AuthMethod.userPass ? _usernameController.text.trim() : '';
     final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
     final useApi = _authMethod == _AuthMethod.apiToken;
 
+    // Both attempts use the same draft configuration and therefore the same
+    // transport rules (auth, custom headers, TLS trust policy).
+    ServerConfig draftConfig(String url) => ServerConfig(
+          id: _editingServerId ?? ServerConfig.generateId(),
+          name: _serverNameController.text.trim(),
+          serverUrl: url,
+          authMethod: useApi ? AuthMethod.apiToken : AuthMethod.usernamePassword,
+          username: useApi ? null : username,
+          allowSelfSignedCertificates: _allowSelfSignedCertificates,
+          customHeaders: customHeaders,
+        );
+
     final httpsServer = 'https://$serverWithoutProtocol';
-    final httpsService = PaperlessService(
-      baseUrl: httpsServer,
-      username: username,
-      password: useApi ? '' : secret,
-      useApiToken: useApi,
+    final httpsService = PaperlessServiceFactory.createServiceForConfig(
+      draftConfig(httpsServer),
+      password: useApi ? null : secret,
       apiToken: useApi ? secret : null,
-      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
-      customHeaders: customHeaders,
     );
 
     final httpsStatus = await httpsService.testConnection();
@@ -408,14 +425,10 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
 
     final httpServer = 'http://$serverWithoutProtocol';
-    final httpService = PaperlessService(
-      baseUrl: httpServer,
-      username: username,
-      password: useApi ? '' : secret,
-      useApiToken: useApi,
+    final httpService = PaperlessServiceFactory.createServiceForConfig(
+      draftConfig(httpServer),
+      password: useApi ? null : secret,
       apiToken: useApi ? secret : null,
-      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
-      customHeaders: customHeaders,
     );
 
     final httpStatus = await httpService.testConnection();
@@ -715,15 +728,13 @@ class _ConfigDialogState extends State<ConfigDialog> {
               ),
             ],
             const SizedBox(height: 16),
-            Consumer<AppConfigProvider>(
-              builder: (context, config, child) {
-                return SwitchListTile(
-                  title: Text(l10n.allow_self_signed_certificates),
-                  value: config.allowSelfSignedCertificates,
-                  onChanged: (value) {
-                    config.setAllowSelfSignedCertificates(value);
-                  },
-                );
+            SwitchListTile(
+              title: Text(l10n.allow_self_signed_certificates),
+              value: _allowSelfSignedCertificates,
+              onChanged: (value) {
+                setState(() {
+                  _allowSelfSignedCertificates = value;
+                });
               },
             ),
             const SizedBox(height: 8),

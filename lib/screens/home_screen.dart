@@ -14,6 +14,7 @@ import '../models/tag.dart';
 import '../models/server_config.dart';
 import '../services/intent_handler.dart';
 import '../services/paperless_service.dart' as paperless;
+import '../services/paperless_service_factory.dart';
 import '../services/secure_storage_service.dart';
 import '../providers/upload_provider.dart';
 import '../l10n/gen/app_localizations.dart';
@@ -763,9 +764,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final secureStorage = SecureStorageService();
-      final password = await secureStorage.getServerCredentials(currentServer.id) ?? '';
-      final apiToken = await secureStorage.getServerApiToken(currentServer.id) ?? '';
-      
+
       // Read favorites from independent storage (survives activity recreation)
       final storedFavorites = await secureStorage.getFavoriteTags(currentServer.id);
       // Sync back to ServerConfig for in-memory consistency
@@ -784,20 +783,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (!mounted) return;
 
+      // Build the dialog's client through the factory so it carries this
+      // server's full transport configuration (custom headers, trust policy).
+      final dialogService = await PaperlessServiceFactory(serverManager)
+          .createServiceForServerWithCredentials(currentServer.id);
+      if (dialogService == null) return;
+
       List<Tag>? result;
       if (context.mounted) {
         result = await showDialog<List<Tag>>(
           context: context,
           builder: (dialogContext) => TagSelectionDialog(
             selectedTags: currentSelectedTags,
-            paperlessService: paperless.PaperlessService(
-              baseUrl: currentServer.serverUrl,
-              username: currentServer.username ?? '',
-              password: currentServer.authMethod == AuthMethod.usernamePassword ? password : '',
-              useApiToken: currentServer.authMethod == AuthMethod.apiToken,
-              apiToken: currentServer.authMethod == AuthMethod.apiToken ? apiToken : '',
-              allowSelfSignedCertificates: currentServer.allowSelfSignedCertificates,
-            ),
+            paperlessService: dialogService,
             initialSelectedTagIds: selectedTagIds,
             onTagsSelected: (tagIds) async {
               // Update the server's defaultTagIds
@@ -853,19 +851,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<List<Tag>> _getTagsForCurrentServer(ServerManager serverManager, ServerConfig currentServer) async {
     try {
-      final secureStorage = SecureStorageService();
-      final password = await secureStorage.getServerCredentials(currentServer.id) ?? '';
-      final apiToken = await secureStorage.getServerApiToken(currentServer.id) ?? '';
-      
-      final paperlessService = paperless.PaperlessService(
-        baseUrl: currentServer.serverUrl,
-        username: currentServer.username ?? '',
-        password: currentServer.authMethod == AuthMethod.usernamePassword ? password : '',
-        useApiToken: currentServer.authMethod == AuthMethod.apiToken,
-        apiToken: apiToken,
-        allowSelfSignedCertificates: currentServer.allowSelfSignedCertificates,
-      );
-      
+      final paperlessService = await PaperlessServiceFactory(serverManager)
+          .createServiceForServerWithCredentials(currentServer.id);
+
+      if (paperlessService == null) {
+        return [];
+      }
+
       return await paperlessService.fetchTags();
     } catch (e) {
       developer.log('Error creating PaperlessService for server ${currentServer.id}: $e', name: 'HomeScreen');

@@ -87,6 +87,22 @@ See `proposal.md` for motivation. Current state relevant to the approach:
    - *Why*: lets the suite prove headers/auth actually reach the wire on every
      path, not just that the field is set.
 
+8. **The self-signed switch is form-local state of the configuration dialog, not
+   provider-backed.** The dialog seeds it from the server being edited (or the
+   default `false` for a new server) and commits it into the saved configuration.
+   - *Why*: `AppConfigProvider.allowSelfSignedCertificates` resolves the
+     *selected* server, so when the user edited a non-selected server (or added
+     one while another was selected) the test and the saved configuration used
+     the wrong server's policy. Toggling also wrote through to the selected
+     server instead of the draft, mutating a different server.
+   - *Discarded alternative*: keep the provider binding and pass the edited
+     server's id into the provider. It would still write through on every toggle
+     and would rely on the provider method that rebuilds a `ServerConfig` from
+     scratch; the separate config-preservation change addresses that method.
+   - Note: this removes the only call to the provider's
+     `setAllowSelfSignedCertificates`; the method itself is fixed by the
+     dedicated config-preservation change.
+
 ## Risks / Trade-offs
 
 - [Enabling custom headers on paths that previously dropped them can change

@@ -52,6 +52,13 @@ per-path exceptions.
   dialog, upload) accepts the self-signed certificate, and disabling the option
   makes every path reject it again
 
+#### Scenario: The TLS policy belongs to the server being edited
+
+- **WHEN** the user edits the self-signed certificate option while configuring a
+  server that is not the currently selected one, or while adding a new server
+- **THEN** the connection test and the saved configuration use the value shown in
+  the form for that server, and the selected server's option is left unchanged
+
 #### Scenario: Authorization is applied identically
 
 - **WHEN** a server uses API-token authentication or username/password

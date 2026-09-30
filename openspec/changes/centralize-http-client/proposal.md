@@ -24,6 +24,10 @@ ad-hoc construction site.
 - Route the direct constructions through the factory: `home_screen.dart` (tag
   dialog and `_getTagsForCurrentServer`) and `config_dialog.dart`
   (`_saveAndTestServer` and `_determineProtocol`).
+- Bind the "allow self-signed certificates" switch to the server the form is
+  **editing** (form-local state) instead of the globally selected server, so the
+  tested and saved TLS policy belongs to the server being configured and
+  toggling it does not modify another server.
 - Guarantee that every Paperless-NGX request carries the complete per-server
   transport configuration (authorization header, custom headers, TLS trust /
   self-signed policy) on every call path.
@@ -58,7 +62,9 @@ ad-hoc construction site.
 - `lib/screens/home_screen.dart`: two direct `PaperlessService(...)` builds
   replaced by factory calls.
 - `lib/widgets/config_dialog.dart`: three direct `PaperlessService(...)` builds
-  replaced; test and protocol detection use the draft-configuration entry point.
+  replaced; test and protocol detection use the draft-configuration entry point;
+  the self-signed switch becomes form state seeded from the edited server and
+  committed on save.
 - `lib/providers/upload_provider.dart`: the standalone download client is
   documented as intentionally isolated (no functional change).
 - `test/`: new tests for transport uniformity and the repo guard.
