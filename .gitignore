@@ -13,7 +13,9 @@
 migrate_working_dir/
 context_portal/
 *.bak
+skills-lock.json
 .opencode
+.agents
 
 # IntelliJ related
 *.iml
