@@ -32,6 +32,13 @@ option SHALL default to disabled and SHALL NOT affect other servers.
 - **WHEN** two servers are configured and only one has a client certificate
 - **THEN** only requests to that server present a client certificate
 
+#### Scenario: Only the enable control is offered while disabled
+
+- **WHEN** the client certificate option is disabled for a server in the
+  configuration form
+- **THEN** no format selector, certificate or private-key input, password field or
+  custom CA control is shown, and they appear only once the option is enabled
+
 ### Requirement: Supported certificate formats
 
 The system SHALL accept a PKCS#12 file (`.p12`/`.pfx`, containing certificate,
@@ -59,6 +66,25 @@ the PEM option SHALL be unavailable and explained.
   enters the wrong password
 - **THEN** the configuration is rejected with a clear message and no unusable
   certificate material is stored
+
+### Requirement: Certificate material can be provided as text
+
+The system SHALL let the user provide the client certificate, its private key and the custom CA certificate either by choosing a file or by pasting text. Pasted PEM material SHALL be accepted as text, and a PKCS#12 container SHALL be accepted as base64. The chosen input method SHALL apply per artifact.
+
+#### Scenario: Paste a PEM certificate and key
+
+- **WHEN** the client certificate format is PEM and the user pastes the certificate chain and the private key instead of choosing files
+- **THEN** the configuration is accepted and the certificate is used for connections
+
+#### Scenario: Paste a PKCS#12 container as base64
+
+- **WHEN** the client certificate format is PKCS#12 and the user pastes the base64 of the container together with its password
+- **THEN** the configuration is accepted and the certificate is used for connections
+
+#### Scenario: Invalid pasted material is rejected
+
+- **WHEN** the user pastes text that is not valid PEM, or not valid base64 for a PKCS#12 container
+- **THEN** the configuration is rejected with a clear message and no unusable material is stored
 
 ### Requirement: Client certificate is presented on every connection
 
@@ -124,9 +150,17 @@ non-secret server configuration.
 
 ### Requirement: Custom CA certificate for server trust
 
-The system SHALL let the user provide a custom CA certificate so a server signed
-by a private certificate authority can be verified properly. When a custom CA is
-configured, server certificate verification SHALL use it.
+The system SHALL let the user provide a custom CA certificate, as part of the
+enabled client-certificate configuration, so a server signed by a private
+certificate authority can be verified properly. When a custom CA is configured,
+server certificate verification SHALL use it. The custom CA SHALL be discarded
+when the client certificate is disabled.
+
+#### Scenario: Custom CA is discarded when mTLS is disabled
+
+- **WHEN** the user disables the client certificate for a server that had a custom
+  CA configured and saves
+- **THEN** the stored custom CA is removed
 
 #### Scenario: Private-CA server is trusted
 
@@ -164,3 +198,9 @@ and a server that requires a client certificate while none is configured.
 
 - **WHEN** the presented client certificate is expired or refused by the server
 - **THEN** the app reports a certificate problem identifying the likely cause
+
+#### Scenario: A non-certificate file is not reported as a password problem
+
+- **WHEN** the selected file is not a valid certificate container
+- **THEN** the app reports it as an invalid client certificate (not as an
+  incorrect password)

@@ -137,9 +137,42 @@ this change plugs into. Relevant facts established while exploring:
    - *Discarded alternatives*: nginx/docker-compose integration (heavier, needs a
      daemon); a device/emulator against a real mTLS server (not CI-friendly).
 
-10. **Backward compatibility: additive and off by default.** No stored data
+10. **Each artifact can be provided from a file or pasted as text, chosen per
+    artifact.** A "File | Paste" selector switches the input for the certificate,
+    the private key and the custom CA independently. Pasted PEM is stored as its
+    UTF-8 bytes; pasted PKCS#12 is base64-decoded. Validation decodes the text and
+    rejects anything that is not valid PEM or valid base64 before anything is
+    stored.
+    - *Why*: material frequently arrives as text (email, password manager, `cat`),
+      and requiring a file is awkward on mobile; PEM is text and PKCS#12 is
+      commonly distributed as base64, so both are covered. A per-artifact selector
+      avoids the ambiguity of "which source wins".
+    - *Discarded alternative*: a single always-visible paste field where pasted
+      content silently overrides the file (less predictable); a combined
+      certificate+key paste field (convenient, but conflates two artifacts and
+      complicates the PEM/PKCS#12 distinction).
+
+11. **Backward compatibility: additive and off by default.** No stored data
     changes shape; new keys are added only when the user configures a
     certificate. Existing servers keep working unchanged.
+
+12. **The section collapses to its enable switch, and the custom CA is part of the
+    mTLS configuration.** While the option is disabled, the form shows only the
+    enable switch: no format selector, no input (file or paste) for the
+    certificate, private key or custom CA, no password field and no remove button.
+    Enabling it reveals them. Disabling it clears the custom CA in the form, and
+    saving with it disabled deletes the stored custom CA along with the rest of
+    the material.
+    - *Why*: the certificate controls only make sense while mTLS is enabled, and
+      leaving the custom-CA row visible (it has its own File/Paste controls) made
+      the disabled section still look like it offered certificate input.
+    - The custom CA lives in a collapsed **"Advanced"** subsection so it does not
+      compete with the essential certificate fields (which PEM makes more
+      numerous: a separate certificate and private key).
+    - *Trade-off*: a custom CA can no longer be configured on its own, without a
+      client certificate. If that case is ever needed, the CA belongs next to the
+      "allow self-signed certificates" trust switch instead of inside this
+      section; that is out of scope here.
 
 ## Risks / Trade-offs
 
