@@ -14,20 +14,30 @@ class MainActivity : FlutterActivity() {
     }
 
     private val shareResolver: ShareIntentResolver by lazy { ShareIntentResolver(this) }
+    private val initialIntent: InitialIntentHandler by lazy { InitialIntentHandler(shareResolver) }
 
-    private var initialResolution: ShareResolution? = null
+    // Payloads produced before Dart attaches its event listener (e.g. a warm
+    // start received while Flutter is still starting) are buffered here and
+    // flushed in onListen so they are not lost.
+    private val pendingEvents = mutableListOf<Map<String, List<String>>>()
+
     private var eventSink: EventChannel.EventSink? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Capture initial intent (cold start via share or "open with")
-        initialResolution = shareResolver.resolve(intent)
-        // Clear the stored intent so that if Android recreates this activity
-        // (e.g. after killing it due to memory pressure while backgrounded),
-        // the share intent is not re-delivered and files are not uploaded again.
-        if (hasContent(initialResolution)) {
+        // Drop copies left by previous deliveries so the share cache stays bounded.
+        shareResolver.pruneStaleCache()
+        // Capture the launch intent (cold start via share or "open with").
+        // `capture` returns true when the activity intent must be neutralized so
+        // that an activity/process recreation does not deliver it again.
+        if (initialIntent.capture(intent, savedInstanceState)) {
             setIntent(Intent(Intent.ACTION_MAIN))
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        initialIntent.saveState(outState)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -37,11 +47,10 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getInitialSharedFiles" -> {
-                        result.success(payload(initialResolution))
-                        initialResolution = null
+                        result.success(payload(initialIntent.consume()))
                     }
                     "reset" -> {
-                        initialResolution = null
+                        initialIntent.reset()
                         result.success(null)
                     }
                     "moveToBackground" -> {
@@ -60,6 +69,7 @@ class MainActivity : FlutterActivity() {
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                     eventSink = events
+                    flushPendingEvents()
                 }
 
                 override fun onCancel(arguments: Any?) {
@@ -71,11 +81,32 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         val resolution = shareResolver.resolve(intent)
-        if (hasContent(resolution)) {
-            eventSink?.success(payload(resolution))
+        if (resolution.hasContent()) {
+            deliver(payload(resolution))
             // Clear intent so recreation doesn't re-deliver it
             setIntent(Intent(Intent.ACTION_MAIN))
         }
+    }
+
+    /**
+     * Sends a payload to Dart, buffering it when the event listener has not been
+     * attached yet so a warm-start file is not dropped.
+     */
+    private fun deliver(payload: Map<String, List<String>>) {
+        val sink = eventSink
+        if (sink == null) {
+            pendingEvents.add(payload)
+        } else {
+            sink.success(payload)
+        }
+    }
+
+    private fun flushPendingEvents() {
+        val sink = eventSink ?: return
+        for (payload in pendingEvents) {
+            sink.success(payload)
+        }
+        pendingEvents.clear()
     }
 
     /**
@@ -87,7 +118,4 @@ class MainActivity : FlutterActivity() {
         if (resolution == null) return mapOf("files" to emptyList<String>(), "errors" to emptyList<String>())
         return mapOf("files" to resolution.files, "errors" to resolution.errors)
     }
-
-    private fun hasContent(resolution: ShareResolution?): Boolean =
-        resolution != null && (resolution.files.isNotEmpty() || resolution.errors.isNotEmpty())
 }

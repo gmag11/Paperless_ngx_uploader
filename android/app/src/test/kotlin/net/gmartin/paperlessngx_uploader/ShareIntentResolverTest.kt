@@ -9,6 +9,8 @@ import android.database.MatrixCursor
 import android.net.Uri
 import android.provider.OpenableColumns
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -106,14 +108,19 @@ class ShareIntentResolverTest {
     }
 
     @Test
-    fun openWithKeepsReadableFileUriPaths() {
+    fun openWithCopiesReadableFileUriToCache() {
         val file = File.createTempFile("open-with", ".pdf")
         file.writeText(CONTENT)
 
         val result = resolver.resolve(viewIntent(Uri.fromFile(file)))
 
         assertTrue(result.errors.isEmpty())
-        assertEquals(listOf(file.absolutePath), result.files)
+        assertEquals(1, result.files.size)
+        val copied = File(result.files.first())
+        assertTrue(copied.exists())
+        assertEquals(file.name, copied.name)
+        assertEquals(CONTENT, copied.readText())
+        assertEquals(File(context.cacheDir, "shared_files").absolutePath, copied.parent)
     }
 
     @Test
@@ -191,12 +198,58 @@ class ShareIntentResolverTest {
     }
 
     @Test
+    fun sendMultipleKeepsBothFilesWhenTheyShareADisplayName() {
+        registerProvider()
+        val first = Uri.parse("content://$AUTHORITY/first.pdf")
+        val second = Uri.parse("content://$AUTHORITY/second.pdf")
+        shadowContentResolver.registerInputStream(first, ByteArrayInputStream("first".toByteArray()))
+        shadowContentResolver.registerInputStream(second, ByteArrayInputStream("second".toByteArray()))
+
+        val result = resolver.resolve(
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, arrayListOf(first, second))
+            }
+        )
+
+        assertTrue(result.errors.isEmpty())
+        assertEquals(2, result.files.size)
+        // Both files stay available instead of the second overwriting the first.
+        assertEquals(setOf("first", "second"), result.files.map { File(it).readText() }.toSet())
+        assertEquals(2, result.files.map { File(it).name }.toSet().size)
+    }
+
+    @Test
     fun resolutionNeverThrowsForUnreadableFiles() {
         val uri = Uri.parse("content://unregistered_authority/broken.pdf")
         val result = resolver.resolve(viewIntent(uri))
 
         // Reaching this point at all proves no exception escaped the resolver.
         assertEquals(listOf("broken.pdf"), result.errors)
+    }
+
+    @Test
+    fun identityOfDistinguishesIntentsAndIgnoresEmptyOnes() {
+        val uri = Uri.parse("content://$AUTHORITY/document.pdf")
+        val other = Uri.parse("content://$AUTHORITY/other.pdf")
+
+        assertEquals("${Intent.ACTION_VIEW}:$uri", resolver.identityOf(viewIntent(uri)))
+        assertTrue(resolver.identityOf(viewIntent(uri)) != resolver.identityOf(viewIntent(other)))
+        assertNull(resolver.identityOf(Intent(Intent.ACTION_MAIN)))
+    }
+
+    @Test
+    fun pruneStaleCacheRemovesOldCopiesOnly() {
+        val cacheDir = File(context.cacheDir, "shared_files")
+        cacheDir.mkdirs()
+        val stale = File(cacheDir, "stale.pdf").apply { writeText("old") }
+        stale.setLastModified(System.currentTimeMillis() - 48L * 60 * 60 * 1000)
+        val fresh = File(cacheDir, "fresh.pdf").apply { writeText("new") }
+
+        resolver.pruneStaleCache()
+
+        assertFalse(stale.exists())
+        assertTrue(fresh.exists())
     }
 
     private companion object {
