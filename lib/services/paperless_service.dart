@@ -6,7 +6,9 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:paperlessngx_uploader/models/connection_status.dart';
+import 'package:paperlessngx_uploader/models/server_transport_config.dart';
 import 'package:paperlessngx_uploader/models/tag.dart';
+import 'package:paperlessngx_uploader/services/client_certificate.dart';
 
 class UploadResult {
   final bool success;
@@ -39,59 +41,61 @@ class UploadResult {
 }
 
 class PaperlessService {
-  final String baseUrl;
-  final String username;
-  final String password;
-
-  // Authentication method: if true, use API token in "Authorization: Token <token>"
-  // If false, use HTTP Basic with username/password.
-  final bool useApiToken;
-
-  // When useApiToken is true, the API token value (without the "Token " prefix)
-  final String? apiToken;
-
-  // Whether SSL certificate validation is disabled for self-signed certificates
-  final bool allowSelfSignedCertificates;
-
-  // Custom HTTP headers to include in every request (e.g. proxy auth tokens)
-  final Map<String, String>? customHeaders;
+  /// Transport settings for this server. Every call path passes the same
+  /// bundle so that no caller can silently pick a subset of the settings.
+  final ServerTransportConfig transport;
 
   // Shared Dio client configured for streaming, timeouts, and retries
   late final Dio _dio;
 
-  PaperlessService({
-    required String baseUrl,
-    required this.username,
-    required this.password,
-    this.useApiToken = false,
-    this.apiToken,
-    this.allowSelfSignedCertificates = false,
-    this.customHeaders,
-  })  : baseUrl = _normalizeBaseUrl(baseUrl) {
-    _dio = Dio(BaseOptions(
-      baseUrl: this.baseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 60),
-      sendTimeout: const Duration(minutes: 10),
-      headers: _defaultHeaders(
-        username: username,
-        password: password,
-        useApiToken: useApiToken,
-        apiToken: apiToken,
-        customHeaders: customHeaders,
-      ),
-      followRedirects: true,
-      validateStatus: (code) => code != null && code >= 200 && code < 600,
+  // Set when the configured client certificate could not be loaded (invalid
+  // material or wrong password); reported by [testConnection].
+  String? _certificateSetupError;
+
+  // Backwards-compatible accessors over [transport].
+  String get baseUrl => _normalizeBaseUrl(transport.baseUrl);
+  String get username => transport.username;
+  String get password => transport.password;
+
+  // Authentication method: if true, use API token in "Authorization: Token <token>"
+  // If false, use HTTP Basic with username/password.
+  bool get useApiToken => transport.useApiToken;
+
+  // When useApiToken is true, the API token value (without the "Token " prefix)
+  String? get apiToken => transport.apiToken;
+
+  // Whether SSL certificate validation is disabled for self-signed certificates
+  bool get allowSelfSignedCertificates => transport.allowSelfSignedCertificates;
+
+  // Custom HTTP headers to include in every request (e.g. proxy auth tokens)
+  Map<String, String>? get customHeaders => transport.customHeaders;
+
+  // Whether a client certificate is presented during the TLS handshake
+  bool get useClientCertificate => transport.useClientCertificate;
+
+  /// Underlying client, exposed so tests can assert transport wiring.
+  Dio get dio => _dio;
+
+  /// Creates a client for [transport]. Tests may inject a [Dio] (for example
+  /// one carrying a recording adapter); production always creates its own.
+  PaperlessService(this.transport, {Dio? dio}) {
+    _dio = dio ?? Dio();
+    _dio.options
+      ..baseUrl = baseUrl
+      ..connectTimeout = const Duration(seconds: 15)
+      ..receiveTimeout = const Duration(seconds: 60)
+      ..sendTimeout = const Duration(minutes: 10)
+      ..followRedirects = true
+      ..validateStatus = (code) => code != null && code >= 200 && code < 600;
+    _dio.options.headers.addAll(_defaultHeaders(
+      username: username,
+      password: password,
+      useApiToken: useApiToken,
+      apiToken: apiToken,
+      customHeaders: customHeaders,
     ));
 
-    // Configure SSL certificate validation
-    if (allowSelfSignedCertificates) {
-      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-        final client = HttpClient();
-        client.badCertificateCallback = (cert, host, port) => true;
-        return client;
-      };
-    }
+    _configureTls();
 
     // Simple logging (debug only)
     _dio.interceptors.add(InterceptorsWrapper(
@@ -126,6 +130,79 @@ class PaperlessService {
         handler.next(e);
       },
     ));
+  }
+
+  /// Configures the TLS transport. A client certificate (mutual TLS), a custom
+  /// CA and the self-signed option all share a single [SecurityContext].
+  void _configureTls() {
+    final material = ClientCertificateMaterial(
+      format: transport.clientCertificateFormat,
+      certificate: transport.clientCertificateBytes,
+      privateKey: transport.clientPrivateKeyBytes,
+      password: transport.clientCertificatePassword,
+      customCa: transport.customCaBytes,
+    );
+    final hasClientCertificate =
+        transport.useClientCertificate && material.hasClientCertificate;
+    final hasCustomCa = transport.customCaBytes?.isNotEmpty ?? false;
+
+    if (!hasClientCertificate && !hasCustomCa && !transport.allowSelfSignedCertificates) {
+      return;
+    }
+
+    late final SecurityContext securityContext;
+    try {
+      securityContext = buildClientSecurityContext(material);
+    } catch (e) {
+      _certificateSetupError = e.toString();
+      developer.log('Failed to configure the client certificate: $e',
+          name: 'PaperlessService');
+      return;
+    }
+
+    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      final client = HttpClient(context: securityContext);
+      if (transport.allowSelfSignedCertificates) {
+        client.badCertificateCallback = (cert, host, port) => true;
+      }
+      return client;
+    };
+  }
+
+  static bool _looksLikePasswordError(String message) {
+    final m = message.toLowerCase();
+    // Only strong decryption signals; a bare mention of "pkcs12" means the file
+    // could not be parsed, which is an invalid certificate, not a bad password.
+    return m.contains('mac verify') ||
+        m.contains('bad decrypt') ||
+        m.contains('decrypt') ||
+        m.contains('invalid password') ||
+        m.contains('password');
+  }
+
+  static bool _looksLikeCertificateRequired(String message) {
+    final m = message.toLowerCase();
+    return m.contains('certificate_required') ||
+        m.contains('certificate required') ||
+        m.contains('no certificate') ||
+        m.contains('certificate request');
+  }
+
+  static ConnectionStatus _certificateStatus(String message) {
+    return _looksLikePasswordError(message)
+        ? ConnectionStatus.clientCertificatePasswordError
+        : ConnectionStatus.clientCertificateError;
+  }
+
+  ConnectionStatus _handshakeStatus(DioException e) {
+    final message = '${e.error} ${e.message}';
+    if (useClientCertificate) {
+      return _certificateStatus(message);
+    }
+    if (_looksLikeCertificateRequired(message)) {
+      return ConnectionStatus.clientCertificateRequired;
+    }
+    return ConnectionStatus.sslError;
   }
 
   static String _normalizeBaseUrl(String url) {
@@ -173,6 +250,10 @@ class PaperlessService {
   }
 
   Future<ConnectionStatus> testConnection() async {
+    final setupError = _certificateSetupError;
+    if (setupError != null) {
+      return _certificateStatus(setupError);
+    }
     try {
       final resp = await _dio.get('/api/profile/',
           options: Options(
@@ -195,7 +276,7 @@ class PaperlessService {
         return ConnectionStatus.serverUnreachable;
       }
       if (e.error is HandshakeException) {
-        return ConnectionStatus.sslError;
+        return _handshakeStatus(e);
       }
       return ConnectionStatus.unknownError;
     } catch (_) {

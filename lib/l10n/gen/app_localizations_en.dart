@@ -357,4 +357,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mark_unfavorite => 'Remove from favorites';
+
+  @override
+  String get section_title_client_certificate => 'Client certificate (mTLS)';
+
+  @override
+  String get label_certificate_format => 'Format';
+
+  @override
+  String get certificate_format_pkcs12 => 'PKCS#12 (.p12/.pfx)';
+
+  @override
+  String get certificate_format_pem => 'PEM (certificate + key)';
+
+  @override
+  String get field_label_client_certificate => 'Certificate file';
+
+  @override
+  String get field_label_client_private_key => 'Private key file';
+
+  @override
+  String get field_label_client_certificate_password => 'Certificate password';
+
+  @override
+  String get action_choose_file => 'Choose file';
+
+  @override
+  String get action_remove_client_certificate => 'Remove certificate';
+
+  @override
+  String get section_title_advanced => 'Advanced';
+
+  @override
+  String get field_label_custom_ca => 'Custom CA certificate (optional)';
+
+  @override
+  String get certificate_pem_unavailable_ios =>
+      'PEM is not supported on iOS. Use a PKCS#12 (.p12/.pfx) file.';
+
+  @override
+  String get validation_client_certificate_required =>
+      'Select a client certificate file.';
+
+  @override
+  String get validation_client_private_key_required =>
+      'Select the PEM private key file.';
+
+  @override
+  String get error_client_certificate =>
+      'The client certificate was rejected. Check that it is valid and not expired.';
+
+  @override
+  String get error_client_certificate_required =>
+      'The server requires a client certificate, but none is configured.';
+
+  @override
+  String get error_client_certificate_password =>
+      'The client certificate password is incorrect.';
+
+  @override
+  String get action_input_file => 'File';
+
+  @override
+  String get action_input_paste => 'Paste';
+
+  @override
+  String get field_hint_paste_pem => 'Paste the PEM content (-----BEGIN ...)';
+
+  @override
+  String get field_hint_paste_base64 =>
+      'Paste the base64 of the .p12/.pfx file';
+
+  @override
+  String get validation_client_certificate_invalid =>
+      'The pasted certificate is not valid PEM or base64.';
+
+  @override
+  String get validation_client_private_key_invalid =>
+      'The pasted private key is not valid PEM.';
+
+  @override
+  String get validation_custom_ca_invalid =>
+      'The pasted CA certificate is not valid PEM.';
 }

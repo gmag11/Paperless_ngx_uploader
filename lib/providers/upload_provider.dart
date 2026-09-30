@@ -193,6 +193,9 @@ class UploadProvider extends ChangeNotifier {
       final tempDir = await getTemporaryDirectory();
       tempFile = File('${tempDir.path}/$fileName');
 
+      // Intentionally a separate client: this downloads an arbitrary URL from a
+      // share intent, not a Paperless-NGX endpoint, so it must not carry the
+      // selected server's credentials, custom headers or client certificate.
       final downloader = dio.Dio();
       await downloader.download(
         url,

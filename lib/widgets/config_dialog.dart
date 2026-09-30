@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:provider/provider.dart';
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 
 import 'package:paperlessngx_uploader/models/connection_status.dart';
-import 'package:paperlessngx_uploader/providers/app_config_provider.dart';
 import 'package:paperlessngx_uploader/providers/server_manager.dart';
 import 'package:paperlessngx_uploader/models/server_config.dart';
 import 'package:paperlessngx_uploader/l10n/gen/app_localizations.dart';
-import 'package:paperlessngx_uploader/services/paperless_service.dart';
+import 'package:paperlessngx_uploader/services/client_certificate.dart';
+import 'package:paperlessngx_uploader/services/paperless_service_factory.dart';
+import 'package:paperlessngx_uploader/services/secure_storage_service.dart';
 import 'package:paperlessngx_uploader/utils/ui_helper.dart';
 
 enum _AuthMethod { userPass, apiToken }
+
+enum _CertificateFileKind { certificate, privateKey, customCa }
+
+enum _CertificateInputMode { file, paste }
+
+/// Raised when the client-certificate form input is invalid; carries the
+/// localized message to show inline.
+class _ClientCertificateValidation implements Exception {
+  final String message;
+
+  const _ClientCertificateValidation(this.message);
+}
 
 class ConfigDialog extends StatefulWidget {
   const ConfigDialog({super.key});
@@ -41,6 +56,29 @@ class _ConfigDialogState extends State<ConfigDialog> {
   bool _showServerForm = false;
   String? _editingServerId;
 
+  // TLS trust policy of the server being edited (form-local, committed on save).
+  bool _allowSelfSignedCertificates = false;
+
+  // Client certificate (mutual TLS) form state.
+  bool _useClientCertificate = false;
+  ClientCertificateFormat _clientCertificateFormat = ClientCertificateFormat.pkcs12;
+  List<int>? _clientCertificateBytes;
+  String? _clientCertificateName;
+  List<int>? _clientPrivateKeyBytes;
+  String? _clientPrivateKeyName;
+  final _clientCertificatePasswordController = TextEditingController();
+  List<int>? _customCaBytes;
+  String? _customCaName;
+  String? _clientCertificateInlineError;
+  _CertificateInputMode _clientCertificateInput = _CertificateInputMode.file;
+  _CertificateInputMode _clientPrivateKeyInput = _CertificateInputMode.file;
+  _CertificateInputMode _customCaInput = _CertificateInputMode.file;
+  final _clientCertificateTextController = TextEditingController();
+  final _clientPrivateKeyTextController = TextEditingController();
+  final _customCaTextController = TextEditingController();
+
+  bool get _isIos => Platform.isIOS;
+
   // Custom headers state
   final List<({TextEditingController keyController, TextEditingController valueController})>
       _customHeaderRows = [];
@@ -64,6 +102,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       setState(() {
         _serverNameController.text = currentServer.name;
         _serverUrlController.text = currentServer.serverUrl;
+        _allowSelfSignedCertificates = currentServer.allowSelfSignedCertificates;
         
         if (currentServer.authMethod == AuthMethod.usernamePassword) {
           _authMethod = _AuthMethod.userPass;
@@ -135,8 +174,11 @@ class _ConfigDialogState extends State<ConfigDialog> {
       _obscureToken = true;
       _editingServerId = server.id;
       _showServerForm = true;
+      _allowSelfSignedCertificates = server.allowSelfSignedCertificates;
 
-      // Load custom headers
+      // Load client certificate and custom headers
+      _useClientCertificate = server.useClientCertificate;
+      _clientCertificateFormat = server.clientCertificateFormat;
       _customHeaderRows.clear();
       final customHeaders = server.customHeaders;
       if (customHeaders != null && customHeaders.isNotEmpty) {
@@ -148,6 +190,21 @@ class _ConfigDialogState extends State<ConfigDialog> {
         }
       }
     });
+
+    if (server.useClientCertificate || server.hasCustomCa) {
+      final storage = SecureStorageService();
+      final certificate = await storage.getServerClientCertificate(server.id);
+      final privateKey = await storage.getServerClientPrivateKey(server.id);
+      final password = await storage.getServerClientCertificatePassword(server.id);
+      final customCa = await storage.getServerCustomCa(server.id);
+      if (!mounted) return;
+      setState(() {
+        _clientCertificateBytes = certificate;
+        _clientPrivateKeyBytes = privateKey;
+        _clientCertificatePasswordController.text = password ?? '';
+        _customCaBytes = customCa;
+      });
+    }
   }
 
   void _clearForm() {
@@ -166,6 +223,24 @@ class _ConfigDialogState extends State<ConfigDialog> {
       _inlineConnectionError = null;
       _editingServerId = null;
       _showServerForm = false;
+      _allowSelfSignedCertificates = false;
+
+      _useClientCertificate = false;
+      _clientCertificateFormat = ClientCertificateFormat.pkcs12;
+      _clientCertificateBytes = null;
+      _clientCertificateName = null;
+      _clientPrivateKeyBytes = null;
+      _clientPrivateKeyName = null;
+      _clientCertificatePasswordController.clear();
+      _customCaBytes = null;
+      _customCaName = null;
+      _clientCertificateInlineError = null;
+      _clientCertificateInput = _CertificateInputMode.file;
+      _clientPrivateKeyInput = _CertificateInputMode.file;
+      _customCaInput = _CertificateInputMode.file;
+      _clientCertificateTextController.clear();
+      _clientPrivateKeyTextController.clear();
+      _customCaTextController.clear();
 
       // Clear custom headers
       for (final row in _customHeaderRows) {
@@ -239,7 +314,6 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
 
     if (!mounted) return;
-    final config = Provider.of<AppConfigProvider>(context, listen: false);
     final serverManager = Provider.of<ServerManager>(context, listen: false);
 
     var serverUrl = _serverUrlController.text.trim();
@@ -257,10 +331,27 @@ class _ConfigDialogState extends State<ConfigDialog> {
       return;
     }
 
+    ClientCertificateMaterial? clientCertificate;
+    try {
+      clientCertificate = _clientCertificateMaterial(l10n);
+      if (mounted) {
+        setState(() => _clientCertificateInlineError = null);
+      }
+    } on _ClientCertificateValidation catch (e) {
+      if (mounted) {
+        setState(() {
+          _clientCertificateInlineError = e.message;
+          _localConnecting = false;
+        });
+      }
+      return;
+    }
+
     final customHeaders = _collectCustomHeaders();
     
     if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
-      serverUrl = await _determineProtocol(serverUrl, config, customHeaders.isNotEmpty ? customHeaders : null);
+      serverUrl = await _determineProtocol(
+          serverUrl, customHeaders.isNotEmpty ? customHeaders : null, clientCertificate);
       if (serverUrl.isEmpty) {
         if (mounted) {
           setState(() {
@@ -275,14 +366,32 @@ class _ConfigDialogState extends State<ConfigDialog> {
     final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
     final useApi = _authMethod == _AuthMethod.apiToken;
 
-    final tempService = PaperlessService(
-      baseUrl: serverUrl,
-      username: username,
-      password: useApi ? '' : secret,
-      useApiToken: useApi,
-      apiToken: useApi ? secret : null,
-      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+    // The server being edited (null when adding a new one), used to carry over
+    // the settings the form does not touch.
+    final existingServer = _editingServerId != null
+        ? serverManager.getServer(_editingServerId!)
+        : null;
+
+    final draftConfig = ServerConfig.applyFormUpdate(
+      existingServer,
+      id: _editingServerId ?? ServerConfig.generateId(),
+      name: _serverNameController.text.trim(),
+      serverUrl: serverUrl,
+      authMethod: useApi ? AuthMethod.apiToken : AuthMethod.usernamePassword,
+      username: useApi ? null : username,
+      allowSelfSignedCertificates: _allowSelfSignedCertificates,
       customHeaders: customHeaders.isNotEmpty ? customHeaders : null,
+      defaultTagIds: existingServer?.defaultTagIds ?? const [],
+      useClientCertificate: clientCertificate?.hasClientCertificate ?? false,
+      clientCertificateFormat: _clientCertificateFormat,
+      hasCustomCa: clientCertificate?.customCa != null,
+    );
+
+    final tempService = PaperlessServiceFactory.createServiceForConfig(
+      draftConfig,
+      password: useApi ? null : secret,
+      apiToken: useApi ? secret : null,
+      clientCertificate: clientCertificate,
     );
 
     final status = await tempService.testConnection();
@@ -294,20 +403,11 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
 
     if (status == ConnectionStatus.connected) {
-      // Preserve existing defaultTagIds when updating server
-      List<int> existingDefaultTagIds = [];
-      if (_editingServerId != null) {
-        if (!mounted) return;
-        final serverManager = Provider.of<ServerManager>(context, listen: false);
-        final existingServer = serverManager.getServer(_editingServerId!);
-        if (existingServer != null) {
-          existingDefaultTagIds = existingServer.defaultTagIds;
-          developer.log('Preserving existing defaultTagIds: $existingDefaultTagIds', name: 'ConfigDialog');
-        }
-      }
+      // Preserve the server's existing default tags when updating it.
+      final existingDefaultTagIds = existingServer?.defaultTagIds ?? const <int>[];
+      developer.log('Preserving existing defaultTagIds: $existingDefaultTagIds', name: 'ConfigDialog');
 
       if (!mounted) return;
-      final config = Provider.of<AppConfigProvider>(context, listen: false);
       final serverId = _editingServerId ?? ServerConfig.generateId();
       
       developer.log('Creating/updating server with ID: $serverId', name: 'ConfigDialog');
@@ -315,7 +415,8 @@ class _ConfigDialogState extends State<ConfigDialog> {
       developer.log('Server URL: $serverUrl', name: 'ConfigDialog');
       developer.log('Auth method: ${_authMethod == _AuthMethod.apiToken ? "API Token" : "Username/Password"}', name: 'ConfigDialog');
 
-      final server = ServerConfig(
+      final server = ServerConfig.applyFormUpdate(
+        existingServer,
         id: serverId,
         name: _serverNameController.text.trim(),
         serverUrl: serverUrl,
@@ -323,9 +424,12 @@ class _ConfigDialogState extends State<ConfigDialog> {
             ? AuthMethod.apiToken
             : AuthMethod.usernamePassword,
         username: _authMethod == _AuthMethod.userPass ? username : null,
-        defaultTagIds: existingDefaultTagIds,
-        allowSelfSignedCertificates: config.allowSelfSignedCertificates,
+        allowSelfSignedCertificates: _allowSelfSignedCertificates,
         customHeaders: customHeaders.isNotEmpty ? customHeaders : null,
+        defaultTagIds: existingDefaultTagIds,
+        useClientCertificate: clientCertificate?.hasClientCertificate ?? false,
+        clientCertificateFormat: _clientCertificateFormat,
+        hasCustomCa: clientCertificate?.customCa != null,
       );
 
       try {
@@ -345,6 +449,31 @@ class _ConfigDialogState extends State<ConfigDialog> {
         } else {
           await serverManager.saveServerApiToken(server.id, apiToken: secret);
           developer.log('API token saved', name: 'ConfigDialog');
+        }
+
+        developer.log('Saving client certificate settings', name: 'ConfigDialog');
+        final storage = SecureStorageService();
+        final material = clientCertificate;
+        if (material != null && material.hasClientCertificate) {
+          await storage.saveServerClientCertificate(server.id, material.certificate!);
+          if (_clientCertificateFormat == ClientCertificateFormat.pem &&
+              material.privateKey != null) {
+            await storage.saveServerClientPrivateKey(server.id, material.privateKey!);
+          } else {
+            await storage.deleteServerClientPrivateKey(server.id);
+          }
+          await storage.saveServerClientCertificatePassword(
+              server.id, material.password ?? '');
+        } else {
+          await storage.deleteServerClientCertificate(server.id);
+          await storage.deleteServerClientPrivateKey(server.id);
+          await storage.deleteServerClientCertificatePassword(server.id);
+        }
+        final customCa = material?.customCa;
+        if (customCa != null) {
+          await storage.saveServerCustomCa(server.id, customCa);
+        } else {
+          await storage.deleteServerCustomCa(server.id);
         }
 
         developer.log('Selecting server: ${server.id}', name: 'ConfigDialog');
@@ -375,6 +504,11 @@ class _ConfigDialogState extends State<ConfigDialog> {
           ConnectionStatus.serverUnreachable => l10n.error_server_unreachable,
           ConnectionStatus.invalidServerUrl => l10n.error_invalid_server,
           ConnectionStatus.sslError => l10n.error_ssl,
+          ConnectionStatus.clientCertificateError => l10n.error_client_certificate,
+          ConnectionStatus.clientCertificateRequired =>
+            l10n.error_client_certificate_required,
+          ConnectionStatus.clientCertificatePasswordError =>
+            l10n.error_client_certificate_password,
           ConnectionStatus.unknownError => l10n.error_unknown,
           _ => l10n.error_unknown,
         };
@@ -385,20 +519,402 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
   }
 
-  Future<String> _determineProtocol(String serverWithoutProtocol, AppConfigProvider config, Map<String, String>? customHeaders) async {
+  /// Resolves the client certificate material from the form, decoding pasted
+  /// text when an artifact is in paste mode.
+  ///
+  /// Returns null when neither a client certificate nor a custom CA is
+  /// configured. Throws [_ClientCertificateValidation] (with a localized
+  /// message) when the input is incomplete or cannot be decoded.
+  /// Resolves the client certificate material from the form, or null when
+  /// mutual TLS is disabled (the certificate and custom CA are only part of the
+  /// mTLS configuration).
+  ClientCertificateMaterial? _clientCertificateMaterial(AppLocalizations l10n) {
+    if (!_useClientCertificate) return null;
+
+    final certificate = _resolveCertificateArtifact(
+      mode: _clientCertificateInput,
+      text: _clientCertificateTextController.text,
+      fileBytes: _clientCertificateBytes,
+      format: _clientCertificateFormat,
+      emptyMessage: l10n.validation_client_certificate_required,
+      invalidMessage: l10n.validation_client_certificate_invalid,
+    );
+
+    List<int>? privateKey;
+    if (_clientCertificateFormat == ClientCertificateFormat.pem) {
+      privateKey = _resolveCertificateArtifact(
+        mode: _clientPrivateKeyInput,
+        text: _clientPrivateKeyTextController.text,
+        fileBytes: _clientPrivateKeyBytes,
+        format: ClientCertificateFormat.pem,
+        emptyMessage: l10n.validation_client_private_key_required,
+        invalidMessage: l10n.validation_client_private_key_invalid,
+      );
+    }
+
+    final customCa = _resolveCertificateArtifact(
+      mode: _customCaInput,
+      text: _customCaTextController.text,
+      fileBytes: _customCaBytes,
+      format: ClientCertificateFormat.pem,
+      emptyMessage: null,
+      invalidMessage: l10n.validation_custom_ca_invalid,
+    );
+
+    return ClientCertificateMaterial(
+      format: _clientCertificateFormat,
+      certificate: certificate,
+      privateKey: privateKey,
+      password: _clientCertificatePasswordController.text,
+      customCa: customCa,
+    );
+  }
+
+  /// Resolves one artifact from either a picked file or pasted text.
+  List<int>? _resolveCertificateArtifact({
+    required _CertificateInputMode mode,
+    required String text,
+    required List<int>? fileBytes,
+    required ClientCertificateFormat format,
+    required String? emptyMessage,
+    required String invalidMessage,
+  }) {
+    if (mode == _CertificateInputMode.paste) {
+      final trimmed = text.trim();
+      if (trimmed.isEmpty) {
+        if (emptyMessage == null) return null;
+        throw _ClientCertificateValidation(emptyMessage);
+      }
+      try {
+        return decodePastedCertificate(trimmed, format);
+      } on PastedCertificateException {
+        throw _ClientCertificateValidation(invalidMessage);
+      }
+    }
+    if (fileBytes == null || fileBytes.isEmpty) {
+      if (emptyMessage == null) return null;
+      throw _ClientCertificateValidation(emptyMessage);
+    }
+    return fileBytes;
+  }
+
+  void _clearCustomCaForm() {
+    _customCaBytes = null;
+    _customCaName = null;
+    _customCaInput = _CertificateInputMode.file;
+    _customCaTextController.clear();
+  }
+
+  Future<void> _pickCertificateFile(_CertificateFileKind kind) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final file = await openFile();
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        switch (kind) {
+          case _CertificateFileKind.certificate:
+            _clientCertificateBytes = bytes;
+            _clientCertificateName = file.name;
+          case _CertificateFileKind.privateKey:
+            _clientPrivateKeyBytes = bytes;
+            _clientPrivateKeyName = file.name;
+          case _CertificateFileKind.customCa:
+            _customCaBytes = bytes;
+            _customCaName = file.name;
+        }
+        _clientCertificateInlineError = null;
+      });
+    } catch (e) {
+      developer.log('Certificate file pick failed: $e', name: 'ConfigDialog');
+      if (mounted) {
+        setState(() => _clientCertificateInlineError = l10n.error_unknown);
+      }
+    }
+  }
+
+  Widget _buildCertificateInput({
+    required String label,
+    required _CertificateInputMode mode,
+    required ValueChanged<_CertificateInputMode> onModeChanged,
+    required String? fileName,
+    required bool hasFile,
+    required VoidCallback onPick,
+    required TextEditingController controller,
+    required String pasteHint,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final isPaste = mode == _CertificateInputMode.paste;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(child: Text(label)),
+                    if (hasFile && !isPaste) ...[
+                      const SizedBox(width: 6),
+                      const Icon(Icons.check_circle_outline,
+                          size: 16, color: Colors.green),
+                    ],
+                  ],
+                ),
+              ),
+              SegmentedButton<_CertificateInputMode>(
+                showSelectedIcon: false,
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                segments: [
+                  ButtonSegment(
+                    value: _CertificateInputMode.file,
+                    label: Text(l10n.action_input_file),
+                  ),
+                  ButtonSegment(
+                    value: _CertificateInputMode.paste,
+                    label: Text(l10n.action_input_paste),
+                  ),
+                ],
+                selected: {mode},
+                onSelectionChanged: (selection) => onModeChanged(selection.first),
+              ),
+            ],
+          ),
+          if (isPaste)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: SizedBox(
+                // Fixed height with internal vertical scrolling so a full PEM
+                // block is comfortable to read and edit.
+                height: 200,
+                child: TextFormField(
+                  controller: controller,
+                  expands: true,
+                  maxLines: null,
+                  minLines: null,
+                  keyboardType: TextInputType.multiline,
+                  textAlignVertical: TextAlignVertical.top,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                  decoration: InputDecoration(
+                    hintText: pasteHint,
+                    alignLabelWithHint: true,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                TextButton(
+                  onPressed: onPick,
+                  child: Text(l10n.action_choose_file),
+                ),
+                if (fileName != null)
+                  Flexible(
+                    child: Text(
+                      fileName,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClientCertificateSection(AppLocalizations l10n) {
+    final isPem = _clientCertificateFormat == ClientCertificateFormat.pem;
+    return ExpansionTile(
+      title: Text(l10n.section_title_client_certificate),
+      leading: const Icon(Icons.badge_outlined),
+      initiallyExpanded: _useClientCertificate,
+      children: [
+        SwitchListTile(
+          title: Text(l10n.section_title_client_certificate),
+          value: _useClientCertificate,
+          onChanged: (value) {
+            setState(() {
+              _useClientCertificate = value;
+              if (!value) {
+                _clientCertificateInlineError = null;
+                // The custom CA is part of the mTLS configuration; drop it when
+                // the section is disabled so no hidden state lingers.
+                _clearCustomCaForm();
+              }
+            });
+          },
+        ),
+        if (_useClientCertificate) ...[
+          if (!_isIos)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: DropdownButtonFormField<ClientCertificateFormat>(
+                initialValue: _clientCertificateFormat,
+                decoration: InputDecoration(
+                  labelText: l10n.label_certificate_format,
+                  isDense: true,
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: ClientCertificateFormat.pkcs12,
+                    child: Text(l10n.certificate_format_pkcs12),
+                  ),
+                  DropdownMenuItem(
+                    value: ClientCertificateFormat.pem,
+                    child: Text(l10n.certificate_format_pem),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _clientCertificateFormat = value);
+                  }
+                },
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(l10n.certificate_pem_unavailable_ios,
+                  style: Theme.of(context).textTheme.bodySmall),
+            ),
+          _buildCertificateInput(
+            label: l10n.field_label_client_certificate,
+            mode: _clientCertificateInput,
+            onModeChanged: (mode) =>
+                setState(() => _clientCertificateInput = mode),
+            fileName: _clientCertificateName,
+            hasFile: _clientCertificateBytes != null,
+            onPick: () => _pickCertificateFile(_CertificateFileKind.certificate),
+            controller: _clientCertificateTextController,
+            pasteHint: isPem
+                ? l10n.field_hint_paste_pem
+                : l10n.field_hint_paste_base64,
+          ),
+          if (isPem)
+            _buildCertificateInput(
+              label: l10n.field_label_client_private_key,
+              mode: _clientPrivateKeyInput,
+              onModeChanged: (mode) =>
+                  setState(() => _clientPrivateKeyInput = mode),
+              fileName: _clientPrivateKeyName,
+              hasFile: _clientPrivateKeyBytes != null,
+              onPick: () => _pickCertificateFile(_CertificateFileKind.privateKey),
+              controller: _clientPrivateKeyTextController,
+              pasteHint: l10n.field_hint_paste_pem,
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextFormField(
+              controller: _clientCertificatePasswordController,
+              obscureText: true,
+              enableSuggestions: false,
+              autocorrect: false,
+              decoration: InputDecoration(
+                labelText: l10n.field_label_client_certificate_password,
+                prefixIcon: const Icon(Icons.lock),
+                isDense: true,
+              ),
+            ),
+          ),
+          ExpansionTile(
+            title: Text(l10n.section_title_advanced),
+            leading: const Icon(Icons.tune),
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+            initiallyExpanded: _customCaBytes != null ||
+                _customCaTextController.text.trim().isNotEmpty,
+            children: [
+              _buildCertificateInput(
+                label: l10n.field_label_custom_ca,
+                mode: _customCaInput,
+                onModeChanged: (mode) => setState(() => _customCaInput = mode),
+                fileName: _customCaName,
+                hasFile: _customCaBytes != null,
+                onPick: () => _pickCertificateFile(_CertificateFileKind.customCa),
+                controller: _customCaTextController,
+                pasteHint: l10n.field_hint_paste_pem,
+              ),
+            ],
+          ),
+          if (_clientCertificateInlineError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Text(
+                _clientCertificateInlineError!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              icon: const Icon(Icons.delete_outline),
+              label: Text(l10n.action_remove_client_certificate),
+              onPressed: () {
+                setState(() {
+                  _useClientCertificate = false;
+                  _clientCertificateBytes = null;
+                  _clientCertificateName = null;
+                  _clientPrivateKeyBytes = null;
+                  _clientPrivateKeyName = null;
+                  _clientCertificatePasswordController.clear();
+                  _clientCertificateInput = _CertificateInputMode.file;
+                  _clientPrivateKeyInput = _CertificateInputMode.file;
+                  _clientCertificateTextController.clear();
+                  _clientPrivateKeyTextController.clear();
+                  _clearCustomCaForm();
+                  _clientCertificateInlineError = null;
+                });
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<String> _determineProtocol(
+    String serverWithoutProtocol,
+    Map<String, String>? customHeaders,
+    ClientCertificateMaterial? clientCertificate,
+  ) async {
     final username = _authMethod == _AuthMethod.userPass ? _usernameController.text.trim() : '';
     final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
     final useApi = _authMethod == _AuthMethod.apiToken;
 
+    // Both attempts use the same draft configuration and therefore the same
+    // transport rules (auth, custom headers, TLS trust policy, client cert).
+    ServerConfig draftConfig(String url) => ServerConfig(
+          id: _editingServerId ?? ServerConfig.generateId(),
+          name: _serverNameController.text.trim(),
+          serverUrl: url,
+          authMethod: useApi ? AuthMethod.apiToken : AuthMethod.usernamePassword,
+          username: useApi ? null : username,
+          allowSelfSignedCertificates: _allowSelfSignedCertificates,
+          customHeaders: customHeaders,
+          useClientCertificate: clientCertificate?.hasClientCertificate ?? false,
+          clientCertificateFormat: _clientCertificateFormat,
+          hasCustomCa: clientCertificate?.customCa != null,
+        );
+
     final httpsServer = 'https://$serverWithoutProtocol';
-    final httpsService = PaperlessService(
-      baseUrl: httpsServer,
-      username: username,
-      password: useApi ? '' : secret,
-      useApiToken: useApi,
+    final httpsService = PaperlessServiceFactory.createServiceForConfig(
+      draftConfig(httpsServer),
+      password: useApi ? null : secret,
       apiToken: useApi ? secret : null,
-      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
-      customHeaders: customHeaders,
+      clientCertificate: clientCertificate,
     );
 
     final httpsStatus = await httpsService.testConnection();
@@ -408,14 +924,11 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
 
     final httpServer = 'http://$serverWithoutProtocol';
-    final httpService = PaperlessService(
-      baseUrl: httpServer,
-      username: username,
-      password: useApi ? '' : secret,
-      useApiToken: useApi,
+    final httpService = PaperlessServiceFactory.createServiceForConfig(
+      draftConfig(httpServer),
+      password: useApi ? null : secret,
       apiToken: useApi ? secret : null,
-      allowSelfSignedCertificates: config.allowSelfSignedCertificates,
-      customHeaders: customHeaders,
+      clientCertificate: clientCertificate,
     );
 
     final httpStatus = await httpService.testConnection();
@@ -434,6 +947,10 @@ class _ConfigDialogState extends State<ConfigDialog> {
     _passwordController.dispose();
     _tokenController.dispose();
     _serverNameController.dispose();
+    _clientCertificatePasswordController.dispose();
+    _clientCertificateTextController.dispose();
+    _clientPrivateKeyTextController.dispose();
+    _customCaTextController.dispose();
     for (final row in _customHeaderRows) {
       row.keyController.dispose();
       row.valueController.dispose();
@@ -715,17 +1232,17 @@ class _ConfigDialogState extends State<ConfigDialog> {
               ),
             ],
             const SizedBox(height: 16),
-            Consumer<AppConfigProvider>(
-              builder: (context, config, child) {
-                return SwitchListTile(
-                  title: Text(l10n.allow_self_signed_certificates),
-                  value: config.allowSelfSignedCertificates,
-                  onChanged: (value) {
-                    config.setAllowSelfSignedCertificates(value);
-                  },
-                );
+            SwitchListTile(
+              title: Text(l10n.allow_self_signed_certificates),
+              value: _allowSelfSignedCertificates,
+              onChanged: (value) {
+                setState(() {
+                  _allowSelfSignedCertificates = value;
+                });
               },
             ),
+            const SizedBox(height: 8),
+            _buildClientCertificateSection(l10n),
             const SizedBox(height: 8),
             // Custom Headers section
             ExpansionTile(
