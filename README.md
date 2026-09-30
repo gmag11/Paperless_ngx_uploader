@@ -44,6 +44,7 @@ This repository is an updated/re‑implemented version inspired by that project,
 
 - Android native Share Intent integration (supports multiple files in a single action).
 - **"Open with" support:** a compatible document (PDF, JPEG, PNG, TIFF, GIF or WebP) can also be delivered from a file manager or viewer with *Open with*; it receives the same treatment as a shared file. Only these types appear in the chooser, so the app is not offered for other files.
+- **Drag and drop on desktop:** on the Windows and Linux desktop builds, drop one or more files onto the app window to upload them; they are handled exactly like shared files (same validation, default tags and upload pipeline).
 - **Multiple Paperless‑NGX server profiles:** Add, edit, and switch between multiple server configurations, each with independent credentials and default tags.
 - Secure credential storage with automatic recovery on startup.
 - Connection test with feedback (success, invalid credentials, unreachable host).
@@ -165,6 +166,21 @@ The app will not repeatedly prompt for tags; configure them when convenient.
 5. Check the upload status:
    - Success: the app returns to background.
    - Error: a Snackbar message explains the issue.
+
+## Desktop usage (drag and drop)
+
+Besides Android, the project builds desktop applications for Windows and Linux, and they support uploading by **drag and drop**:
+
+1. Start the app — from source with `flutter run -d windows` or `flutter run -d linux`, or from a packaged release.
+2. Drag one or more documents onto the app window. The window is the drop area and highlights softly while you drag over it.
+3. The dropped files are processed exactly like shared ones: they use the active server, its default tags and the same upload flow.
+
+Notes:
+
+- A single drop can carry several files at once.
+- The recognised types are the same as *Open with* (PDF, JPEG, PNG, TIFF, GIF and WebP). A file of another type is still accepted, but the app shows a non-blocking warning banner about its type.
+- A file that cannot be read is reported per batch, and the readable files of the same batch are uploaded normally.
+- The drop area is the main screen; the server configuration dialog does not accept drops.
 
 ## Permissions
 
