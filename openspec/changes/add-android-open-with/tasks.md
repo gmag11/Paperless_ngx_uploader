@@ -25,3 +25,12 @@
 
 - [x] 4.1 Verify flow parity with "Share with" on device: an opened file receives the same treatment as a shared one — tag prompt with `ask-tags-on-upload` enabled (confirm/cancel just like in shares), default tags with the prompt disabled, and the red unreadable-file notice also in the share flow; contrast with `specs/android-open-with/spec.md`
 - [x] 4.2 Verify global regression: sharing one and several files (`SEND`/`SEND_MULTIPLE`) and sharing a URL in text still work exactly as before, `flutter analyze` reports no new errors and `./gradlew :app:testDebugUnitTest` and `flutter test` finish green
+
+## 5. Review fixes
+
+- [x] 5.1 Exactly-once delivery: replace the sole reliance on `setIntent(ACTION_MAIN)` with `InitialIntentHandler`, which persists the identity of the handled intent in the activity's saved instance state so a task recreated after a system-initiated process death does not resolve and upload the launch intent again, while a different launch intent is still handled; add JVM tests for single capture, recreation with saved state, a different intent and launch intents without content
+- [x] 5.2 Prevent double processing in Dart: keep pending initial events only when no batch listener is attached yet, and cover it with a `flutter test` case (`consumePendingBatch` stays empty after a stream delivery)
+- [x] 5.3 Do not drop a warm-start file when the native event listener does not exist yet: buffer payloads in `MainActivity` and flush them on `onListen`
+- [x] 5.4 Copy `file://` sources to the cache as well and give colliding destinations a unique name within a batch; update/extend the JVM resolver tests
+- [x] 5.5 Re-verify on device the recreation after a system-initiated process death and a warm-start file arriving before the UI is ready (non-automatable lifecycle) — verified by the maintainer
+- [x] 5.6 Keep the share cache bounded: `ShareIntentResolver.pruneStaleCache()` removes copies older than 24 h on app start, with a JVM test; keep the `file` scheme in the `ACTION_VIEW` filter as legacy coverage

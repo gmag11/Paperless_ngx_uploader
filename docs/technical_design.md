@@ -234,14 +234,15 @@ class ValidationError extends UploadError {
 
 - `ACTION_VIEW` reads `intent.data` and accepts only `content://` and `file://`.
 - `ACTION_SEND` keeps the text-URL behavior and `EXTRA_STREAM`; `ACTION_SEND_MULTIPLE` iterates `EXTRA_STREAM`.
-- `copyUriToCache` copies a readable `content://` URI into `cacheDir/shared_files` using its display name, and keeps the original path for a readable `file://`.
+- `copyUriToCache` copies a readable `content://` **or** `file://` source into `cacheDir/shared_files` using its display name. If two files of the same batch share that name, the second gets a numeric suffix instead of overwriting the first.
 - A file that cannot be read produces no path and is added to `errors` with its display name; no exception escapes the resolver.
+- On app start, `pruneStaleCache()` removes copies older than 24 h from `cacheDir/shared_files`, so the share cache stays bounded without racing with an in-flight upload.
 
-`MainActivity` is a thin wrapper around it: it resolves the intent, sends the payload to Dart, and replaces the intent with `ACTION_MAIN` so that an activity recreation does not re-deliver the same file (exactly-once delivery).
+`MainActivity` is a thin wrapper around it. The launch intent is owned by `InitialIntentHandler`: it captures the resolution and, once handled, replaces the activity intent with `ACTION_MAIN` **and** writes the identity of the handled intent in the saved instance state. That identity is what prevents a duplicate upload when Android recreates the task with its original launch intent after a system-initiated process death (`setIntent` alone only changes the in-memory intent), while a different "open with" is still processed. Warm-start payloads produced before Dart attaches its listener are buffered and flushed on `onListen`.
 
 ### Payload to Dart and the unreadable-file notice
 
-Both `getInitialSharedFiles` and the EventChannel deliver `{files, errors}`. `IntentHandler.parseSharePayload` accepts that map (and the legacy plain list of paths), `ShareReceivedBatchEvent` carries `errors` (`hasErrors`), and `consumePendingBatch()` returns the pending batch captured before the UI attaches its listeners.
+Both `getInitialSharedFiles` and the EventChannel deliver `{files, errors}`. `IntentHandler.parseSharePayload` accepts that map (and the legacy plain list of paths), `ShareReceivedBatchEvent` carries `errors` (`hasErrors`), and `consumePendingBatch()` returns the pending batch captured before the UI attaches its listeners. Pending events are only kept while no batch listener is attached: once the UI is listening, the batch travels through the stream only, so a later screen recreation cannot consume and process it a second time.
 
 `home_screen` shows one notice per batch with `UIHelper.showMessage(context, l10n.snackbar_unreadable_files(names), success: false)` — the red toast/snackbar — naming the affected files, and counts them as an error so `finishAndRemoveTask()` is not called and the activity stays open for the user to read it. The string is `snackbar_unreadable_files` in `lib/l10n/app_en.arb` and `lib/l10n/app_es.arb`.
 
@@ -261,7 +262,7 @@ cd android && ./gradlew :app:testDebugUnitTest
 
 They need the Android SDK (`android/local.properties` with `sdk.dir`, or `ANDROID_HOME`) and network access the first time to download the `android-all` jars. Robolectric 4.14.1 supports API 21–35 while the app targets SDK 36, so the tests pin `@Config(sdk = 35)`.
 
-Coverage: the manifest intent filters (`ManifestIntentFilterTest`) and the resolver behavior (`ShareIntentResolverTest`). The lifecycle cases (cold start, warm start, activity recreation) and the notice shown on a real device are verified manually.
+Coverage: the manifest intent filters (`ManifestIntentFilterTest`), the resolver behavior (`ShareIntentResolverTest`) and the exactly-once guard (`InitialIntentHandlerTest`). The end-to-end lifecycle on a real device (cold start, warm start, process-death recreation) and the notice shown there are verified manually.
 
 ## Implementation Notes
 

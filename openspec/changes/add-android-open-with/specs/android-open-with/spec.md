@@ -47,8 +47,12 @@ The system SHALL accept an "open with" file whether the app is being cold-starte
 - **WHEN** the app is already running in the background and the user opens a supported file choosing the app
 - **THEN** the app comes to the foreground and the file enters the intake pipeline once
 
+#### Scenario: Warm-start file is not lost before the UI is ready
+- **WHEN** a supported file is opened while the app is running but the UI has not attached its listener yet
+- **THEN** the file is still delivered to the intake pipeline exactly once when the UI becomes ready
+
 #### Scenario: Activity recreation does not re-deliver
-- **WHEN** the activity is recreated after the opened file was already delivered (e.g. after the process was killed while backgrounded)
+- **WHEN** the activity or the process is recreated after the opened file was already delivered (including a system-initiated process death while backgrounded, where Android restores the task with its original launch intent)
 - **THEN** the same file is not delivered to the intake pipeline a second time
 
 ### Requirement: Unreadable files do not corrupt the flow
