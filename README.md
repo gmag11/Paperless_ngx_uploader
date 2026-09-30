@@ -128,6 +128,20 @@ You can use multiple Paperless‑NGX servers within the app. Each server has its
 - All credentials and tag selections are stored securely and separately for each server.
 - You can edit or remove server profiles at any time.
 
+## Client certificates (mutual TLS)
+
+If your Paperless‑NGX instance sits behind a reverse proxy that requires **mutual TLS**, the app can present a client certificate:
+
+- In the server form, open the **"Client certificate (mTLS)"** section and enable it.
+- Choose a format:
+  - **PKCS#12** (`.p12`/`.pfx`) with its password — the portable option, and the only one available on iOS.
+  - **PEM** (a certificate chain plus a separate private key file), on Android and desktop platforms.
+- Provide each artifact (certificate, private key, custom CA) either by **choosing a file** or by **pasting it as text**: PEM is pasted as-is; a PKCS#12 container is pasted as **base64**.
+- Optionally add a **custom CA certificate** so a server signed by a private CA is verified properly. This is preferred over the "Allow self-signed certificates" switch, which disables verification entirely.
+- The certificate and its password are stored with the same secure storage as other credentials; large payloads fall back to an app‑private file.
+
+The certificate is presented on every request to that server (connection test, protocol detection, tag fetch and upload). Certificate problems are reported with a specific message (rejected, expired, wrong password, or certificate required).
+
 ## First‑time configuration
 
 When opening/using the app for the first time:
