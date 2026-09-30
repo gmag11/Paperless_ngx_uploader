@@ -1,0 +1,9 @@
+What's New in 1.8.5
+
+Highlights:
+• "Open with" — send documents from other apps directly to the uploader.
+• Unreadable shared files are reported instead of being silently skipped.
+
+Other improvements:
+• Updated Flutter SDK and dependencies.
+• New Android unit tests for intent handling.

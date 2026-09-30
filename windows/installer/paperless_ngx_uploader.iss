@@ -1,7 +1,7 @@
 ; Inno Setup script for Paperless-NGX Uploader
 [Setup]
 AppName=Paperless-NGX Uploader
-AppVersion=1.8.4
+AppVersion=1.8.5
 DefaultDirName={autopf}\Paperless-NGX Uploader
 DefaultGroupName=Paperless-NGX Uploader
 OutputBaseFilename=PaperlessNGX_Uploader_Installer_Windows_x64
