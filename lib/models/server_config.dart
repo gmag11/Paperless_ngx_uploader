@@ -106,6 +106,40 @@ class ServerConfig {
     );
   }
 
+  /// Merges the values shown in the server configuration form into a
+  /// [ServerConfig], preserving the fields the form does not manage.
+  ///
+  /// [existing] is the server being edited, or null when adding a new one. The
+  /// fields the form manages (name, URL, auth, TLS policy, custom headers and
+  /// default tags) come from the arguments, so passing null [customHeaders]
+  /// clears them; [askTagsBeforeUpload], [favoriteTagIds] and [apiToken] are
+  /// carried over from [existing].
+  static ServerConfig applyFormUpdate(
+    ServerConfig? existing, {
+    required String id,
+    required String name,
+    required String serverUrl,
+    required AuthMethod authMethod,
+    required String? username,
+    required bool allowSelfSignedCertificates,
+    required Map<String, String>? customHeaders,
+    required List<int> defaultTagIds,
+  }) {
+    return ServerConfig(
+      id: id,
+      name: name,
+      serverUrl: serverUrl,
+      authMethod: authMethod,
+      username: username,
+      apiToken: existing?.apiToken,
+      allowSelfSignedCertificates: allowSelfSignedCertificates,
+      defaultTagIds: defaultTagIds,
+      askTagsBeforeUpload: existing?.askTagsBeforeUpload ?? false,
+      customHeaders: customHeaders,
+      favoriteTagIds: existing?.favoriteTagIds ?? const [],
+    );
+  }
+
   static String generateId() {
     return DateTime.now().millisecondsSinceEpoch.toString();
   }

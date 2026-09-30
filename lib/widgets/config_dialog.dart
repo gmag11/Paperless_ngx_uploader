@@ -279,7 +279,14 @@ class _ConfigDialogState extends State<ConfigDialog> {
     final secret = _authMethod == _AuthMethod.userPass ? _passwordController.text : _tokenController.text;
     final useApi = _authMethod == _AuthMethod.apiToken;
 
-    final draftConfig = ServerConfig(
+    // The server being edited (null when adding a new one), used to carry over
+    // the settings the form does not touch.
+    final existingServer = _editingServerId != null
+        ? serverManager.getServer(_editingServerId!)
+        : null;
+
+    final draftConfig = ServerConfig.applyFormUpdate(
+      existingServer,
       id: _editingServerId ?? ServerConfig.generateId(),
       name: _serverNameController.text.trim(),
       serverUrl: serverUrl,
@@ -287,6 +294,7 @@ class _ConfigDialogState extends State<ConfigDialog> {
       username: useApi ? null : username,
       allowSelfSignedCertificates: _allowSelfSignedCertificates,
       customHeaders: customHeaders.isNotEmpty ? customHeaders : null,
+      defaultTagIds: existingServer?.defaultTagIds ?? const [],
     );
 
     final tempService = PaperlessServiceFactory.createServiceForConfig(
@@ -304,17 +312,9 @@ class _ConfigDialogState extends State<ConfigDialog> {
     }
 
     if (status == ConnectionStatus.connected) {
-      // Preserve existing defaultTagIds when updating server
-      List<int> existingDefaultTagIds = [];
-      if (_editingServerId != null) {
-        if (!mounted) return;
-        final serverManager = Provider.of<ServerManager>(context, listen: false);
-        final existingServer = serverManager.getServer(_editingServerId!);
-        if (existingServer != null) {
-          existingDefaultTagIds = existingServer.defaultTagIds;
-          developer.log('Preserving existing defaultTagIds: $existingDefaultTagIds', name: 'ConfigDialog');
-        }
-      }
+      // Preserve the server's existing default tags when updating it.
+      final existingDefaultTagIds = existingServer?.defaultTagIds ?? const <int>[];
+      developer.log('Preserving existing defaultTagIds: $existingDefaultTagIds', name: 'ConfigDialog');
 
       if (!mounted) return;
       final serverId = _editingServerId ?? ServerConfig.generateId();
@@ -324,7 +324,8 @@ class _ConfigDialogState extends State<ConfigDialog> {
       developer.log('Server URL: $serverUrl', name: 'ConfigDialog');
       developer.log('Auth method: ${_authMethod == _AuthMethod.apiToken ? "API Token" : "Username/Password"}', name: 'ConfigDialog');
 
-      final server = ServerConfig(
+      final server = ServerConfig.applyFormUpdate(
+        existingServer,
         id: serverId,
         name: _serverNameController.text.trim(),
         serverUrl: serverUrl,
@@ -332,9 +333,9 @@ class _ConfigDialogState extends State<ConfigDialog> {
             ? AuthMethod.apiToken
             : AuthMethod.usernamePassword,
         username: _authMethod == _AuthMethod.userPass ? username : null,
-        defaultTagIds: existingDefaultTagIds,
         allowSelfSignedCertificates: _allowSelfSignedCertificates,
         customHeaders: customHeaders.isNotEmpty ? customHeaders : null,
+        defaultTagIds: existingDefaultTagIds,
       );
 
       try {

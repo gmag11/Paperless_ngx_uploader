@@ -60,6 +60,8 @@ class AppConfigProvider extends ChangeNotifier {
   Future<void> saveConfiguration(String serverUrl, String username, String secret) async {
     final server = _serverManager.selectedServer;
     if (server != null) {
+      // Switching auth method must clear one of the two nullable auth fields,
+      // which copyWith cannot express; every other field is preserved explicitly.
       final updatedServer = ServerConfig(
         id: server.id,
         name: server.name,
@@ -68,6 +70,10 @@ class AppConfigProvider extends ChangeNotifier {
         username: username.isEmpty ? null : username,
         apiToken: username.isEmpty ? secret : null,
         allowSelfSignedCertificates: server.allowSelfSignedCertificates,
+        defaultTagIds: server.defaultTagIds,
+        askTagsBeforeUpload: server.askTagsBeforeUpload,
+        customHeaders: server.customHeaders,
+        favoriteTagIds: server.favoriteTagIds,
       );
       
       await _serverManager.updateServer(updatedServer);
@@ -83,15 +89,8 @@ class AppConfigProvider extends ChangeNotifier {
   Future<void> setAllowSelfSignedCertificates(bool allow) async {
     final server = _serverManager.selectedServer;
     if (server != null) {
-      final updatedServer = ServerConfig(
-        id: server.id,
-        name: server.name,
-        serverUrl: server.serverUrl,
-        authMethod: server.authMethod,
-        username: server.username,
-        apiToken: server.apiToken,
-        allowSelfSignedCertificates: allow,
-      );
+      // copyWith keeps every field this method does not change.
+      final updatedServer = server.copyWith(allowSelfSignedCertificates: allow);
       await _serverManager.updateServer(updatedServer);
     } else {
       // No server configured yet: update local fallback so UI reflects the
