@@ -546,7 +546,7 @@
   "@action_remove_header": {
     "description": "Tooltip del botón para eliminar una fila de cabecera"
   },
-  "validation_custom_header_incomplete": "La clave o valor de la cabecera está vacío. Completá o eliminá la fila.",
+  "validation_custom_header_incomplete": "La clave o valor de la cabecera está vacío. Completa o elimina la fila.",
   "@validation_custom_header_incomplete": {
     "description": "Error de validación cuando una clave o valor de cabecera personalizada está vacío"
   },
@@ -558,5 +558,102 @@
   "mark_unfavorite": "Quitar de favoritas",
   "@mark_unfavorite": {
     "description": "Tooltip del botón estrella para quitar una etiqueta de favoritas"
+  },
+
+  "section_title_client_certificate": "Certificado de cliente (mTLS)",
+  "@section_title_client_certificate": {
+    "description": "Título de la sección de certificado de cliente en el formulario de servidor"
+  },
+  "label_certificate_format": "Formato",
+  "@label_certificate_format": {
+    "description": "Etiqueta del selector de formato del certificado de cliente"
+  },
+  "certificate_format_pkcs12": "PKCS#12 (.p12/.pfx)",
+  "@certificate_format_pkcs12": {
+    "description": "Opción de formato para un contenedor PKCS#12"
+  },
+  "certificate_format_pem": "PEM (certificado + clave)",
+  "@certificate_format_pem": {
+    "description": "Opción de formato para archivos PEM"
+  },
+  "field_label_client_certificate": "Archivo de certificado",
+  "@field_label_client_certificate": {
+    "description": "Etiqueta del selector de archivo de certificado de cliente"
+  },
+  "field_label_client_private_key": "Archivo de clave privada",
+  "@field_label_client_private_key": {
+    "description": "Etiqueta del selector de archivo de clave privada PEM"
+  },
+  "field_label_client_certificate_password": "Contraseña del certificado",
+  "@field_label_client_certificate_password": {
+    "description": "Etiqueta del campo de contraseña del certificado de cliente"
+  },
+  "action_choose_file": "Elegir archivo",
+  "@action_choose_file": {
+    "description": "Etiqueta del botón para elegir un archivo de certificado o clave"
+  },
+  "action_remove_client_certificate": "Quitar certificado",
+  "@action_remove_client_certificate": {
+    "description": "Etiqueta del botón para quitar el certificado de cliente configurado"
+  },
+  "section_title_advanced": "Avanzado",
+  "@section_title_advanced": {
+    "description": "Título de una subsección plegada con ajustes avanzados opcionales"
+  },
+  "field_label_custom_ca": "Certificado de CA personalizada (opcional)",
+  "@field_label_custom_ca": {
+    "description": "Etiqueta del selector opcional de certificado de CA personalizada"
+  },
+  "certificate_pem_unavailable_ios": "PEM no es compatible con iOS. Usa un archivo PKCS#12 (.p12/.pfx).",
+  "@certificate_pem_unavailable_ios": {
+    "description": "Explicación mostrada cuando el formato PEM no está disponible en la plataforma"
+  },
+  "validation_client_certificate_required": "Selecciona un archivo de certificado de cliente.",
+  "@validation_client_certificate_required": {
+    "description": "Error de validación cuando el certificado de cliente está activado sin archivo"
+  },
+  "validation_client_private_key_required": "Selecciona el archivo de clave privada PEM.",
+  "@validation_client_private_key_required": {
+    "description": "Error de validación cuando un certificado PEM no tiene clave privada"
+  },
+  "error_client_certificate": "El certificado de cliente fue rechazado. Verifica que sea válido y no haya caducado.",
+  "@error_client_certificate": {
+    "description": "Error mostrado cuando el certificado de cliente es rechazado o no es válido"
+  },
+  "error_client_certificate_required": "El servidor requiere un certificado de cliente, pero no hay ninguno configurado.",
+  "@error_client_certificate_required": {
+    "description": "Error mostrado cuando el servidor requiere un certificado de cliente"
+  },
+  "error_client_certificate_password": "La contraseña del certificado de cliente es incorrecta.",
+  "@error_client_certificate_password": {
+    "description": "Error mostrado cuando la contraseña del certificado de cliente es incorrecta"
+  },
+  "action_input_file": "Archivo",
+  "@action_input_file": {
+    "description": "Opción de entrada para elegir un certificado desde un archivo"
+  },
+  "action_input_paste": "Pegar",
+  "@action_input_paste": {
+    "description": "Opción de entrada para pegar material de certificado como texto"
+  },
+  "field_hint_paste_pem": "Pega el contenido PEM (-----BEGIN ...)",
+  "@field_hint_paste_pem": {
+    "description": "Texto de ayuda para pegar material PEM"
+  },
+  "field_hint_paste_base64": "Pega el base64 del archivo .p12/.pfx",
+  "@field_hint_paste_base64": {
+    "description": "Texto de ayuda para pegar un contenedor PKCS#12 en base64"
+  },
+  "validation_client_certificate_invalid": "El certificado pegado no es PEM ni base64 válidos.",
+  "@validation_client_certificate_invalid": {
+    "description": "Error de validación cuando el material pegado no se puede decodificar"
+  },
+  "validation_client_private_key_invalid": "La clave privada pegada no es PEM válida.",
+  "@validation_client_private_key_invalid": {
+    "description": "Error de validación cuando la clave privada PEM pegada no es válida"
+  },
+  "validation_custom_ca_invalid": "El certificado de CA pegado no es PEM válido.",
+  "@validation_custom_ca_invalid": {
+    "description": "Error de validación cuando el certificado de CA pegado no es válido"
   }
 }

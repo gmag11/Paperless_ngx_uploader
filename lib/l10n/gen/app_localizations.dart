@@ -722,6 +722,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove from favorites'**
   String get mark_unfavorite;
+
+  /// Title of the client certificate section in the server form
+  ///
+  /// In en, this message translates to:
+  /// **'Client certificate (mTLS)'**
+  String get section_title_client_certificate;
+
+  /// Label for the client certificate format selector
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get label_certificate_format;
+
+  /// Client certificate format option for a PKCS#12 container
+  ///
+  /// In en, this message translates to:
+  /// **'PKCS#12 (.p12/.pfx)'**
+  String get certificate_format_pkcs12;
+
+  /// Client certificate format option for PEM files
+  ///
+  /// In en, this message translates to:
+  /// **'PEM (certificate + key)'**
+  String get certificate_format_pem;
+
+  /// Label for the client certificate file picker
+  ///
+  /// In en, this message translates to:
+  /// **'Certificate file'**
+  String get field_label_client_certificate;
+
+  /// Label for the PEM private key file picker
+  ///
+  /// In en, this message translates to:
+  /// **'Private key file'**
+  String get field_label_client_private_key;
+
+  /// Label for the client certificate password field
+  ///
+  /// In en, this message translates to:
+  /// **'Certificate password'**
+  String get field_label_client_certificate_password;
+
+  /// Button label to pick a certificate or key file
+  ///
+  /// In en, this message translates to:
+  /// **'Choose file'**
+  String get action_choose_file;
+
+  /// Button label to remove the configured client certificate
+  ///
+  /// In en, this message translates to:
+  /// **'Remove certificate'**
+  String get action_remove_client_certificate;
+
+  /// Title of a collapsed subsection holding optional advanced settings
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get section_title_advanced;
+
+  /// Label for the optional custom CA certificate picker
+  ///
+  /// In en, this message translates to:
+  /// **'Custom CA certificate (optional)'**
+  String get field_label_custom_ca;
+
+  /// Explanation shown when the PEM format is unavailable on the platform
+  ///
+  /// In en, this message translates to:
+  /// **'PEM is not supported on iOS. Use a PKCS#12 (.p12/.pfx) file.'**
+  String get certificate_pem_unavailable_ios;
+
+  /// Validation error when the client certificate is enabled without a file
+  ///
+  /// In en, this message translates to:
+  /// **'Select a client certificate file.'**
+  String get validation_client_certificate_required;
+
+  /// Validation error when a PEM certificate has no private key
+  ///
+  /// In en, this message translates to:
+  /// **'Select the PEM private key file.'**
+  String get validation_client_private_key_required;
+
+  /// Error shown when the client certificate is rejected or invalid
+  ///
+  /// In en, this message translates to:
+  /// **'The client certificate was rejected. Check that it is valid and not expired.'**
+  String get error_client_certificate;
+
+  /// Error shown when the server requires a client certificate
+  ///
+  /// In en, this message translates to:
+  /// **'The server requires a client certificate, but none is configured.'**
+  String get error_client_certificate_required;
+
+  /// Error shown when the client certificate password is wrong
+  ///
+  /// In en, this message translates to:
+  /// **'The client certificate password is incorrect.'**
+  String get error_client_certificate_password;
+
+  /// Input-mode option to choose a certificate from a file
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get action_input_file;
+
+  /// Input-mode option to paste certificate material as text
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get action_input_paste;
+
+  /// Hint for pasting PEM certificate material
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the PEM content (-----BEGIN ...)'**
+  String get field_hint_paste_pem;
+
+  /// Hint for pasting a PKCS#12 container as base64
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the base64 of the .p12/.pfx file'**
+  String get field_hint_paste_base64;
+
+  /// Validation error when pasted certificate material cannot be decoded
+  ///
+  /// In en, this message translates to:
+  /// **'The pasted certificate is not valid PEM or base64.'**
+  String get validation_client_certificate_invalid;
+
+  /// Validation error when a pasted PEM private key is invalid
+  ///
+  /// In en, this message translates to:
+  /// **'The pasted private key is not valid PEM.'**
+  String get validation_client_private_key_invalid;
+
+  /// Validation error when a pasted CA certificate is invalid
+  ///
+  /// In en, this message translates to:
+  /// **'The pasted CA certificate is not valid PEM.'**
+  String get validation_custom_ca_invalid;
 }
 
 class _AppLocalizationsDelegate

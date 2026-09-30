@@ -362,11 +362,95 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get validation_custom_header_incomplete =>
-      'La clave o valor de la cabecera está vacío. Completá o eliminá la fila.';
+      'La clave o valor de la cabecera está vacío. Completa o elimina la fila.';
 
   @override
   String get mark_favorite => 'Marcar como favorita';
 
   @override
   String get mark_unfavorite => 'Quitar de favoritas';
+
+  @override
+  String get section_title_client_certificate =>
+      'Certificado de cliente (mTLS)';
+
+  @override
+  String get label_certificate_format => 'Formato';
+
+  @override
+  String get certificate_format_pkcs12 => 'PKCS#12 (.p12/.pfx)';
+
+  @override
+  String get certificate_format_pem => 'PEM (certificado + clave)';
+
+  @override
+  String get field_label_client_certificate => 'Archivo de certificado';
+
+  @override
+  String get field_label_client_private_key => 'Archivo de clave privada';
+
+  @override
+  String get field_label_client_certificate_password =>
+      'Contraseña del certificado';
+
+  @override
+  String get action_choose_file => 'Elegir archivo';
+
+  @override
+  String get action_remove_client_certificate => 'Quitar certificado';
+
+  @override
+  String get section_title_advanced => 'Avanzado';
+
+  @override
+  String get field_label_custom_ca =>
+      'Certificado de CA personalizada (opcional)';
+
+  @override
+  String get certificate_pem_unavailable_ios =>
+      'PEM no es compatible con iOS. Usa un archivo PKCS#12 (.p12/.pfx).';
+
+  @override
+  String get validation_client_certificate_required =>
+      'Selecciona un archivo de certificado de cliente.';
+
+  @override
+  String get validation_client_private_key_required =>
+      'Selecciona el archivo de clave privada PEM.';
+
+  @override
+  String get error_client_certificate =>
+      'El certificado de cliente fue rechazado. Verifica que sea válido y no haya caducado.';
+
+  @override
+  String get error_client_certificate_required =>
+      'El servidor requiere un certificado de cliente, pero no hay ninguno configurado.';
+
+  @override
+  String get error_client_certificate_password =>
+      'La contraseña del certificado de cliente es incorrecta.';
+
+  @override
+  String get action_input_file => 'Archivo';
+
+  @override
+  String get action_input_paste => 'Pegar';
+
+  @override
+  String get field_hint_paste_pem => 'Pega el contenido PEM (-----BEGIN ...)';
+
+  @override
+  String get field_hint_paste_base64 => 'Pega el base64 del archivo .p12/.pfx';
+
+  @override
+  String get validation_client_certificate_invalid =>
+      'El certificado pegado no es PEM ni base64 válidos.';
+
+  @override
+  String get validation_client_private_key_invalid =>
+      'La clave privada pegada no es PEM válida.';
+
+  @override
+  String get validation_custom_ca_invalid =>
+      'El certificado de CA pegado no es PEM válido.';
 }

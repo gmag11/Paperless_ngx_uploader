@@ -548,5 +548,102 @@
   "mark_unfavorite": "Remove from favorites",
   "@mark_unfavorite": {
     "description": "Tooltip for star button to remove a tag from favorites"
+  },
+
+  "section_title_client_certificate": "Client certificate (mTLS)",
+  "@section_title_client_certificate": {
+    "description": "Title of the client certificate section in the server form"
+  },
+  "label_certificate_format": "Format",
+  "@label_certificate_format": {
+    "description": "Label for the client certificate format selector"
+  },
+  "certificate_format_pkcs12": "PKCS#12 (.p12/.pfx)",
+  "@certificate_format_pkcs12": {
+    "description": "Client certificate format option for a PKCS#12 container"
+  },
+  "certificate_format_pem": "PEM (certificate + key)",
+  "@certificate_format_pem": {
+    "description": "Client certificate format option for PEM files"
+  },
+  "field_label_client_certificate": "Certificate file",
+  "@field_label_client_certificate": {
+    "description": "Label for the client certificate file picker"
+  },
+  "field_label_client_private_key": "Private key file",
+  "@field_label_client_private_key": {
+    "description": "Label for the PEM private key file picker"
+  },
+  "field_label_client_certificate_password": "Certificate password",
+  "@field_label_client_certificate_password": {
+    "description": "Label for the client certificate password field"
+  },
+  "action_choose_file": "Choose file",
+  "@action_choose_file": {
+    "description": "Button label to pick a certificate or key file"
+  },
+  "action_remove_client_certificate": "Remove certificate",
+  "@action_remove_client_certificate": {
+    "description": "Button label to remove the configured client certificate"
+  },
+  "section_title_advanced": "Advanced",
+  "@section_title_advanced": {
+    "description": "Title of a collapsed subsection holding optional advanced settings"
+  },
+  "field_label_custom_ca": "Custom CA certificate (optional)",
+  "@field_label_custom_ca": {
+    "description": "Label for the optional custom CA certificate picker"
+  },
+  "certificate_pem_unavailable_ios": "PEM is not supported on iOS. Use a PKCS#12 (.p12/.pfx) file.",
+  "@certificate_pem_unavailable_ios": {
+    "description": "Explanation shown when the PEM format is unavailable on the platform"
+  },
+  "validation_client_certificate_required": "Select a client certificate file.",
+  "@validation_client_certificate_required": {
+    "description": "Validation error when the client certificate is enabled without a file"
+  },
+  "validation_client_private_key_required": "Select the PEM private key file.",
+  "@validation_client_private_key_required": {
+    "description": "Validation error when a PEM certificate has no private key"
+  },
+  "error_client_certificate": "The client certificate was rejected. Check that it is valid and not expired.",
+  "@error_client_certificate": {
+    "description": "Error shown when the client certificate is rejected or invalid"
+  },
+  "error_client_certificate_required": "The server requires a client certificate, but none is configured.",
+  "@error_client_certificate_required": {
+    "description": "Error shown when the server requires a client certificate"
+  },
+  "error_client_certificate_password": "The client certificate password is incorrect.",
+  "@error_client_certificate_password": {
+    "description": "Error shown when the client certificate password is wrong"
+  },
+  "action_input_file": "File",
+  "@action_input_file": {
+    "description": "Input-mode option to choose a certificate from a file"
+  },
+  "action_input_paste": "Paste",
+  "@action_input_paste": {
+    "description": "Input-mode option to paste certificate material as text"
+  },
+  "field_hint_paste_pem": "Paste the PEM content (-----BEGIN ...)",
+  "@field_hint_paste_pem": {
+    "description": "Hint for pasting PEM certificate material"
+  },
+  "field_hint_paste_base64": "Paste the base64 of the .p12/.pfx file",
+  "@field_hint_paste_base64": {
+    "description": "Hint for pasting a PKCS#12 container as base64"
+  },
+  "validation_client_certificate_invalid": "The pasted certificate is not valid PEM or base64.",
+  "@validation_client_certificate_invalid": {
+    "description": "Validation error when pasted certificate material cannot be decoded"
+  },
+  "validation_client_private_key_invalid": "The pasted private key is not valid PEM.",
+  "@validation_client_private_key_invalid": {
+    "description": "Validation error when a pasted PEM private key is invalid"
+  },
+  "validation_custom_ca_invalid": "The pasted CA certificate is not valid PEM.",
+  "@validation_custom_ca_invalid": {
+    "description": "Validation error when a pasted CA certificate is invalid"
   }
 }
