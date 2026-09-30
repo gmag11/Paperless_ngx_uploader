@@ -33,13 +33,16 @@ See `proposal.md` for motivation. Current state relevant to the approach:
 
 ## Decisions
 
-1. **Provider partial updates use `ServerConfig.copyWith`.** Both
-   `setAllowSelfSignedCertificates` and `saveConfiguration` change a single
-   concern, so `server.copyWith(...)` is the correct primitive.
-   - *Why*: it preserves every field by construction and makes the intent
-     explicit.
-   - *Discarded alternative*: listing all fields by hand in every method — the
-     current approach, which is exactly what dropped data.
+1. **Provider partial updates preserve every field they do not change.**
+   `setAllowSelfSignedCertificates` uses `server.copyWith(...)`.
+   `saveConfiguration` switches the auth method, which requires clearing one of
+   the two mutually exclusive nullable fields (`username`/`apiToken`) — something
+   `copyWith`'s "null means keep" contract cannot express — so it rebuilds the
+   object listing **every** field, including the four it previously dropped.
+   - *Why*: preservation by construction, without changing shared `copyWith`
+     semantics.
+   - *Discarded alternatives*: listing only the changed fields by hand (the
+     original bug); adding a clear-flag to `copyWith` for each nullable field.
 
 2. **The dialog's save uses a small pure helper instead of a fresh
    `ServerConfig(...)`.** A pure function merges the form's values into the
