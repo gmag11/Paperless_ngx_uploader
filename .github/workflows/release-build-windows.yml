@@ -3,6 +3,12 @@ name: Build Windows and Create Installer
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and upload to (e.g. 1.8.5)'
+        required: true
+        type: string
 
 jobs:
   windows:
@@ -13,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Set up Flutter (stable)
         uses: subosito/flutter-action@v2
@@ -29,23 +37,16 @@ jobs:
       - name: Build Windows Release
         run: flutter build windows --release
 
-      - name: Download Inno Setup installer
+      - name: Ensure Inno Setup is available
         shell: powershell
         run: |
-          $url = 'https://jrsoftware.org/download.php/is.exe?site=1'
-          Write-Host "Downloading Inno Setup from $url"
-          Invoke-WebRequest -Uri $url -OutFile is.exe
-
-      - name: Install Inno Setup silently
-        shell: powershell
-        run: |
-          Write-Host 'Attempting silent install of Inno Setup to "C:\Program Files (x86)\Inno Setup 6"'
-          Start-Process -FilePath .\is.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/DIR="C:\Program Files (x86)\Inno Setup 6"' -Wait -NoNewWindow
-
-      - name: Confirm ISCC exists
-        shell: powershell
-        run: |
+          # Inno Setup ships with the windows-2022 runner image; install it with
+          # Chocolatey only if a future image drops it.
           $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            Write-Host 'Inno Setup not found on the runner image; installing it with Chocolatey'
+            choco install innosetup --no-progress -y
+          }
           if (-not (Test-Path $iscc)) {
             Write-Error "ISCC.exe not found at $iscc"
             exit 1
@@ -72,4 +73,6 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: windows/installer/Output/PaperlessNGX_Uploader_Installer_Windows_x64.exe
+          tag_name: ${{ inputs.tag || github.event.release.tag_name }}
+          overwrite_files: true
           token: ${{ secrets.TOKEN }}
