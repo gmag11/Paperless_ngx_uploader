@@ -24,6 +24,26 @@ void main() {
       await sub.cancel();
     });
 
+    test('a batch delivered to an attached listener is not kept as pending',
+        () async {
+      final received = <ShareReceivedBatchEvent>[];
+      final sub = IntentHandler.batchEventStream.listen(received.add);
+
+      await IntentHandler.handleSharePayload(
+        SharePayload(files: ['/tmp/cache/photo.png'], errors: ['broken.pdf']),
+      );
+      await Future.delayed(Duration.zero);
+
+      expect(received, hasLength(1));
+
+      // If the batch stayed pending, a recreated screen would process it again.
+      final pending = IntentHandler.consumePendingBatch();
+      expect(pending.files, isEmpty);
+      expect(pending.errors, isEmpty);
+
+      await sub.cancel();
+    });
+
     test('a batch with only unreadable files still reports them', () async {
       final received = <ShareReceivedBatchEvent>[];
       final sub = IntentHandler.batchEventStream.listen(received.add);

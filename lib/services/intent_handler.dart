@@ -226,6 +226,12 @@ class IntentHandler {
 
     final events = <ShareReceivedEvent>[];
 
+    // Pending events bridge the window before the UI attaches its batch
+    // listener. When a listener is already attached (warm start), the batch is
+    // delivered through the stream and must not be kept as pending, or a later
+    // State recreation would consume and process the same files twice.
+    final hasBatchListener = _batchEventController.hasListener;
+
     // Clear pending events if any (app launched by drag-drop or share)
     _pendingEvents.clear();
     _pendingErrors.clear();
@@ -277,7 +283,9 @@ class IntentHandler {
       }
 
       events.add(event);
-      _pendingEvents.add(event);
+      if (!hasBatchListener) {
+        _pendingEvents.add(event);
+      }
 
       if (!_eventController.isClosed) {
         _eventController.add(event);
@@ -286,7 +294,9 @@ class IntentHandler {
 
     // The files that could not be read are carried through the batch so the UI
     // reports them instead of pretending they arrived.
-    _pendingErrors.addAll(payload.errors);
+    if (!hasBatchListener) {
+      _pendingErrors.addAll(payload.errors);
+    }
 
     if ((events.isNotEmpty || payload.errors.isNotEmpty) &&
         !_batchEventController.isClosed) {
