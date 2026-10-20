@@ -1,12 +1,8 @@
 What's New in 1.8.5
 
-Highlights:
-• Client certificates (mTLS) — present a per-server certificate, with an optional custom CA, to reverse proxies that require mutual TLS (#19).
-• "Open with" — send documents from other apps directly to the uploader.
-• Unreadable shared files are reported instead of being silently skipped.
-
-Other improvements:
-• Editing a server no longer discards its other settings, tags or headers.
-• Shared and "Open with" files are no longer uploaded twice after the app is recreated.
-• Updated Flutter SDK and dependencies.
-• New Android unit tests for intent handling.
+• Client certificates (mTLS), with optional custom CA, for reverse proxies (#19).
+• Send documents from other apps with "Open with".
+• Report unreadable shared files instead of silently skipping them.
+• Preserve server settings, tags and headers when editing.
+• Prevent duplicate uploads after app recreation.
+• Updated Flutter SDK and dependencies; added Android intent tests.
